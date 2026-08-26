@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  linux-cmake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxext-dev libxft-dev libfontconfig1-dev libfreetype6-dev cmake build-essential
+      - name: Build (cmake)
+        run: cmake -B build && cmake --build build --config Release
+      - name: Run tests
+        run: |
+          ./build/test_core
+          ./build/test_orthogonality
+          ./build/test_feedback
+          ./build/perception_smoke
+          ./build/perception_phase2
+          ./build/undo_via_graph
+          ./build/antipattern_estimate
+          ./build/antipattern_closure
+          ./build/antipattern_perception
+
+  linux-make:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxext-dev libxft-dev libfontconfig1-dev libfreetype6-dev make
+      - name: Build (make, headless)
+        run: make BACKEND=headless
+      - name: Run tests
+        run: make test
+      - name: Run orthogonality tests
+        run: make test_ortho
+      - name: Run feedback tests (v0.4)
+        run: make test_feedback
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build (cmake)
+        run: cmake -B build -DCMAKE_EXE_LINKER_FLAGS="-lX11 -lXext -lfreetype -lfontconfig" && cmake --build build --config Release
+      - name: Run tests
+        run: |
+          .\build\Release\test_core.exe
+          .\build\Release\test_orthogonality.exe
+          .\build\Release\test_feedback.exe
+          .\build\Release\perception_smoke.exe
+          .\build\Release\perception_phase2.exe
+          .\build\Release\undo_via_graph.exe
+
+  strict-warnings:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxext-dev libfreetype6-dev libfontconfig1-dev make
+      - name: Build with -Werror
+        run: make BACKEND=headless CFLAGS_EXTRA="-Werror"
+      - name: Run tests
+        run: make test
+      - name: Run orthogonality tests
+        run: make test_ortho
+      - name: Run feedback tests (v0.4)
+        run: make test_feedback
+

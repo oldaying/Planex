@@ -1,0 +1,215 @@
+# Planex Makefile — Stage 10 (multi-backend: X11 / Win32 / Cocoa / Headless + TTF)
+#
+# Backends are selected at compile time. The Makefile auto-detects
+# the platform; you can override with: make BACKEND=headless
+
+INC_DIR  = include
+SRC_DIR  = src
+TST_DIR  = tests
+EX_DIR   = examples
+BUILD    = build
+
+# FreeType for TTF font support (Stage 10) — optional, gracefully
+# degrades to built-in 8x16 bitmap font if not available
+FREETYPE_CFLAGS = $(shell pkg-config --cflags freetype2 2>/dev/null)
+FREETYPE_LIBS   = $(shell pkg-config --libs   freetype2 2>/dev/null)
+ifdef FREETYPE_LIBS
+  CFLAGS  += -DPLANEX_HAVE_FREETYPE=1
+endif
+
+# Fontconfig for font discovery by name (Stage 13) — optional
+FONTCONFIG_CFLAGS = $(shell pkg-config --cflags fontconfig 2>/dev/null)
+FONTCONFIG_LIBS   = $(shell pkg-config --libs   fontconfig 2>/dev/null)
+ifdef FONTCONFIG_LIBS
+  CFLAGS  += -DPLANEX_HAVE_FONTCONFIG=1
+endif
+
+CC      ?= cc
+CFLAGS  ?= -std=c17 -Wall -Wextra -Wpedantic -g -O0
+CFLAGS  += $(CFLAGS_EXTRA)
+CFLAGS  += $(FREETYPE_CFLAGS) $(FONTCONFIG_CFLAGS)
+LDFLAGS ?= -lm
+LDFLAGS += $(FREETYPE_LIBS) $(FONTCONFIG_LIBS)
+
+# Core sources (no backend dependency)
+CORE_SRCS = $(SRC_DIR)/relation.c $(SRC_DIR)/estimate.c $(SRC_DIR)/closure.c \
+	    $(SRC_DIR)/perception.c $(SRC_DIR)/undo.c $(SRC_DIR)/feedback.c \
+	    $(SRC_DIR)/fb.c $(SRC_DIR)/font.c $(SRC_DIR)/a11y.c $(SRC_DIR)/layout.c
+CORE_OBJS = $(patsubst $(SRC_DIR)/%.c,$(BUILD)/%.o,$(CORE_SRCS))
+
+# ============================================================
+# Optional: FreeType (CJK font rendering)
+# ============================================================
+FREETYPE_FLAGS := $(shell pkg-config --cflags freetype2 2>/dev/null)
+FREETYPE_LIBS := $(shell pkg-config --libs freetype2 2>/dev/null)
+ifneq ($(FREETYPE_LIBS),)
+  CORE_SRCS += $(SRC_DIR)/font_ttf.c
+  CFLAGS += $(FREETYPE_FLAGS) -DPLANEX_HAVE_FREETYPE=1
+  LIBS += $(FREETYPE_LIBS)
+endif
+
+# ============================================================
+# Backend auto-detection
+# ============================================================
+
+ifndef BACKEND
+  ifeq ($(OS),Windows_NT)
+    BACKEND = win32
+  else
+    UNAME_S := $(shell uname -s)
+    ifeq ($(UNAME_S),Darwin)
+      BACKEND = cocoa
+    else
+      BACKEND = x11
+    endif
+  endif
+endif
+
+# Backend sources and libs
+ifeq ($(BACKEND),x11)
+  BACKEND_SRCS = $(SRC_DIR)/x11.c $(SRC_DIR)/app.c
+  BACKEND_OBJS = $(BUILD)/x11.o $(BUILD)/app.o
+  BACKEND_LIBS = -lX11 -lXext
+  BACKEND_DEFS = -DPLANEX_BACKEND_X11
+else ifeq ($(BACKEND),win32)
+  BACKEND_SRCS = $(SRC_DIR)/win32.c $(SRC_DIR)/app.c
+  BACKEND_OBJS = $(BUILD)/win32.o $(BUILD)/app.o
+  BACKEND_LIBS = -lgdi32 -luser32 -limm32
+  BACKEND_DEFS = -DPLANEX_BACKEND_WIN32
+  EXE_SUFFIX = .exe
+else ifeq ($(BACKEND),cocoa)
+  BACKEND_SRCS = $(SRC_DIR)/cocoa.c $(SRC_DIR)/app.c
+  BACKEND_OBJS = $(BUILD)/cocoa.o $(BUILD)/app.o
+  BACKEND_LIBS = -framework Cocoa -framework Foundation
+  BACKEND_DEFS = -DPLANEX_BACKEND_COCOA
+  # Note: cocoa.c must be compiled as Objective-C
+  CC_OBJC = clang -x objective-c
+else ifeq ($(BACKEND),headless)
+  BACKEND_SRCS = $(SRC_DIR)/headless.c $(SRC_DIR)/app.c
+  BACKEND_OBJS = $(BUILD)/headless.o $(BUILD)/app.o
+  BACKEND_LIBS =
+  BACKEND_DEFS = -DPLANEX_BACKEND_HEADLESS
+else
+  $(error Unknown BACKEND '$(BACKEND)'. Use: x11 / win32 / cocoa / headless)
+endif
+
+# Backend objects — ensure headless.o / x11.o / win32.o / cocoa.o comes before app.o
+BACKEND_OBJS := $(patsubst $(SRC_DIR)/%.c,$(BUILD)/%.o,$(filter-out $(SRC_DIR)/app.c,$(BACKEND_SRCS))) $(BUILD)/app.o
+
+# ============================================================
+# Examples
+# ============================================================
+
+EXAMPLES_NO_X11 = counter_4abs multi_perception perception_smoke perception_phase2 \
+	          undo_via_graph antipattern_estimate antipattern_closure antipattern_perception \
+	          counter_denotative calculator_denotative editor_meaning
+
+# All X11 demos work on all backends (public API is identical)
+EXAMPLES_WINDOWED = counter_perception_window counter_interactive hover_drag_4abs
+
+ifeq ($(BACKEND),headless)
+  EXAMPLES = $(EXAMPLES_NO_X11)
+else
+  EXAMPLES = $(EXAMPLES_NO_X11) $(EXAMPLES_WINDOWED)
+endif
+
+TEST_SRC       = $(TST_DIR)/test_core.c
+TEST_BIN       = $(BUILD)/test_core
+TEST_ORTHO     = $(BUILD)/test_orthogonality
+TEST_ORTHO_SRC = $(TST_DIR)/test_orthogonality.c
+TEST_FEEDBACK  = $(BUILD)/test_feedback
+TEST_FEEDBACK_SRC = $(TST_DIR)/test_feedback.c
+
+.PHONY: all clean test test_ortho test_feedback examples backends-info
+
+all: examples test
+
+$(BUILD):
+	mkdir -p $(BUILD)
+
+# Compile core sources
+$(BUILD)/%.o: $(SRC_DIR)/%.c | $(BUILD)
+	$(CC) $(CFLAGS) $(BACKEND_DEFS) -I$(INC_DIR) -c $< -o $@
+
+# Special rule for cocoa.c (Objective-C)
+$(BUILD)/cocoa.o: $(SRC_DIR)/cocoa.c | $(BUILD)
+	$(CC) $(CFLAGS) $(BACKEND_DEFS) -I$(INC_DIR) -x objective-c -c $< -o $@
+
+# ============================================================
+# Examples
+# ============================================================
+
+examples: $(addprefix $(BUILD)/,$(EXAMPLES))
+
+# Windowed examples (need backend) — explicit per-target rule
+# (GNU Make's stem-selection picks generic % over %_x11)
+define WINDOWED_EXAMPLE_RULE
+$(BUILD)/$(1): $(EX_DIR)/$(1).c $(CORE_OBJS) $(BACKEND_OBJS) | $(BUILD)
+	$(CC) $(CFLAGS) $(BACKEND_DEFS) -I$(INC_DIR) $$< $(CORE_OBJS) $(BACKEND_OBJS) -o $$@$(EXE_SUFFIX) $(LDFLAGS) $(BACKEND_LIBS)
+endef
+
+$(foreach example,$(EXAMPLES_WINDOWED),$(eval $(call WINDOWED_EXAMPLE_RULE,$(example))))
+
+# Generic rule for non-windowed examples (stdout / BMP only)
+$(BUILD)/%: $(EX_DIR)/%.c $(CORE_OBJS) | $(BUILD)
+	$(CC) $(CFLAGS) -I$(INC_DIR) $< $(CORE_OBJS) -o $@$(EXE_SUFFIX) $(LDFLAGS)
+
+# ============================================================
+# Tests
+# ============================================================
+
+test: $(TEST_BIN)
+	./$(TEST_BIN)
+
+$(TEST_BIN): $(TEST_SRC) $(CORE_OBJS) | $(BUILD)
+	$(CC) $(CFLAGS) -I$(INC_DIR) $(TEST_SRC) $(CORE_OBJS) -o $@ $(LDFLAGS)
+
+test_ortho: $(TEST_ORTHO)
+	./$(TEST_ORTHO)
+
+$(TEST_ORTHO): $(TEST_ORTHO_SRC) $(CORE_OBJS) | $(BUILD)
+	$(CC) $(CFLAGS) -I$(INC_DIR) $(TEST_ORTHO_SRC) $(CORE_OBJS) -o $@ $(LDFLAGS)
+
+test_feedback: $(TEST_FEEDBACK)
+	./$(TEST_FEEDBACK)
+
+$(TEST_FEEDBACK): $(TEST_FEEDBACK_SRC) $(CORE_OBJS) | $(BUILD)
+	$(CC) $(CFLAGS) -I$(INC_DIR) $(TEST_FEEDBACK_SRC) $(CORE_OBJS) -o $@ $(LDFLAGS)
+
+# ============================================================
+# Backend info
+# ============================================================
+
+backends-info:
+	@echo "Available backends: x11, win32, cocoa, headless"
+	@echo "Current backend: $(BACKEND)"
+	@echo "Backend libs: $(BACKEND_LIBS)"
+	@echo "Backend defs: $(BACKEND_DEFS)"
+
+# ============================================================
+# Convenience targets (X11 variants)
+# ============================================================
+
+run-counter_4abs: $(BUILD)/counter_4abs ; ./$(BUILD)/counter_4abs
+run-todo:    $(BUILD)/todo    ; ./$(BUILD)/todo
+run-slider:  $(BUILD)/slider  ; ./$(BUILD)/slider
+run-radio:   $(BUILD)/radio   ; ./$(BUILD)/radio
+run-dropdown: $(BUILD)/dropdown ; ./$(BUILD)/dropdown
+run-tabs:    $(BUILD)/tabs    ; ./$(BUILD)/tabs
+run-checkbox: $(BUILD)/checkbox ; ./$(BUILD)/checkbox
+run-form:    $(BUILD)/form    ; ./$(BUILD)/form
+run-wizard:  $(BUILD)/wizard  ; ./$(BUILD)/wizard
+run-modal:   $(BUILD)/modal   ; ./$(BUILD)/modal
+run-multi_perception: $(BUILD)/multi_perception ; ./$(BUILD)/multi_perception
+run-slider_fb:  $(BUILD)/slider_fb  ; ./$(BUILD)/slider_fb
+run-counter_perception_window: $(BUILD)/counter_perception_window ; ./$(BUILD)/counter_perception_window
+run-slider_x11: $(BUILD)/slider_x11 ; ./$(BUILD)/slider_x11
+run-radio_x11: $(BUILD)/radio_x11 ; ./$(BUILD)/radio_x11
+run-dropdown_x11: $(BUILD)/dropdown_x11 ; ./$(BUILD)/dropdown_x11
+run-checkbox_x11: $(BUILD)/checkbox_x11 ; ./$(BUILD)/checkbox_x11
+run-form_x11: $(BUILD)/form_x11 ; ./$(BUILD)/form_x11
+run-perf_x11: $(BUILD)/perf_x11 ; ./$(BUILD)/perf_x11
+run-resize_x11: $(BUILD)/resize_x11 ; ./$(BUILD)/resize_x11
+
+clean:
+	rm -rf $(BUILD)

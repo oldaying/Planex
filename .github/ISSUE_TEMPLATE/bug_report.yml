@@ -1,0 +1,89 @@
+name: Bug Report
+about: Report a bug in Planex (especially for Win32/Cocoa backends)
+title: "[<backend>] <short description>"
+labels: bug
+body:
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Backend
+      description: Which backend did this happen on?
+      options:
+        - x11
+        - win32
+        - cocoa
+        - headless
+        - core (no backend)
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      placeholder: "Windows 11 23H2 / macOS 14.4 / Ubuntu 24.04"
+    validations:
+      required: true
+
+  - type: input
+    id: compiler
+    attributes:
+      label: Compiler
+      placeholder: "gcc 13.2.0 / clang 18 / MSVC 19.39"
+    validations:
+      required: true
+
+  - type: input
+    id: commit
+    attributes:
+      label: Planex commit / version
+      placeholder: "git SHA or tag (e.g. v0.7.0)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Crash (segfault, abort, hang)
+        - Wrong behavior (logic error)
+        - Visual glitch (rendering issue)
+        - Compile error
+        - Performance issue
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Exact commands to reproduce
+      placeholder: |
+        1. `make BACKEND=win32`
+        2. `./build/counter_x11.exe`
+        3. Click "+ Inc" button
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / build output
+      description: Paste stderr or `make` output. Will be rendered as code.
+      render: shell
