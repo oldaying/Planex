@@ -7,6 +7,8 @@
 > Per [essence-derivation-v2.md](essence-derivation-v2.md), [ADR-0007](../decisions/ADR-0007-essence-derivation-v2-revision.md), and [ADR-0008](../decisions/ADR-0008-feedback-as-fifth-essence-category.md): Planex implements **5 of 5 essence categories** (Feedback was added in v0.4 as `px_loop`), with 4 additional essence candidates (Embodiment, Situatedness, Affordance-as-relation, Breakdown) deferred as acknowledged.
 >
 > This document replaces the earlier "4 abstractions = 4 essence axes" framing. v0.4 closes the gap acknowledged in v0.3's essence-derivation v2.
+>
+> **Companion documents:** [`abstraction-form.md`](abstraction-form.md) argues *whether abstraction is the right form* (conditional on three prerequisites: ontological stability, orthogonal separability, falsifiability); [`../research/2025-08-28-abstraction-as-form-comparative-study.md`](../research/2025-08-28-abstraction-as-form-comparative-study.md) is the long-form comparative study. This document argues *which* abstractions Planex implements.
 
 ---
 

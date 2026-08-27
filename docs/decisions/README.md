@@ -134,6 +134,7 @@ After listing counterexamples, write a **Scope Statement**: "This decision appli
 | [0008](ADR-0008-feedback-as-fifth-essence-category.md) | Feedback as 5th essence category (v0.4) | Accepted |
 | [0009](ADR-0009-essence-rederivation-v3.md) | Essence re-derivation v3 + Path B prototype | Proposed (essence-claim framing downgraded by ADR-0010; implementation decisions stand) |
 | [0010](ADR-0010-v4-design-rationale-not-essence-discovery.md) | v4 essence derivation is design rationale, not essence discovery | Accepted |
+| [0011](ADR-0011-essence-justified-abstraction-exempts-rule-of-three.md) | Essence-justified abstraction is exempt from the Rule of Three | Accepted |
 
 ## Style rules
 
