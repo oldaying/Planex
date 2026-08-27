@@ -1,6 +1,6 @@
 # UI Pattern Coverage Matrix
 
-> **Purpose**: Before writing real application demos, systematically check which UI patterns the 4 abstractions (Relation + Estimate + Closure + Perception) can express cleanly, and which expose boundaries.
+> **Applies to**: v0.4. **Purpose**: Before writing real application demos, systematically check which UI patterns the 4 abstractions (Relation + Estimate + Closure + Perception) can express cleanly, and which expose boundaries.
 >
 > **Method**: For each pattern, ask:
 > 1. Can Estimate express the state?

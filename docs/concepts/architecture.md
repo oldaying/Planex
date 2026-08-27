@@ -1,6 +1,6 @@
 # Architecture Overview
 
-> How the source files relate to each other and to the three core abstractions.
+> **Applies to**: v0.4. How the source files relate to each other and to the core abstractions.
 
 This document describes the module structure of Planex at a level above individual files — useful for understanding where to look when modifying or extending the library.
 

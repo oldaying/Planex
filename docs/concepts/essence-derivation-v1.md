@@ -1,4 +1,4 @@
-# Essence Derivation
+# Essence Derivation v1
 
 > **Status:** ⚠️ SUPERSEDED by [essence-derivation-v2.md](essence-derivation-v2.md).
 >

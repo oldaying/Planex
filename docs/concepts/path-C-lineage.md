@@ -1,6 +1,8 @@
 # Planex as the Latest Attempt at Path C
 
 > **Status: Honest acknowledgment.** Planex is not an isolated project. It is the latest in a 60-year line of attempts at "constraint-graph + time-function + speech-act" UI. Most previous attempts failed. This document records the lineage honestly so future maintainers and critics can locate Planex in its real historical context.
+>
+> **Applies to**: v0.4 (current release). The lineage itself is release-independent; the "where Planex sits in it" assessment is current-release.
 
 This document is the canonical answer to "is Planex novel?" The answer is **no** — Planex is a synthesis of ideas from the 1960s, refined and combined in a way that has not been tried before, but the ideas themselves are not new.
 

@@ -2,6 +2,8 @@
 
 > **Status:** Canonical manifesto, revised for v0.4.
 >
+> **Applies to**: v0.4. The "4 abstractions" tagline was set in v0.2; the manifesto was rewritten in v0.3 to reflect v2 essence-derivation revisions; v0.4 added `px_loop` as 5th abstraction (Feedback essence category, ADR-0008). Future revisions pending ADR-0009 (Proposed) and ADR-0010 (Accepted, framing downgrade).
+>
 > Per [essence-derivation-v2.md](essence-derivation-v2.md), [ADR-0007](../decisions/ADR-0007-essence-derivation-v2-revision.md), and [ADR-0008](../decisions/ADR-0008-feedback-as-fifth-essence-category.md): Planex implements **5 of 5 essence categories** (Feedback was added in v0.4 as `px_loop`), with 4 additional essence candidates (Embodiment, Situatedness, Affordance-as-relation, Breakdown) deferred as acknowledged.
 >
 > This document replaces the earlier "4 abstractions = 4 essence axes" framing. v0.4 closes the gap acknowledged in v0.3's essence-derivation v2.
@@ -515,7 +517,7 @@ v2 (essence-derivation-v2.md) is the audit that surfaced these issues. This docu
 The history:
 1. v0.1.0 (2026-08-22): Planex released with "3 abstractions" claim. Perception was a no-op in Closure stage 5. ADR-0001 recorded the gap.
 2. v0.2 (2026-08-25): ADR-0005 promoted Perception to 4th abstraction. Closure restructured 7→5 stages.
-3. v0.3 (2026-08-26): 4 abstractions fully implemented. Essence derivation v1 (`essence-derivation.md`) attempted first-principles derivation; concluded "3 essence + 1 structural".
+3. v0.3 (2026-08-26): 4 abstractions fully implemented. Essence derivation v1 (`essence-derivation-v1.md`) attempted first-principles derivation; concluded "3 essence + 1 structural".
 4. v0.3.1 (2026-08-27): Essence derivation v2 (`essence-derivation-v2.md`) audited v1 against a 6-tradition literature survey. Found v1 was wrong about Relation (it is essence, not structural) and missed Feedback as a separate essence category. v2 also surfaced 4 deferred essence candidates from philosophy.
 
 The current claim is no longer "4 = 4". It is: **"4 essence categories implemented, 1 partial (Feedback), 4 deferred (Embodiment, Situatedness, Affordance-as-relation, Breakdown)."**
@@ -541,7 +543,7 @@ Planex **is**:
 ## See also
 
 - [essence-derivation-v2.md](essence-derivation-v2.md) — the audit that produced this revision
-- [essence-derivation.md](essence-derivation.md) — v1 derivation (superseded by v2; kept for history)
+- [essence-derivation-v1.md](essence-derivation-v1.md) — v1 derivation (superseded by v2; kept for history)
 - [ADR-0005](../decisions/ADR-0005-promote-perception-to-fourth-abstraction.md) — the decision that promoted Perception
 - [ADR-0007](../decisions/ADR-0007-essence-derivation-v2-revision.md) — records the v2 revision
 - [ADR-0001](../decisions/ADR-0001-perception-currently-noop.md) — historical record of the original gap (superseded by ADR-0005)

@@ -1,6 +1,8 @@
 # UI Essence — A Layered View
 
 > **Status: Authoritative reference for Planex's stance on UI essence.**
+>
+> **Applies to**: v0.4. Layer assignments may shift in future releases if ADR-0009 (Proposed) is accepted (would add Breakdown as a 6th abstraction, prompting re-layering).
 > Replaces the implicit "3 abstractions = UI essence" framing with an explicit layered model that admits Planex only implements part of UI essence, not all of it.
 
 This document records what UI essence is, in a layered form grounded in academic literature. It is the honest answer to "what is UI fundamentally?" — surveying the question across HCI, cognitive science, philosophy, and computing history.

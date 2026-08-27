@@ -1,6 +1,6 @@
 # Planex Roadmap — Matrix View
 
-> Replaces the flat Stage 0-19 list. Each row = one abstraction. Each column = one maturity dimension.  
+> **Applies to**: v0.4 forward-looking. Replaces the flat Stage 0-19 list. Each row = one abstraction. Each column = one maturity dimension.  
 > **Updated for v0.3: matrix is now ALL GREEN.**
 
 This view is borrowed from research-grade projects that survived (seL4, Lean, Raph Levien's Xilem, Zig): track **per-abstraction completeness**, not stage count.

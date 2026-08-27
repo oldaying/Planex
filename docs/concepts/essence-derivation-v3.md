@@ -1,4 +1,4 @@
-# Planex Essence Re-derivation — A First-Principles Audit
+# Planex Essence Derivation v3 — A First-Principles Audit
 
 > **Status**: Design analysis, not yet an ADR. Author: Super Z. Date: 2026-08-27.
 >

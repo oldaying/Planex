@@ -299,7 +299,7 @@ ADR's downgraded framing:
   v3 doc's framing stands as historical record. Future v3
   references in new docs must use the downgraded language.
 - `docs/concepts/essence-derivation-v2.md` — same as v3.
-- `docs/concepts/essence-derivation.md` (v1) — marked SUPERSEDED
+- `docs/concepts/essence-derivation-v1.md` (v1) — marked SUPERSEDED
   by v2; no change.
 - `docs/decisions/ADR-0009-essence-rederivation-v3.md` —
   implementation decisions stand; D4 and D5 essence-claim

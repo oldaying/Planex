@@ -1,6 +1,6 @@
 # Non-Goals
 
-> Things Planex deliberately does **not** aim to do. Documented here so they can be referenced when community pressure pushes the project to add them.
+> **Applies to**: v0.4 (and likely all future v0.x / v1.x). Things Planex deliberately does **not** aim to do. Documented here so they can be referenced when community pressure pushes the project to add them.
 
 Non-goals are not weaknesses. They are the **negative space** that defines what Planex is. A project without non-goals is a project without identity — it eventually tries to be everything and ends up being nothing. (See: Eve, Subtext, and other research projects that died from scope creep.)
 

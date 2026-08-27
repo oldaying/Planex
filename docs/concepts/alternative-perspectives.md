@@ -1,6 +1,6 @@
 # Alternative Perspectives on UI Essence
 
-> UI essence is not a single theory. It is a contested concept with **four academic schools**, each making different ontological assumptions about what UI fundamentally is. Planex has chosen two of the four; the other two are recorded here as alternative perspectives that Planex does not adopt but acknowledges as legitimate.
+> **Applies to**: v0.4. UI essence is not a single theory. It is a contested concept with **four academic schools**, each making different ontological assumptions about what UI fundamentally is. Planex has chosen two of the four; the other two are recorded here as alternative perspectives that Planex does not adopt but acknowledges as legitimate.
 
 This document exists to keep Planex honest about its philosophical commitments. If a future maintainer asks "why does Planex model UI this way and not that way?", the answer is here — not in intuition.
 

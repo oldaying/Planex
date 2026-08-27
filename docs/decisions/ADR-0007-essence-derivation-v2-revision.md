@@ -12,7 +12,7 @@ Supersedes: the essence framing in [ADR-0005](ADR-0005-promote-perception-to-fou
 
 ADR-0005 framed Planex as "4 abstractions = 4 essence axes". This was the canonical claim in `why-four-abstractions.md` and across the project's documentation.
 
-This claim was derived from `essence-derivation.md` (v1), a single-author derivation from a minimal UI definition. v1 concluded:
+This claim was derived from `essence-derivation-v1.md` (v1), a single-author derivation from a minimal UI definition. v1 concluded:
 - 3 abstractions (Estimate, Closure, Perception) are essence-derived
 - 1 abstraction (Relation) is structurally-derived under an additional "UI is a network" premise
 
@@ -68,7 +68,7 @@ The canonical manifesto is rewritten to reflect the new claim. The file name is 
 
 ### D3. Mark v1 as superseded
 
-`essence-derivation.md` (v1) gets a "⚠️ SUPERSEDED by v2" banner at the top, with a brief summary of what v2 changed. The document body is kept for historical reference.
+`essence-derivation-v1.md` (v1) gets a "⚠️ SUPERSEDED by v2" banner at the top, with a brief summary of what v2 changed. The document body is kept for historical reference.
 
 ### D4. Acknowledge deferred essence candidates
 
@@ -171,7 +171,7 @@ Rejected because it's incomplete honesty. If Embodiment/Situatedness/Affordance-
 ## References
 
 - [essence-derivation-v2.md](../concepts/essence-derivation-v2.md) — the v2 derivation that grounds this ADR
-- [essence-derivation.md](../concepts/essence-derivation.md) — v1 (superseded by v2)
+- [essence-derivation-v1.md](../concepts/essence-derivation-v1.md) — v1 (superseded by v2)
 - [why-four-abstractions.md](../concepts/why-four-abstractions.md) — canonical manifesto, revised per this ADR
 - [ADR-0005](ADR-0005-promote-perception-to-fourth-abstraction.md) — Perception's promotion (framing corrected, decision stands)
 - [limitations.md](../concepts/limitations.md) — where deferred essence candidates are listed

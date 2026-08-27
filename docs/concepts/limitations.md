@@ -1,6 +1,6 @@
 # Limitations and Known Gaps
 
-> What Planex claims vs. what Planex actually delivers. This document exists to keep the README's "4 abstractions" tagline honest by surfacing the gaps that the tagline hides.
+> **Applies to**: v0.4. What Planex claims vs. what Planex actually delivers. This document exists to keep the README's "4 abstractions" tagline honest by surfacing the gaps that the tagline hides.
 
 Research-grade projects gain credibility by being explicit about their limitations. seL4 lists which security properties are proven and which aren't. Lean lists which axioms are consistent and which are open. Planex must do the same.
 

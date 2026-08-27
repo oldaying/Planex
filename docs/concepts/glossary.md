@@ -1,6 +1,6 @@
 # Glossary
 
-> Definitions for Planex-specific terminology. Terms are listed alphabetically.
+> **Applies to**: v0.4. Definitions for Planex-specific terminology. Terms are listed alphabetically.
 
 Planex uses several terms in ways that may differ from common UI library usage. This glossary is the canonical source of definitions — if a term is used in the docs without explanation, it should be defined here.
 
