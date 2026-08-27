@@ -39,6 +39,8 @@ Phase 2 (planned v0.3): Implement runtime perception-driven rendering. Replace t
 
 Until Phase 2, perceptions must be invoked manually (as `counter_4abs.c` does in its `main()`).
 
+**Quantitative confirmation:** this gap is also quantified in [`leak-budgets.md`](leak-budgets.md) — Perception's L2 (semantic-leak) rate is **50%** (3 of 6 public operations exist only as workarounds for the missing Phase 2 auto-invocation), the highest among Planex's 5 shipping abstractions. Closing L1 (Phase 2) is also the single biggest leak-budget win available without introducing new abstractions.
+
 **Status in roadmap matrix:** Perception row — Theory ✅, Proof ⚠️ (Phase 1 stub), Engineering 🔴 (Phase 2), Docs ✅, Anti-pattern 🔴.
 
 ---

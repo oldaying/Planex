@@ -75,7 +75,7 @@ The 5 shipping abstractions (v0.4) each bind exactly one constitutive question, 
 - `src/relation.c` — answers "what is connected to what?"
 - `src/loop.c` — answers "when does control yield?"
 
-Orthogonality is empirically supported: each abstraction has its own test file (`tests/test_*.c`), denotation parallelizes across channels (pixel / a11y / audit log) without coordination, and intent serializes to a value that can be replayed. The test suite in `tests/test_orthogonality.c` exists precisely to catch leakage early.
+Orthogonality is empirically supported: each abstraction has its own test file (`tests/test_*.c`), denotation parallelizes across channels (pixel / a11y / audit log) without coordination, and intent serializes to a value that can be replayed. The test suite in `tests/test_orthogonality.c` exists precisely to catch leakage early. The leak budget per abstraction is now quantified in [`leak-budgets.md`](leak-budgets.md) — current L2 (semantic-leak) rate is 17% overall, with Relation at 0%, Closure at 8%, `px_loop` at 9%, Estimate at 24%, and Perception at 50% (the last two are the worst offenders and have retire targets through v0.5 / v0.6).
 
 The 3 v4 proposals (Interpretant, Perlocution, Breakdown) have **not been pressure-tested for orthogonality** against the existing 5. There is a real risk that Interpretant bleeds into Perception (Peirce's own semiotic triangle makes interpretant the internal counterpart of the percept — drawing a hard line is non-trivial), and that Perlocution bleeds into Closure (Searle's perlocutionary act is a kind of closure — the question is whether it is a *distinct* kind). These risks are acknowledged, not resolved; resolving them is on the v4 roadmap and is a precondition for v4 promotion from proposal to shipping.
 
@@ -99,9 +99,9 @@ For abstraction to outperform component library, Planex must define *in advance*
 
 3. **Migration path (currently missing):** if an abstraction must be retired, the migration must be gradual. There must be a documented deprecation cycle, a way to run the old abstraction alongside the new one, and a way to migrate callers file-by-file. The ADR template's "Superseded by ADR-MMMM" field is a placeholder for this; no Planex ADR has yet exercised it.
 
-**Current satisfaction: half — epistemic honesty is in place, engineering mechanism and migration path are not.**
+**Current satisfaction: half-plus — epistemic honesty and one engineering mechanism (leak budget) in place; two engineering mechanisms (completeness test, migration cycle) and one metric (compression ratio) still missing.**
 
-ADR-0010 establishes the epistemic posture: "v4 satisfies 0 of 10 constitutive demands" is a falsifiability statement, not a marketing claim. The framing downgrade ("tradition-grounded design rationale") is exactly the right epistemic move. But the engineering mechanisms (completeness tests, compression metrics, leak budgets, migration paths) are listed as gaps in the comparative study's recommendations and are not yet implemented.
+ADR-0010 establishes the epistemic posture: "v4 satisfies 0 of 10 constitutive demands" is a falsifiability statement, not a marketing claim. The framing downgrade ("tradition-grounded design rationale") is exactly the right epistemic move. The engineering mechanisms are partially in place: [`leak-budgets.md`](leak-budgets.md) defines the leak-budget metric per abstraction, with retire targets through v1.0 and a falsifiable failure condition (aggregate L2 rate > 30% triggers form-level fallback). Still missing: a completeness test (a class of UI interactions that cannot be expressed in the 5 abstractions indicates incompleteness), a compression metric (ratio of Planex-code to equivalent-component-library code for the same UI), and a migration/deprecation cycle exercised in at least one ADR.
 
 **Failure mode and fallback.**
 
@@ -146,10 +146,10 @@ The table is the decision rule: if any of the three prerequisites is found broke
 | Prerequisite | Satisfaction | Evidence | Honest gap |
 |---|---|---|---|
 | 1. Ontological stability | Partial | 5/5 shipping abstractions trace to traditions with decades of survival | ADR-0010 admits v4 satisfies 0/10 constitutive demands; the v4 proposals (Interpretant, Perlocution, Breakdown) inherit the same partial satisfaction |
-| 2. Orthogonal separability | 5/5 shipping pass; 3/3 v4 untested | `tests/test_orthogonality.c` exists for the shipping 5; v4 has no equivalent | The Interpretant/Perception and Perlocution/Closure seams have known theoretical overlap (Peirce's triangle, Searle's speech-act typology) and have not been pressure-tested |
-| 3. Falsifiability | Half (epistemic only) | ADR-0010's honesty downgrade; "tradition-grounded design rationale" framing | No completeness test, no compression metric, no leak budget per abstraction, no migration/deprecation cycle has been exercised in any ADR yet |
+| 2. Orthogonal separability | 5/5 shipping pass; 3/3 v4 untested; **leak budget: 9 L2 / 53 ops (17%) overall, ranging 0%–50% per abstraction** | `tests/test_orthogonality.c` + [`leak-budgets.md`](leak-budgets.md) for quantitative leak tracking | The Interpretant/Perception and Perlocution/Closure seams have known theoretical overlap (Peirce's triangle, Searle's speech-act typology) and have not been pressure-tested; Perception's L2 = 50% is the worst offender and directly reflects [`limitations.md`](limitations.md) L1 Phase 2 pending |
+| 3. Falsifiability | Half-plus (epistemic + 1 of 4 engineering mechanisms) | ADR-0010's honesty downgrade + [`leak-budgets.md`](leak-budgets.md) defines the leak-budget metric and retire curve | Missing: completeness test, compression metric, migration/deprecation cycle exercised in an ADR |
 
-The standing is: **the form is correctly chosen, the prerequisites are correctly identified, two and a half of three prerequisites are currently satisfied, and the gaps are documented rather than hidden.** The honesty of the standing is itself part of prerequisite 3 — without it, the project would already be in the architectural-dogma failure mode regardless of how the other two prerequisites scored.
+The standing is: **the form is correctly chosen, the prerequisites are correctly identified, two and a half of three prerequisites are currently satisfied (Prerequisite 2 evidence strengthened by [`leak-budgets.md`](leak-budgets.md); Prerequisite 3 epistemic layer in place plus one of four engineering mechanisms), and the gaps are documented rather than hidden.** The honesty of the standing is itself part of prerequisite 3 — without it, the project would already be in the architectural-dogma failure mode regardless of how the other two prerequisites scored.
 
 ---
 
