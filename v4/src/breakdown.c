@@ -145,3 +145,22 @@ void px_breakdown_to_relation(px_breakdown* b, px_graph* g, void* node) {
      * present-to-hand for this actor (it has broken down). */
     px_declare(g, node, PX_REL_PRESENTS_FOR, b->actor, b->actor);
 }
+
+void px_breakdown_reset(void) {
+    /* Free all breakdown records and reset the global actor table.
+     * Test-only — see header comment. */
+    for (int i = 0; i < g_actor_breakdowns_count; i++) {
+        px_breakdown* b = g_actor_breakdowns[i].head;
+        while (b) {
+            px_breakdown* next = b->next;
+            free(b->reason);
+            free(b->recovery_how);
+            free(b);
+            b = next;
+        }
+        g_actor_breakdowns[i].actor = NULL;
+        g_actor_breakdowns[i].head = NULL;
+        g_actor_breakdowns[i].count = 0;
+    }
+    g_actor_breakdowns_count = 0;
+}

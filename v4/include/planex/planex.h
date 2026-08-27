@@ -528,6 +528,15 @@ bool          px_breakdown_is_recovered(const px_breakdown* b);
 void          px_breakdown_to_relation(px_breakdown* b, px_graph* g,
                                          void* node);
 
+/* TEST-ONLY: reset the per-actor breakdown table. The storage in
+ * breakdown.c is a verification-scale global array (see comment in
+ * breakdown.c); when actor memory is freed and the allocator reuses
+ * it for a new actor, the dangling pointer in the table collides
+ * with the new actor. This function frees all breakdown records and
+ * resets the table to empty. It is NOT part of the abstraction's
+ * denotational semantics — it exists only so tests can isolate. */
+void          px_breakdown_reset(void);
+
 #ifdef __cplusplus
 }
 #endif

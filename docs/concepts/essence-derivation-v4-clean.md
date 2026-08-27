@@ -765,3 +765,22 @@ The CODE is verifiable by reading v4/include/planex/planex.h and v4/src/*.c.
 No sub-API conflation. No backward-compat macros.
 The ESSENCE claim is NOT verifiable — see Part VII for the audit.
 ```
+
+---
+
+## Postscript (added 2026-08-28 after ADR-0012 pressure test)
+
+This derivation was originally titled "essence derivation v4 **clean**-room." After the v4 orthogonality pressure test ([`ADR-0012`](../decisions/ADR-0012-v4-orthogonality-pressure-test-four-findings.md)) was run against the v4 sources, the word "clean" is no longer fully earned. The pressure test surfaced four findings:
+
+1. **Interpretant.representamen_source field** is accepted by the constructor but never read by any operation → L2 leak (constructor signature claims a dependency that no operation honors).
+2. **Perlocution.closure field** is accepted by the constructor but never read by any operation → L2 leak (same pattern as Finding 1).
+3. **Closure lost `px_closure_get_status` in v4** → migration gap (deliberate essence-redistribution; Closure+Perlocution are orthogonal in code but Closure alone has no observable status without Perlocution).
+4. **Interpretant→Breakdown is protocol coupling, not code coupling** → acceptable (abstractions don't reference each other internally; the user wires the recipe).
+
+**The 8 abstractions are still essence-correct.** The findings are implementation defects at the *signature* level, not essence errors at the *denotational* level. The v4 essence derivation — that Peirce's interpretant, Searle's perlocution, Heidegger's breakdown are first-class — stands.
+
+**But the v4 *implementation* has bounded, named leaks** that are now quantified in [`leak-budgets.md`](leak-budgets.md) (v4 preview section). When v4 ships, both L2 leaks must be retired (one-line API change to each constructor, or actually use the parameter in a new operation). The migration gap (Finding 3) must be addressed by the v0.4→v4 migration cycle proposed as ADR-0013.
+
+**The framing downgrade established by ADR-0010 ("v4 is design rationale, not essence discovery") is reaffirmed by this pressure test.** v4 is audited design rationale — the abstractions are essence-correct and the implementation has bounded, named, retire-target-able defects. This is the epistemic posture `abstraction-form.md` Prerequisite 3 demands. The v4 seam row in `abstraction-form.md`'s honesty table has been updated from "3/3 v4 untested" to "3/3 v4 pressure-tested (ADR-0012)".
+
+A future rename of this document to `essence-derivation-v4-pressure-tested.md` may be appropriate; deferred to a documentation cleanup commit.

@@ -217,3 +217,31 @@ add_test(NAME feedback_tests COMMAND test_feedback)
 add_executable(test_v3_prototype tests/test_v3_prototype.c)
 target_link_libraries(test_v3_prototype planex_lib)
 add_test(NAME v3_prototype_tests COMMAND test_v3_prototype)
+
+# v4 orthogonality test suite — pressure-tests the 3 NEW first-class
+# abstractions (Interpretant, Perlocution, Breakdown) introduced by
+# essence-derivation-v4-clean.md against their v0.4 siblings
+# (Perception, Closure, Relation). v4 is a clean-room verification
+# artifact — ABI breaks from shipping Planex are intentional. The v4
+# sources are NOT linked into planex_lib; they are a separate library
+# to verify essence claims without polluting the shipping API.
+# Per abstraction-form.md Prerequisite 2 (orthogonal separability):
+# the v4 proposal seams (Interpretant/Perception, Perlocution/Closure,
+# Breakdown/Relation) had not been pressure-tested prior to this suite.
+add_library(planex_v4_lib STATIC
+    v4/src/actor.c
+    v4/src/intent.c
+    v4/src/estimate.c
+    v4/src/perception.c
+    v4/src/interpretant.c
+    v4/src/closure.c
+    v4/src/perlocution.c
+    v4/src/relation.c
+    v4/src/loop.c
+    v4/src/breakdown.c
+)
+target_include_directories(planex_v4_lib PUBLIC v4/include)
+
+add_executable(test_v4_orthogonality tests/test_v4_orthogonality.c)
+target_link_libraries(test_v4_orthogonality planex_v4_lib)
+add_test(NAME v4_orthogonality_tests COMMAND test_v4_orthogonality)

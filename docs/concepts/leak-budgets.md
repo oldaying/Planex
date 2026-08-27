@@ -274,14 +274,85 @@ The leak budget is not a static measurement; it is a falsifiable target. Each L2
 
 ---
 
+## v4 preview (Interpretant + Perlocution, post-pressure-test)
+
+> **Status:** Preview only. v4 has not shipped; this section quantifies the L2 leaks surfaced by [`ADR-0012`](../decisions/ADR-0012-v4-orthogonality-pressure-test-four-findings.md) so that when v4 ships, its starting L2 count is on the record. The v4 leak budget will be re-audited at v4 ship time using the same criterion as shipping abstractions.
+>
+> **Scope:** 2 of the 3 v4 new abstractions (Interpretant, Perlocution). Breakdown — the 3rd new abstraction — was pressure-tested clean (no L2 leaks); its bridge to Relation (`px_breakdown_to_relation`) is opt-in and one-way, not a coupling failure.
+
+### Interpretant — `v4/src/interpretant.c` (v4 proposal, not shipping)
+
+**Public operations (5):**
+
+| # | Operation | L1 | L2 | Notes |
+|---|---|---|---|---|
+| 1 | `px_interpretant_new(representamen_source, actor)` | — | ✓ | **constructor signature claims dependency on `px_perception* representamen_source`; no Interpretant operation reads it** — `predict(it, rep)` takes an explicit `representamen` parameter, the bound source is stored-but-never-consulted. Pressure-tested in `test_d1_interpretant_representamen_source_unused`: free the bound perception, all ops still work. |
+| 2 | `px_interpretant_free(it)` | — | — | destructor |
+| 3 | `px_interpretant_set_intended(it, semantics)` | — | — | mutator, matches name |
+| 4 | `px_interpretant_intended(it)` | — | — | pure query (const) |
+| 5 | `px_interpretant_set_interpret_fn(it, fn, user)` | ✓ | — | `void* user` in callback |
+| 6 | `px_interpretant_predict(it, representamen)` | — | — | the abstraction's purpose; takes explicit `representamen` parameter |
+| 7 | `px_interpretant_matches_intended(it, actual)` | — | — | pure query (string equality) |
+
+**Leak count:** L1 = 1, L2 = 1. **Total** = 2 / 7 = 29%. **L2** = 1 / 7 = **14%**.
+
+**Verification scenario for the L2 leak:**
+- `interpretant_new` source unused: create perception `p`, bind it via `px_interpretant_new(p, actor)`, free `p` (the interpretant now holds a dangling pointer), then call `px_interpretant_predict(it, some_representamen)`. If any operation read `representamen_source`, this would crash or return wrong results. The test confirms it does not — proving the field is documentation-only.
+
+**Retire target for v4 Interpretant L2:** 0 / 7 by v4 ship — either remove `representamen_source` from the constructor (Closure-style, no false claim of dependency) or actually use it in a new `px_interpretant_predict_from_bound(it)` operation that invokes the bound perception internally.
+
+### Perlocution — `v4/src/perlocution.c` (v4 proposal, not shipping)
+
+**Public operations (6):**
+
+| # | Operation | L1 | L2 | Notes |
+|---|---|---|---|---|
+| 1 | `px_perlocution_new(c, actor)` | — | ✓ | **constructor signature claims dependency on `px_closure* c`; no Perlocution operation reads it** — `px_perlocution_status` is a pure function of the perlocution's own kind enum, not of any closure state. Pressure-tested in `test_d2_perlocution_closure_field_unused`: free the bound closure, all ops still work. |
+| 2 | `px_perlocution_free(p)` | — | — | destructor |
+| 3 | `px_perlocution_set(p, kind, text)` | — | — | mutator, matches name |
+| 4 | `px_perlocution_kind_get(p)` | — | — | pure query (const) |
+| 5 | `px_perlocution_text(p)` | — | — | pure query (const) |
+| 6 | `px_perlocution_kind_str(k)` | — | — | utility, matches name |
+| 7 | `px_perlocution_status(p)` | — | — | pure query, derives status from kind enum |
+| 8 | `px_status_str(s)` | — | — | utility, matches name |
+
+**Leak count:** L1 = 0, L2 = 1. **Total** = 1 / 8 = 13%. **L2** = 1 / 8 = **13%**.
+
+**Verification scenario for the L2 leak:**
+- `perlocution_new` closure unused: create closure `c`, bind it via `px_perlocution_new(c, actor)`, free `c` (the perlocution now holds a dangling pointer), then call `px_perlocution_set`, `px_perlocution_kind_get`, `px_perlocution_text`, `px_perlocution_status`. If any operation read `closure`, this would crash or return wrong results. The test confirms it does not.
+
+**Retire target for v4 Perlocution L2:** 0 / 8 by v4 ship — either remove `closure` from the constructor (no false claim of dependency) or actually use it in a new `px_perlocution_status_from_closure(p)` operation that derives status from the bound closure's eval result.
+
+### v4 preview aggregate
+
+| Abstraction | Total ops | L1 leaks | L2 leaks | Total leak % | L2 leak % |
+|---|---|---|---|---|---|
+| Interpretant | 7 | 1 | 1 | 29% | **14%** |
+| Perlocution | 8 | 0 | 1 | 13% | **13%** |
+| Breakdown | (audit pending v4 ship) | — | 0 | — | **0%** (pressure-tested clean) |
+| **v4 preview total** | **15** | **1** | **2** | **20%** | **13%** |
+
+The v4 preview L2 rate (13%) is below the shipping aggregate L2 rate (17%) and well below the form-level fallback threshold (30%). **Prerequisite 2 does NOT fail for v4.** The two L2 leaks are at the *signature* level — they are fixed by one-line API changes to each constructor, not by collapsing the abstractions into a DSL.
+
+**Cross-reference to ADR-0012:**
+- Finding 1 = Interpretant `representamen_source` L2 leak (this section)
+- Finding 2 = Perlocution `closure` L2 leak (this section)
+- Finding 3 = Closure lost `px_closure_get_status` in v4 → migration gap (NOT an L2 leak; this section does NOT include it in the v4 L2 count, because Closure's v4 operations all match their names — the gap is in user-facing capability, not in operation-name vs behavior)
+- Finding 4 = Interpretant→Breakdown protocol coupling (acceptable, no leak counted)
+
+---
+
 ## References
 
 - **Code:** `include/planex/planex.h` — public API surface for all 5 shipping abstractions.
+- **Code:** `v4/include/planex/planex.h` — public API surface for v4 proposal (3 new abstractions: Interpretant, Perlocution, Breakdown).
 - **Code:** `src/relation.c`, `src/estimate.c`, `src/closure.c`, `src/perception.c`, `src/app.c` — implementations whose behavior the leaks expose.
-- **Code:** `tests/test_orthogonality.c` — orthogonality tests; this document's leak tables are the *quantitative* complement.
+- **Code:** `v4/src/interpretant.c`, `v4/src/perlocution.c`, `v4/src/breakdown.c` — v4 implementations whose leaks the pressure test exposes.
+- **Code:** `tests/test_orthogonality.c` — orthogonality tests for shipping 5; this document's leak tables are the *quantitative* complement.
+- **Code:** `tests/test_v4_orthogonality.c` — pressure test for v4 seams (19 tests, 4 findings); the v4 preview section above is its quantitative record.
 - **Related docs:** [`limitations.md`](limitations.md) — qualitative gaps (L1–L14). Cross-referenced where the same gap appears in both.
 - **Related docs:** [`abstraction-form.md`](abstraction-form.md) — Prerequisite 2 (orthogonal separability) and Prerequisite 3 (falsifiability) standing updated by this document.
 - **Related docs:** [`../research/2025-08-28-abstraction-as-form-comparative-study.md`](../research/2025-08-28-abstraction-as-form-comparative-study.md) — the comparative study that prescribed this document (Caveat 3 / Gap 3).
-- **Related ADRs:** [ADR-0010](../decisions/ADR-0010-v4-design-rationale-not-essence-discovery.md) — the honesty downgrade this document extends; [ADR-0011](../decisions/ADR-0011-essence-justified-abstraction-exempts-rule-of-three.md) — Essence Check Q4 establishes the verifiable-cost-scenario pattern this document applies to leaks.
+- **Related ADRs:** [ADR-0010](../decisions/ADR-0010-v4-design-rationale-not-essence-discovery.md) — the honesty downgrade this document extends; [ADR-0011](../decisions/ADR-0011-essence-justified-abstraction-exempts-rule-of-three.md) — Essence Check Q4 establishes the verifiable-cost-scenario pattern this document applies to leaks; [ADR-0012](../decisions/ADR-0012-v4-orthogonality-pressure-test-four-findings.md) — the v4 pressure test whose findings the v4 preview section above quantifies.
 - **External:** Joel Spolsky, "The Law of Leaky Abstractions" (2002) — https://www.joelonsoftware.com/2002/11/11/the-law-of-leaky-abstractions/
 - **External:** Conal Elliott, "Denotational Design with Type Class Morphisms" — the abstraction-as-typed-value ideal whose distance from implementation L2 leaks measure.
