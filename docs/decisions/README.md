@@ -132,6 +132,8 @@ After listing counterexamples, write a **Scope Statement**: "This decision appli
 | [0006](ADR-0006-continuous-interaction-deferred.md) | Continuous interaction abstraction deferred to v1.0+ | Accepted |
 | [0007](ADR-0007-essence-derivation-v2-revision.md) | Essence Derivation v2 — revised essence claim | Accepted |
 | [0008](ADR-0008-feedback-as-fifth-essence-category.md) | Feedback as 5th essence category (v0.4) | Accepted |
+| [0009](ADR-0009-essence-rederivation-v3.md) | Essence re-derivation v3 + Path B prototype | Proposed (essence-claim framing downgraded by ADR-0010; implementation decisions stand) |
+| [0010](ADR-0010-v4-design-rationale-not-essence-discovery.md) | v4 essence derivation is design rationale, not essence discovery | Accepted |
 
 ## Style rules
 
