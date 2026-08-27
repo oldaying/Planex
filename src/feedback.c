@@ -51,6 +51,11 @@ struct px_loop {
     /* Pause state. When paused, step() is a no-op. */
     bool           paused;
 
+    /* v3 prototype: pending breakdown transition for the next step.
+     * Set by px_loop_mark_breakdown(). px_loop_step reads and clears
+     * it. +1 = entered breakdown, -1 = recovered, 0 = none. */
+    int            pending_breakdown_transition;
+
     /* Audit log — ring buffer. */
     px_loop_audit_entry* audit;
     int                  audit_count;     /* total entries written (may exceed capacity) */
@@ -94,11 +99,17 @@ void px_loop_free(px_loop* loop) {
 
 static void audit_push(px_loop* loop,
                         bool closure_triggered,
-                        bool perception_invoked) {
+                        bool perception_invoked,
+                        bool interpretant_constructed,
+                        int  perlocution_kind,
+                        int  breakdown_transition) {
     px_loop_audit_entry* e = &loop->audit[loop->audit_head];
-    e->closure_triggered = closure_triggered;
-    e->perception_invoked = perception_invoked;
-    e->timestamp_ms      = px_now_ms();
+    e->closure_triggered       = closure_triggered;
+    e->perception_invoked      = perception_invoked;
+    e->interpretant_constructed = interpretant_constructed;
+    e->perlocution_kind        = perlocution_kind;
+    e->breakdown_transition    = breakdown_transition;
+    e->timestamp_ms            = px_now_ms();
 
     loop->audit_head = (loop->audit_head + 1) % PX_LOOP_AUDIT_CAPACITY;
     loop->audit_count++;
@@ -149,14 +160,23 @@ int px_loop_step(px_loop* loop, void* trigger_payload, size_t trigger_size) {
     if (!loop) return 0;
     if (loop->paused) return 0;
 
-    bool closure_triggered = false;
-    bool perception_invoked = false;
+    bool closure_triggered      = false;
+    bool perception_invoked    = false;
+    bool interpretant_constructed = false;
+    int  perlocution_kind      = (int)PX_PERLOC_UNSPECIFIED;
+    int  breakdown_transition  = loop->pending_breakdown_transition;
+
+    /* Clear pending breakdown transition — consumed by this step. */
+    loop->pending_breakdown_transition = 0;
 
     /* 1. Always trigger closure. Callers who want view-only refresh
      *    use px_loop_step_view_only instead. The closure's action
      *    will run with the provided payload (or NULL if no payload). */
     px_closure_trigger(loop->closure, trigger_payload, trigger_size);
     closure_triggered = true;
+
+    /* Capture perlocution_kind AFTER trigger so the action can set it. */
+    perlocution_kind = (int)px_closure_perlocution_kind(loop->closure);
 
     /* 2. Invoke perception. The perception reads the (possibly changed)
      *    Estimate state and produces its denotation.
@@ -175,8 +195,31 @@ int px_loop_step(px_loop* loop, void* trigger_payload, size_t trigger_size) {
         perception_invoked = true;
     }
 
-    /* 3. Record this iteration. */
-    audit_push(loop, closure_triggered, perception_invoked);
+    /* 3. v3 prototype: invoke the perception's interpret_fn (if any).
+     *    This computes the actor's predicted actual interpretant given
+     *    the produced representamen. NULL actor in this prototype —
+     *    a future px_loop_step_for_actor variant could pass a real actor.
+     *
+     *    We first call px_perception_invoke_single to obtain the
+     *    representamen (the perception fn's output), then pass it to
+     *    px_perception_interpret. */
+    if (loop->perception) {
+        void* representamen = px_perception_invoke_single(loop->perception);
+        void* interpretant = px_perception_interpret(loop->perception,
+                                                       representamen, NULL);
+        if (interpretant) {
+            interpretant_constructed = true;
+            /* The interpretant is owned by the interpret_fn — for the
+             * prototype, we leak it (would need a free_fn to do better).
+             * In a production version, the loop would track interpretant
+             * ownership or use a stack-allocated convention. */
+        }
+    }
+
+    /* 4. Record this iteration with all v3 semantic dimensions. */
+    audit_push(loop, closure_triggered, perception_invoked,
+               interpretant_constructed, perlocution_kind,
+               breakdown_transition);
 
     return perception_invoked ? 1 : 0;
 }
@@ -188,7 +231,15 @@ int px_loop_step_view_only(px_loop* loop) {
     /* Invoke perception without triggering closure. */
     int invoked = px_perception_invoke_all();
 
-    audit_push(loop, false, invoked > 0);
+    /* v3: still record perlocution + breakdown fields (no closure
+     * triggered, so perlocution_kind = whatever closure currently
+     * has, breakdown_transition = whatever is pending). */
+    int perlocution_kind = (int)px_closure_perlocution_kind(loop->closure);
+    int breakdown_transition = loop->pending_breakdown_transition;
+    loop->pending_breakdown_transition = 0;
+
+    audit_push(loop, false, invoked > 0, false, perlocution_kind,
+               breakdown_transition);
     return invoked > 0 ? 1 : 0;
 }
 
@@ -288,7 +339,24 @@ void px_loop_audit_clear(px_loop* loop) {
     if (!loop) return;
     loop->audit_count = 0;
     loop->audit_head  = 0;
+    loop->pending_breakdown_transition = 0;
     /* Optionally zero the buffer for clean replay state. */
     memset(loop->audit, 0,
            PX_LOOP_AUDIT_CAPACITY * sizeof(px_loop_audit_entry));
+}
+
+/* ============================================================
+ * v3 prototype — breakdown transition API
+ * ============================================================ */
+
+void px_loop_mark_breakdown(px_loop* loop, int transition,
+                              const char* reason) {
+    if (!loop) return;
+    /* Clamp to valid range; reason is unused in this prototype
+     * but reserved for future logging (could write to a per-loop
+     * breakdown log similar to audit). */
+    if (transition > 1)  transition = 1;
+    if (transition < -1) transition = -1;
+    loop->pending_breakdown_transition = transition;
+    (void)reason;  /* unused */
 }

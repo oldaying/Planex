@@ -22,6 +22,7 @@ struct px_relation {
     void*          a;
     px_rel_kind    kind;
     void*          b;
+    px_actor*      actor;     /* v3 prototype: NULL = universal */
     px_relation*   next;
 };
 
@@ -31,13 +32,16 @@ struct px_graph {
 };
 
 static const char* const k_rel_names[] = {
-    "BESIDE",       /* PX_REL_BESIDE       */
-    "DEPENDS_ON",   /* PX_REL_DEPENDS_ON   */
-    "TRIGGERS",     /* PX_REL_TRIGGERS     */
-    "VARIES_WITH",  /* PX_REL_VARIES_WITH  */
-    "AFFORDS",      /* PX_REL_AFFORDS      */
-    "CONTAINS",     /* PX_REL_CONTAINS     */
-    "COUNT",        /* PX_REL_COUNT         */
+    "BESIDE",         /* PX_REL_BESIDE          */
+    "DEPENDS_ON",     /* PX_REL_DEPENDS_ON      */
+    "TRIGGERS",       /* PX_REL_TRIGGERS         */
+    "VARIES_WITH",    /* PX_REL_VARIES_WITH      */
+    "AFFORDS",        /* PX_REL_AFFORDS          */
+    "CONTAINS",       /* PX_REL_CONTAINS          */
+    "WITHDRAWS_FOR",  /* PX_REL_WITHDRAWS_FOR   */
+    "PRESENTS_FOR",   /* PX_REL_PRESENTS_FOR    */
+    "INTERPRETS_AS",   /* PX_REL_INTERPRETS_AS   */
+    "COUNT",          /* PX_REL_COUNT             */
 };
 
 /* ============================================================
@@ -68,19 +72,27 @@ int px_graph_count(const px_graph* g) {
  * Declare / query
  * ============================================================ */
 
-px_relation* px_declare(px_graph* g, void* a, px_rel_kind kind, void* b) {
+px_relation* px_declare_for(px_graph* g, void* a, px_rel_kind kind,
+                            void* b, px_actor* actor) {
     if (!g || !a || !b) return NULL;
     if (kind < 0 || kind >= PX_REL_COUNT) return NULL;
 
     px_relation* r = (px_relation*)malloc(sizeof(px_relation));
     if (!r) return NULL;
-    r->a    = a;
-    r->kind = kind;
-    r->b    = b;
-    r->next = g->head;
-    g->head = r;
+    r->a      = a;
+    r->kind   = kind;
+    r->b      = b;
+    r->actor  = actor;
+    r->next   = g->head;
+    g->head   = r;
     g->count++;
     return r;
+}
+
+/* Backward-compat wrapper: old 2-place px_declare is equivalent to
+ * px_declare_for with actor=NULL (relation holds universally). */
+px_relation* px_declare(px_graph* g, void* a, px_rel_kind kind, void* b) {
+    return px_declare_for(g, a, kind, b, NULL);
 }
 
 bool px_has_relation(px_graph* g, void* a, px_rel_kind kind, void* b) {
@@ -92,6 +104,21 @@ bool px_has_relation(px_graph* g, void* a, px_rel_kind kind, void* b) {
 }
 
 px_node_list px_query(px_graph* g, void* node, px_rel_kind kind) {
+    /* Backward-compat wrapper: old px_query returns nodes for any actor
+     * (i.e., actor=NULL in the 3-place model). */
+    return px_query_for(g, node, kind, NULL);
+}
+
+/* v3 prototype: 3-place query.
+ * Matches relations where:
+ *   - r->kind == kind
+ *   - (r->a == node OR r->b == node)
+ *   - (r->actor == actor OR r->actor == NULL)
+ * The NULL-actor case lets "universal" relations match every actor query,
+ * preserving the old px_query semantics.
+ */
+px_node_list px_query_for(px_graph* g, void* node, px_rel_kind kind,
+                          px_actor* actor) {
     px_node_list list = { NULL, 0 };
     if (!g || !node) return list;
 
@@ -99,6 +126,7 @@ px_node_list px_query(px_graph* g, void* node, px_rel_kind kind) {
     int cap = 0;
     for (px_relation* r = g->head; r; r = r->next) {
         if (r->kind != kind) continue;
+        if (r->actor != NULL && r->actor != actor) continue;
         if (r->a == node || r->b == node) cap++;
     }
     if (cap == 0) return list;
@@ -109,6 +137,7 @@ px_node_list px_query(px_graph* g, void* node, px_rel_kind kind) {
     int i = 0;
     for (px_relation* r = g->head; r; r = r->next) {
         if (r->kind != kind) continue;
+        if (r->actor != NULL && r->actor != actor) continue;
         if (r->a == node) {
             list.items[i++] = r->b;
         } else if (r->b == node) {

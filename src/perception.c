@@ -58,6 +58,16 @@ struct px_perception {
     px_estimate**    inputs;       /* copied array */
     int             n_inputs;
     void*           user;
+
+    /* v3 prototype: interpretant sub-API.
+     * The intended_interpretant is the system's *declared* meaning —
+     * what the system *wanted* the actor to take the representamen
+     * to mean. The interpret_fn (if non-NULL) is called by the loop
+     * after the perceive fn, to predict the actor's *actual*
+     * interpretant given the representamen + actor. */
+    char*              intended_interpretant;
+    px_interpret_fn    interpret_fn;
+    void*             interpret_user;
 };
 
 /* ============================================================
@@ -147,6 +157,7 @@ void px_perception_free(px_perception* p) {
     }
 
     free(p->inputs);
+    free(p->intended_interpretant);   /* v3 prototype */
     free(p->name);
     free(p);
 }
@@ -249,4 +260,65 @@ int px_perception_invoke_for_estimate(px_estimate* est) {
 
 int px_perception_count(void) {
     return g_perception_count;
+}
+
+/* v3 prototype: invoke a single perception's fn and return the
+ * produced representamen. Used by px_loop_step to obtain the
+ * representamen before calling px_perception_interpret. */
+void* px_perception_invoke_single(px_perception* p) {
+    if (!p || !p->fn) return NULL;
+    return p->fn(p->inputs, p->n_inputs, p->user);
+}
+
+/* ============================================================
+ * v3 prototype — interpretant sub-API
+ *
+ * The intended_interpretant is the system's *declared* meaning —
+ * what the system *wanted* the actor to take the representamen to
+ * mean. Example: when rendering "7", the system declares the
+ * intended_interpretant as "seven items pending" — distinct from
+ * "7 of 10 progress" or "queue length 7".
+ *
+ * The interpret_fn (if non-NULL) is a Layer 5 hook: a function that,
+ * given the produced representamen + actor, predicts the actor's
+ * *actual* interpretant. NULL means no prediction (Layer 5 not
+ * implemented for this perception).
+ *
+ * The loop's audit records interpretant_constructed=true iff an
+ * interpret_fn was registered and successfully returned a non-NULL
+ * interpretant for this iteration.
+ *
+ * Inspired by Peirce's triadic sign relation (representamen ↔
+ * object ↔ interpretant). Without this third term, Planex's model
+ * of UI was binary (state → representation), missing the actor's
+ * generated meaning.
+ * ============================================================ */
+
+void px_perception_set_intended_interpretant(px_perception* p,
+                                               const char* semantics) {
+    if (!p || !semantics) return;
+    free(p->intended_interpretant);
+    p->intended_interpretant = px_strdup(semantics);
+}
+
+void px_perception_set_interpret_fn(px_perception* p,
+                                      px_interpret_fn fn,
+                                      void* user) {
+    if (!p) return;
+    p->interpret_fn  = fn;
+    p->interpret_user = user;
+}
+
+const char* px_perception_intended_interpretant(const px_perception* p) {
+    return p ? p->intended_interpretant : NULL;
+}
+
+/* Internal helper for px_loop_step to call after the perceive fn.
+ * Returns non-NULL iff an interpret_fn was registered and returned
+ * a non-NULL interpretant for this representamen + actor. */
+void* px_perception_interpret(px_perception* p,
+                                 void* representamen,
+                                 px_actor* actor) {
+    if (!p || !p->interpret_fn) return NULL;
+    return p->interpret_fn(representamen, actor, p->interpret_user);
 }

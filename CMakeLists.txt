@@ -42,6 +42,8 @@ set(CORE_SOURCES
     src/font.c
     src/a11y.c
     src/layout.c
+    src/actor.c        # v3 prototype (essence derivation v3 / Path B)
+    src/breakdown.c    # v3 prototype (essence derivation v3 / Path B)
 )
 
 # ============================================================
@@ -153,6 +155,10 @@ set(STDOUT_DEMOS
     confidence_demo       # confidence field in real use
     animation_demo        # time as first-class dimension
     async_demo            # PROMISE/DECLARE/FAIL lifecycle
+    v3_prototype_actor          # v3: 3-place Relation (actor parameter)
+    v3_prototype_perlocution    # v3: Searle level 3 effect-of-utterance
+    v3_prototype_interpretant  # v3: Peirce interpretant gap
+    v3_prototype_breakdown     # v3: Zuhandenheit/breakdown (6th abstraction)
 )
 
 foreach(demo ${STDOUT_DEMOS})
@@ -202,3 +208,12 @@ add_test(NAME orthogonality_tests COMMAND test_orthogonality)
 add_executable(test_feedback tests/test_feedback.c)
 target_link_libraries(test_feedback planex_lib)
 add_test(NAME feedback_tests COMMAND test_feedback)
+
+# v3 prototype test suite — validates that the 4 new essence
+# categories (Interpretant, Perlocution, Breakdown, 3-place Relation)
+# are expressible in Planex's C17 zero-dependency API surface, and
+# that the v3 prototype does not break v0.4's existing API.
+# Per essence-derivation-v3.md Part V and ADR-0009 (Proposed).
+add_executable(test_v3_prototype tests/test_v3_prototype.c)
+target_link_libraries(test_v3_prototype planex_lib)
+add_test(NAME v3_prototype_tests COMMAND test_v3_prototype)

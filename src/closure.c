@@ -59,6 +59,14 @@ struct px_closure {
      * If set AND undo is enabled, px_closure_trigger calls
      * px_undo_record(graph, this) before running the action. */
     px_graph*         undo_graph;
+
+    /* v3 prototype: perlocution sub-API.
+     * Perlocution is the *effect* of the system's utterance on the
+     * actor's mental state — distinct from `status` (operational)
+     * and from `intent_kind` (illocutionary force of the actor's
+     * input). Default perlocution_kind=PX_PERLOC_UNSPECIFIED. */
+    px_perlocution_kind perlocution_kind;
+    char                perlocution_text[256];
 };
 
 static const char* const k_intent_names[] = {
@@ -282,4 +290,59 @@ void px_closure_fail(px_closure* c, const char* message) {
 
 px_closure_status px_closure_get_status(const px_closure* c) {
     return c ? c->status : PX_CLOSURE_IDLE;
+}
+
+/* ============================================================
+ * v3 prototype — perlocution sub-API
+ *
+ * Perlocution is the *effect* of the system's utterance on the
+ * actor's mental state. Distinct from `status` (operational:
+ * IDLE/RUNNING/DONE/FAILED) and from `intent_kind` (illocutionary
+ * force of the actor's input: ASSERT/REQUEST/PROMISE/DECLARE/EXPRESS).
+ *
+ * Example: two closures both complete successfully (status=DONE),
+ * but one sets perlocution=INFORM with text "Saved." while the
+ * other sets perlocution=ALERT with text "Saved. 3 fields were
+ * auto-corrected." The actor's next intent will differ — the loop
+ * audit can record that semantic difference.
+ *
+ * Inspired by Searle 1969 (Speech Acts, level 3: perlocutionary).
+ * ============================================================ */
+
+static const char* const k_perloc_names[] = {
+    "UNSPECIFIED",  /* PX_PERLOC_UNSPECIFIED */
+    "INFORM",       /* PX_PERLOC_INFORM      */
+    "PERSUADE",     /* PX_PERLOC_PERSUADE    */
+    "REASSURE",     /* PX_PERLOC_REASSURE    */
+    "ALERT",        /* PX_PERLOC_ALERT       */
+    "FRUSTRATE",    /* PX_PERLOC_FRUSTRATE   */
+    "SURPRISE",     /* PX_PERLOC_SURPRISE    */
+};
+
+const char* px_perlocution_kind_str(px_perlocution_kind k) {
+    int n = (int)(sizeof(k_perloc_names) / sizeof(k_perloc_names[0]));
+    if ((int)k < 0 || (int)k >= n) return "?";
+    return k_perloc_names[k];
+}
+
+void px_closure_set_perlocution(px_closure* c,
+                                  px_perlocution_kind kind,
+                                  const char* outcome_text) {
+    if (!c) return;
+    c->perlocution_kind = kind;
+    if (outcome_text) {
+        strncpy(c->perlocution_text, outcome_text,
+                sizeof(c->perlocution_text) - 1);
+        c->perlocution_text[sizeof(c->perlocution_text) - 1] = 0;
+    } else {
+        c->perlocution_text[0] = 0;
+    }
+}
+
+px_perlocution_kind px_closure_perlocution_kind(const px_closure* c) {
+    return c ? c->perlocution_kind : PX_PERLOC_UNSPECIFIED;
+}
+
+const char* px_closure_perlocution_text(const px_closure* c) {
+    return c ? c->perlocution_text : "";
 }

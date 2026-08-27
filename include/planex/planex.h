@@ -104,13 +104,20 @@ typedef struct px_relation px_relation;
 typedef struct px_graph    px_graph;
 
 typedef enum {
-    PX_REL_BESIDE,        /* spatial:      a beside b         */
-    PX_REL_DEPENDS_ON,    /* dependency:   a depends on b     */
-    PX_REL_TRIGGERS,      /* causal:       a triggers b       */
-    PX_REL_VARIES_WITH,   /* temporal:    a varies with b     */
-    PX_REL_AFFORDS,       /* affordance:  a affords action b  */
-    PX_REL_CONTAINS,      /* containment:  a contains b       */
-    PX_REL_COUNT          /* sentinel      */
+    PX_REL_BESIDE,        /* spatial:      a beside b             */
+    PX_REL_DEPENDS_ON,    /* dependency:   a depends on b         */
+    PX_REL_TRIGGERS,      /* causal:       a triggers b           */
+    PX_REL_VARIES_WITH,   /* temporal:     a varies with b        */
+    PX_REL_AFFORDS,       /* affordance:   a affords action b     */
+    PX_REL_CONTAINS,      /* containment:  a contains b           */
+    /* v3 prototype (essence derivation v3, see docs/concepts/   */
+    /* essence-derivation-v3.md). These make the 3-place nature */
+    /* of relational ontology first-class: every relation can    */
+    /* be scoped to an actor (NULL = universal).                */
+    PX_REL_WITHDRAWS_FOR, /* Zuhandenheit: a withdrawn from actor b  */
+    PX_REL_PRESENTS_FOR,  /* breakdown:   a present to actor b      */
+    PX_REL_INTERPRETS_AS, /* semiotics:   a is read by actor b as c */
+    PX_REL_COUNT          /* sentinel                                */
 } px_rel_kind;
 
 px_graph*    px_graph_new(void);
@@ -448,6 +455,13 @@ int            px_perception_count(void);
  * Returns the number of perceptions invoked. */
 int            px_perception_invoke_all(void);
 
+/* v3 prototype: invoke a single perception's fn and return the
+ * produced representamen. Used by px_loop_step to obtain the
+ * representamen before calling px_perception_interpret.
+ *
+ * Returns NULL if p is NULL or p->fn is NULL. */
+void*          px_perception_invoke_single(px_perception* p);
+
 /* Phase 2: invoke only perceptions that depend on the given Estimate.
  * More efficient than invoke_all when only one Estimate changed.
  * Returns the number of perceptions invoked. */
@@ -558,6 +572,11 @@ bool            px_loop_is_paused(const px_loop* loop);
 typedef struct {
     bool   closure_triggered;
     bool   perception_invoked;
+    /* v3 prototype: semantic dimensions of the loop's return edge. */
+    bool   interpretant_constructed;  /* did interpret_fn run? */
+    int    perlocution_kind;           /* PX_PERLOC_* or 0       */
+    int    breakdown_transition;      /* 0=none, +1=entered,    */
+                                       /* -1=recovered           */
     double timestamp_ms;
 } px_loop_audit_entry;
 
@@ -619,6 +638,167 @@ px_rect px_layout_center(px_rect container, int w, int h);
 /* Accessibility (Stage 16) — screen reader support.
  * See planex/a11y.h for role/state/announce API. */
 #include "planex/a11y.h"
+
+/* ============================================================
+ * v3 PROTOTYPE — essence derivation v3 (Path B)
+ *
+ * Per docs/concepts/essence-derivation-v3.md, v2 sampled only 6
+ * traditions and missed 3 (semiotics, cybernetics, perlocutionary
+ * pragmatics), which surfaces 4 essence categories Planex v0.4
+ * does not first-class cover:
+ *   - Interpretant (Peirce triad's third term)
+ *   - Perlocution (Searle speech-act level 3)
+ *   - Breakdown (Heidegger Zuhandenheit / Winograd-Flores / Dourish)
+ *   - 3-place Relational-ontology (Situatedness; actor parameter)
+ *
+ * Path B (recommended in v3 doc) keeps v0.4's 5 abstractions,
+ * augments Closure/Perception/Relation internally, and adds a
+ * 6th abstraction px_breakdown. This header section is the
+ * prototype API — implementing only this much validates that
+ * the v3 essence categories are expressible in Planex's C17,
+ * zero-dependency style without breaking v0.4 ABI for callers
+ * that stick to the old API surface.
+ *
+ * Status: prototype, not yet canonical. See ADR-0009 (Proposed)
+ * and essence-derivation-v3.md Part V for the design rationale.
+ * ============================================================ */
+
+/* ---------- Actor (first-class struct, NOT an abstraction) --------
+ * The Actor is the human (or AI agent) whose situational relation
+ * to the system gives the boundary meaning. Per Suchman, Heidegger,
+ * Maturana: UI cannot be defined without the actor. But the actor
+ * is a parameter to Relation/Breakdown/Perlocution/Interpretant,
+ * not itself an essence abstraction.
+ */
+typedef struct px_actor px_actor;
+
+px_actor*    px_actor_new(const char* id, void* user_data);
+void         px_actor_free(px_actor* a);
+const char*  px_actor_id(const px_actor* a);
+void*        px_actor_user_data(const px_actor* a);
+
+/* ---------- Relation: 3-place variant ----------------------------
+ * px_declare_for accepts an actor parameter; the old px_declare
+ * is preserved as a wrapper that passes actor=NULL (universal).
+ * NULL actor means the relation holds for all actors; non-NULL
+ * means it holds only for that actor (situated).
+ */
+px_relation* px_declare_for(px_graph* g, void* a, px_rel_kind kind,
+                            void* b, px_actor* actor);
+
+/* Query: relations of `kind` that hold for `actor` (NULL=universal).
+ * Relations declared with actor=NULL match every actor query;
+ * relations declared with a specific actor only match that actor. */
+px_node_list px_query_for(px_graph* g, void* node, px_rel_kind kind,
+                          px_actor* actor);
+
+/* ---------- Closure: perlocution sub-API -------------------------
+ * Perlocution is the *effect* of the system's utterance on the
+ * actor's mental state — distinct from closure_status (operational)
+ * and from intent_kind (illocutionary force of the actor's input).
+ * E.g. "Saved successfully" (INFORM) vs "Saved. 3 fields were
+ * auto-corrected." (INFORM + surprise) vs "Validation failed"
+ * (ALERT) are three different perlocutionary outcomes even when
+ * status=DONE in all cases.
+ */
+typedef enum {
+    PX_PERLOC_UNSPECIFIED = 0,
+    PX_PERLOC_INFORM,      /* "now you know X"             */
+    PX_PERLOC_PERSUADE,    /* "now you should believe X"  */
+    PX_PERLOC_REASSURE,    /* "now you need not worry"    */
+    PX_PERLOC_ALERT,       /* "now you should attend"      */
+    PX_PERLOC_FRUSTRATE,   /* "now you may give up"        */
+    PX_PERLOC_SURPRISE,    /* "now you should re-evaluate" */
+    PX_PERLOC_COUNT
+} px_perlocution_kind;
+
+void                  px_closure_set_perlocution(px_closure* c,
+                                                  px_perlocution_kind kind,
+                                                  const char* outcome_text);
+px_perlocution_kind   px_closure_perlocution_kind(const px_closure* c);
+const char*           px_closure_perlocution_text(const px_closure* c);
+const char*           px_perlocution_kind_str(px_perlocution_kind k);
+
+/* ---------- Perception: interpretant sub-API ---------------------
+ * The system's intended interpretant is what the system *wanted*
+ * the actor to take the representamen to mean. Optionally, an
+ * interpret_fn predicts the actor's actual interpretant given
+ * the representamen + actor (Layer 5 hook; NULL = no prediction).
+ *
+ * The loop's audit records interpretant_constructed=true iff an
+ * interpret_fn was registered and successfully returned a non-NULL
+ * interpretant for this iteration.
+ */
+typedef void* (*px_interpret_fn)(void* representamen,
+                                  px_actor* actor,
+                                  void* user);
+
+void          px_perception_set_intended_interpretant(px_perception* p,
+                                                       const char* semantics);
+void          px_perception_set_interpret_fn(px_perception* p,
+                                              px_interpret_fn fn,
+                                              void* user);
+const char*   px_perception_intended_interpretant(const px_perception* p);
+
+/* Invoke the registered interpret_fn for this perception + actor.
+ * Called by px_loop_step after the perceive fn produced a
+ * representamen. Returns the interpretant, or NULL if no
+ * interpret_fn is registered or it returned NULL. */
+void*         px_perception_interpret(px_perception* p,
+                                       void* representamen,
+                                       px_actor* actor);
+
+/* ---------- px_loop: extended audit + breakdown integration -------
+ * Mark this iteration as having triggered a breakdown transition
+ * (+1 entered, -1 recovered). The next px_loop_step will record
+ * the transition in its audit entry's breakdown_transition field.
+ */
+void          px_loop_mark_breakdown(px_loop* loop, int transition,
+                                      const char* reason);
+
+/* ---------- Breakdown (6th abstraction, v3 prototype) ------------
+ * Per Heidegger Zuhandenheit/Vorhandenheit, Winograd/Flores
+ * breakdown-recovery, Dourish embodiment, Suchman situatedness:
+ * a UI that cannot break down is not a UI. Breakdown is the moment
+ * the boundary becomes visible to the actor.
+ *
+ * This abstraction records *semantic* breakdown — the actor's
+ * interpretant no longer matches the system's representamen —
+ * distinguished from operational loop stall (which px_loop audit
+ * captures via perception_invoked=false).
+ *
+ * A Breakdown is *per actor* (A's breakdown is not B's) and has
+ * a *recovery path*. Recovery can be actor-driven (the user figures
+ * it out) or system-driven (undo, explanation, adaptation).
+ */
+typedef struct px_breakdown px_breakdown;
+
+typedef enum {
+    PX_BD_NONE = 0,
+    PX_BD_INTERPRETANT_MISMATCH,  /* actor misread representamen */
+    PX_BD_AFFORDANCE_LOST,          /* tool stopped withdrawing    */
+    PX_BD_LOOP_STALL,               /* semantic loop broke          */
+    PX_BD_SITUATION_SHIFT,           /* situation changed, old
+                                         relations no longer hold   */
+    PX_BD_COUNT
+} px_breakdown_kind;
+
+px_breakdown* px_breakdown_record(px_actor* actor,
+                                    px_breakdown_kind kind,
+                                    const char* reason,
+                                    void* related);
+void          px_breakdown_recover(px_breakdown* b, const char* how);
+int           px_breakdown_count(px_actor* actor);
+px_breakdown* px_breakdown_get(px_actor* actor, int idx);
+const char*   px_breakdown_reason(const px_breakdown* b);
+const char*   px_breakdown_kind_str(px_breakdown_kind k);
+bool          px_breakdown_is_recovered(const px_breakdown* b);
+
+/* Bridge to Relation: a breakdown declares PX_REL_PRESENTS_FOR
+ * for the related node + actor, marking the node as present-to-hand
+ * (it has broken down for this actor). */
+void          px_breakdown_to_relation(px_breakdown* b, px_graph* g,
+                                         void* node);
 
 #ifdef __cplusplus
 }
