@@ -160,6 +160,14 @@ int px_loop_step(px_loop* loop, void* trigger_payload, size_t trigger_size) {
     if (!loop) return 0;
     if (loop->paused) return 0;
 
+    /* v0.5: clear bound perception's representamen cache at turn start.
+     * This ensures invoke_single below either returns the freshly-cached
+     * result (if auto-invocation fired during closure_trigger) or fires
+     * explicitly (if no estimate_set happened). Without this, the cache
+     * from a previous turn would be returned, double-firing or stale. */
+    extern void px__perception_clear_cache(px_perception*);
+    px__perception_clear_cache(loop->perception);
+
     bool closure_triggered      = false;
     bool perception_invoked    = false;
     bool interpretant_constructed = false;
@@ -169,42 +177,36 @@ int px_loop_step(px_loop* loop, void* trigger_payload, size_t trigger_size) {
     /* Clear pending breakdown transition — consumed by this step. */
     loop->pending_breakdown_transition = 0;
 
-    /* 1. Always trigger closure. Callers who want view-only refresh
-     *    use px_loop_step_view_only instead. The closure's action
-     *    will run with the provided payload (or NULL if no payload). */
+    /* 1. Trigger closure. The closure's action runs with the payload
+     *    (or NULL if no payload). If the action calls px_estimate_set,
+     *    Phase 2 auto-invocation (v0.5) fires dependent perceptions
+     *    — including potentially the loop's bound perception. */
     px_closure_trigger(loop->closure, trigger_payload, trigger_size);
     closure_triggered = true;
 
     /* Capture perlocution_kind AFTER trigger so the action can set it. */
     perlocution_kind = (int)px_closure_perlocution_kind(loop->closure);
 
-    /* 2. Invoke perception. The perception reads the (possibly changed)
-     *    Estimate state and produces its denotation.
+    /* 2. Invoke the bound perception explicitly to obtain the
+     *    representamen (which auto-invocation discards). This is
+     *    the loop's reason to exist — it captures the perception's
+     *    output for the audit log + feeds it to the interpret_fn.
      *
-     *    Design note: px_perception_invoke_for_estimate() requires an
-     *    Estimate to query for. The loop's perception may have multiple
-     *    source estimates, so we use invoke_all() which runs every
-     *    registered perception. This is broader than strictly needed
-     *    (loops over-perceive), but it's consistent with Planex's global
-     *    perception registry design.
-     *
-     *    Future refinement (post-v0.4): add px_perception_invoke(p) to
-     *    the API to invoke a single perception. */
-    int invoked = px_perception_invoke_all();
-    if (invoked > 0) {
-        perception_invoked = true;
-    }
-
-    /* 3. v3 prototype: invoke the perception's interpret_fn (if any).
-     *    This computes the actor's predicted actual interpretant given
-     *    the produced representamen. NULL actor in this prototype —
-     *    a future px_loop_step_for_actor variant could pass a real actor.
-     *
-     *    We first call px_perception_invoke_single to obtain the
-     *    representamen (the perception fn's output), then pass it to
-     *    px_perception_interpret. */
+     *    v0.5 fix: previously this called px_perception_invoke_all
+     *    AND px_perception_invoke_single on the bound perception,
+     *    which double-fired it. Now we only call invoke_single,
+     *    which both produces the representamen AND counts as the
+     *    perception firing for the audit's perception_invoked flag.
+     *    Other registered perceptions are auto-invoked via
+     *    px_estimate_set during the closure action (if applicable). */
     if (loop->perception) {
         void* representamen = px_perception_invoke_single(loop->perception);
+        /* invoke_single returns NULL if p or p->fn is NULL, or if the
+         * fn itself returned NULL. For audit purposes, "perception
+         * invoked" means "we called (or attempted to call) the bound
+         * perception's fn this iteration" — which is true whenever
+         * loop->perception is non-NULL. */
+        perception_invoked = true;
         void* interpretant = px_perception_interpret(loop->perception,
                                                        representamen, NULL);
         if (interpretant) {
@@ -216,7 +218,7 @@ int px_loop_step(px_loop* loop, void* trigger_payload, size_t trigger_size) {
         }
     }
 
-    /* 4. Record this iteration with all v3 semantic dimensions. */
+    /* 3. Record this iteration with all v3 semantic dimensions. */
     audit_push(loop, closure_triggered, perception_invoked,
                interpretant_constructed, perlocution_kind,
                breakdown_transition);
@@ -227,6 +229,12 @@ int px_loop_step(px_loop* loop, void* trigger_payload, size_t trigger_size) {
 int px_loop_step_view_only(px_loop* loop) {
     if (!loop) return 0;
     if (loop->paused) return 0;
+
+    /* v0.5: clear all perception caches at turn start. View-only step
+     * has no closure_trigger (no auto-invocation), so caches are stale
+     * from the previous turn. invoke_all below will refill them. */
+    extern void px__perception_clear_all_caches(void);
+    px__perception_clear_all_caches();
 
     /* Invoke perception without triggering closure. */
     int invoked = px_perception_invoke_all();
@@ -314,8 +322,14 @@ int px_loop_replay(px_loop* loop, int n) {
      * Perception is always invoked (it reads current state).
      * We do NOT push new audit entries during replay (would pollute
      * the log with replay artifacts). */
+    extern void px__perception_clear_all_caches(void);
     int replayed = 0;
     for (int i = 0; i < n; i++) {
+        /* v0.5: clear all perception caches at the start of each
+         * replay iteration. This ensures invoke_single (if called
+         * elsewhere) sees a clean cache. */
+        px__perception_clear_all_caches();
+
         if (entries[i].closure_triggered) {
             /* Re-trigger with NULL payload — this re-runs the action
              * with whatever the closure's last_intent was. For closures
@@ -328,8 +342,15 @@ int px_loop_replay(px_loop* loop, int n) {
             } else {
                 px_closure_trigger(loop->closure, NULL, 0);
             }
+            /* closure_trigger → action → estimate_set → auto-invoke
+             * fires dependent perceptions. We do NOT call invoke_all
+             * for closure_triggered entries to avoid double-firing
+             * the perception in the same turn. */
+        } else {
+            /* View-only iteration — no closure trigger, no auto-invoke.
+             * Fire perceptions explicitly via invoke_all. */
+            px_perception_invoke_all();
         }
-        px_perception_invoke_all();
         replayed++;
     }
     return replayed;

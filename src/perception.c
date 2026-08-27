@@ -68,6 +68,31 @@ struct px_perception {
     char*              intended_interpretant;
     px_interpret_fn    interpret_fn;
     void*             interpret_user;
+
+    /* v0.5 Phase 2: representamen cache for "fire at most once per turn".
+     *
+     * When auto-invocation (px_estimate_set → invoke_for_estimate) fires
+     * this perception, the fn's return value is cached here. A
+     * subsequent px_perception_invoke_single on this perception (e.g.
+     * by px_loop_step) returns the cached value WITHOUT re-firing the
+     * fn. This avoids the double-fire bug that previously existed
+     * between Phase 2 auto-invocation and the loop's explicit invocation.
+     *
+     * The cache is invalidated at the start of each "turn" (each
+     * px_loop_step / px_loop_step_view_only / px_loop_replay iteration)
+     * via the internal px__perception_clear_cache / clear_all_caches
+     * helpers. Outside a loop, the cache is only meaningful for the
+     * duration of a single px_estimate_set → auto-invoke call chain;
+     * it is not consulted by any other path.
+     *
+     * Ownership: the cached representamen is owned by the perception
+     * fn (which produced it). We hold a non-owning reference. The
+     * cache is overwritten on the next fire; the previous value is
+     * leaked (we don't know how to free it — perception fns are
+     * heterogeneous). This is a known v0.5 limitation; a future
+     * version can add a free_fn to px_perception_new. */
+    void*           last_representamen;
+    bool            has_last;
 };
 
 /* ============================================================
@@ -212,19 +237,65 @@ px_perception** px_perceptions_for_estimate(px_estimate* est, int* out_count) {
     return result;
 }
 
+/* ============================================================
+ * v0.5 Phase 2: representamen cache + fire_and_cache helper
+ *
+ * The cache enables "fire at most once per turn" semantics. A turn
+ * is bounded by px_loop_step / px_loop_step_view_only / each
+ * px_loop_replay iteration / each px_estimate_set outside a loop.
+ * At the start of each turn, the relevant caches are cleared.
+ * During the turn, the first fire fills the cache; subsequent
+ * invoke_single / invoke_all calls for the same perception return
+ * the cached value without re-firing.
+ *
+ * This avoids the v0.4 double-fire bug: when px_estimate_set (called
+ * from a closure action inside px_loop_step) auto-invoked the bound
+ * perception, and px_loop_step then called invoke_single on the same
+ * perception, the fn fired twice. With caching, the second call
+ * returns the cached representamen.
+ * ============================================================ */
+
+static void fire_and_cache(px_perception* p) {
+    if (!p || !p->fn) return;
+    /* Previous cache is leaked (ownership unknown). See struct doc. */
+    p->last_representamen = p->fn(p->inputs, p->n_inputs, p->user);
+    p->has_last = true;
+}
+
+/* Internal: clear cache on a single perception. Called by loop
+ * functions at the start of each turn. NOT part of public API. */
+void px__perception_clear_cache(px_perception* p) {
+    if (!p) return;
+    p->has_last = false;
+    p->last_representamen = NULL;
+}
+
+/* Internal: clear cache on all registered perceptions. Called by
+ * view-only step + replay (which iterate all perceptions). */
+void px__perception_clear_all_caches(void) {
+    px_perception_node* node = g_perceptions;
+    while (node) {
+        px__perception_clear_cache(node->p);
+        node = node->next;
+    }
+}
+
 /* Phase 2: invoke all registered perceptions.
  * For each perception, call its fn with its inputs and user.
- * The denotation (return value) is the caller's responsibility —
- * the perception fn returns it, the caller (e.g., app loop) decides
- * what to do with it (blit to screen, log, etc.).
+ * ALWAYS fires (no cache-based skip) — the cache is only consulted
+ * by px_perception_invoke_single (the loop's "get representamen"
+ * path). Outside a loop, each invoke_all call is expected to fire
+ * all perceptions. Inside a loop, the loop function clears caches
+ * at turn start so invoke_single below either returns the freshly
+ * cached result (if auto-invocation fired) or fires explicitly.
  *
- * Returns the number of perceptions invoked. */
+ * Returns the number of perceptions actually invoked (fn called). */
 int px_perception_invoke_all(void) {
     int invoked = 0;
     px_perception_node* node = g_perceptions;
     while (node) {
         if (node->p->fn) {
-            node->p->fn(node->p->inputs, node->p->n_inputs, node->p->user);
+            fire_and_cache(node->p);
             invoked++;
         }
         node = node->next;
@@ -234,7 +305,10 @@ int px_perception_invoke_all(void) {
 
 /* Phase 2: invoke perceptions that depend on the given Estimate.
  * Useful when only one Estimate changed — only re-run the perceptions
- * that need to update. Returns the number of perceptions invoked. */
+ * that need to update. Returns the number of perceptions invoked.
+ *
+ * v0.5: auto-invoked by px_estimate_set when an estimate changes.
+ * Also callable manually for diagnostic / test purposes. */
 int px_perception_invoke_for_estimate(px_estimate* est) {
     if (!est) return 0;
 
@@ -249,7 +323,7 @@ int px_perception_invoke_for_estimate(px_estimate* est) {
     for (int i = 0; i < count; i++) {
         px_perception* p = matching[i];
         if (p->fn) {
-            p->fn(p->inputs, p->n_inputs, p->user);
+            fire_and_cache(p);
             invoked++;
         }
     }
@@ -262,12 +336,26 @@ int px_perception_count(void) {
     return g_perception_count;
 }
 
-/* v3 prototype: invoke a single perception's fn and return the
- * produced representamen. Used by px_loop_step to obtain the
- * representamen before calling px_perception_interpret. */
+/* v0.5: invoke a single perception's fn and return the produced
+ * representamen. Used by px_loop_step to obtain the representamen
+ * before calling px_perception_interpret.
+ *
+ * If the perception's cache is valid (has_last=true) — meaning
+ * auto-invocation already fired it this turn — returns the cached
+ * representamen without re-firing. Otherwise, fires the fn and
+ * caches the result.
+ *
+ * Returns NULL if p is NULL, p->fn is NULL, or the fn returned NULL. */
 void* px_perception_invoke_single(px_perception* p) {
-    if (!p || !p->fn) return NULL;
-    return p->fn(p->inputs, p->n_inputs, p->user);
+    if (!p) return NULL;
+    if (p->has_last) {
+        /* Cache is valid — auto-invocation already fired this turn.
+         * Return cached representamen without re-firing. */
+        return p->last_representamen;
+    }
+    if (!p->fn) return NULL;
+    fire_and_cache(p);
+    return p->last_representamen;
 }
 
 /* ============================================================

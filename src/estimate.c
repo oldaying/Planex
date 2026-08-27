@@ -90,6 +90,13 @@ struct px_estimate {
 
     /* Derived state — non-NULL if this estimate is derived from others. */
     px_derived_state* derived;
+
+    /* v0.5: cycle-detection flag for px_derived_recompute. Set to true
+     * while this estimate is mid-recompute; cleared on return. If a
+     * recompute path re-enters this estimate, the flag is true and the
+     * re-entrant call returns early, breaking the cycle. See
+     * docs/concepts/leak-budgets.md §2 for the L2 leak this retires. */
+    bool        recomputing;
 };
 
 /* ============================================================
@@ -108,6 +115,7 @@ px_estimate* px_estimate_new(double value, double confidence) {
     e->start_time_ms  = 0;
     e->observers      = NULL;
     e->derived        = NULL;
+    e->recomputing    = false;
     return e;
 }
 
@@ -128,24 +136,12 @@ void px_estimate_free(px_estimate* e) {
     free(e);
 }
 
-double px_estimate_value(px_estimate* e) {
-    /* Kernel fix: px_estimate_value() now auto-samples animation.
-     * If animating, returns the interpolated value at current time.
-     * If animation finished, finalizes (sets value = target, clears animating).
-     * If not animating, returns static value.
-     * This means callers never need to call px_estimate_now() explicitly. */
+/* v0.5: px_estimate_value is now a pure query (const-correct).
+ * It returns the cached value without auto-sampling. To bring the
+ * cached value up to current time during an animation, call
+ * px_estimate_advance(e, px_now_ms()) first. See header doc. */
+double px_estimate_value(const px_estimate* e) {
     if (!e) return 0.0;
-    if (e->animating) {
-        double elapsed = px_now_ms() - e->start_time_ms;
-        if (elapsed >= e->duration_ms) {
-            /* Animation finished — finalize */
-            e->animating = false;
-            e->value = e->to_value;
-            notify(e);
-            return e->value;
-        }
-        return px_estimate_sample(e, elapsed);
-    }
     return e->value;
 }
 
@@ -159,12 +155,40 @@ static void notify(px_estimate* e) {
     }
 }
 
+/* v0.5: px_estimate_advance explicitly advances the animation state
+ * to time t_ms. If animation has finished (elapsed >= duration),
+ * finalizes: clears animating, sets value=target, fires observers.
+ * If mid-animation, caches the interpolated value at t_ms (does NOT
+ * fire observers — continuous change is not a discrete event).
+ * If not animating, no-op. See header doc + leak-budgets.md §2. */
+void px_estimate_advance(px_estimate* e, double t_ms) {
+    if (!e || !e->animating) return;
+    double elapsed = t_ms - e->start_time_ms;
+    if (elapsed >= e->duration_ms) {
+        /* Animation finished — finalize */
+        e->animating = false;
+        e->value = e->to_value;
+        notify(e);
+    } else if (elapsed >= 0) {
+        /* Mid-animation: cache interpolated value (no notify —
+         * continuous change is not a discrete event). */
+        e->value = px_estimate_sample(e, elapsed);
+    }
+    /* elapsed < 0 (time travel before animation start): no-op */
+}
+
 void px_estimate_set(px_estimate* e, double value, double confidence) {
     if (!e) return;
     e->animating  = false;
     e->value      = value;
     e->confidence = confidence;
     notify(e);
+    /* v0.5 Phase 2: auto-invoke perceptions that depend on this
+     * estimate. This closes the implicit-seam gap — users no longer
+     * need to call px_perception_invoke_for_estimate manually after
+     * a state change. See leak-budgets.md §4. */
+    extern int px_perception_invoke_for_estimate(px_estimate* est);
+    px_perception_invoke_for_estimate(e);
 }
 
 void px_estimate_animate(px_estimate* e, double target, double duration_ms) {
@@ -197,34 +221,20 @@ double px_estimate_sample(px_estimate* e, double t_ms) {
     return e->from_value + (e->to_value - e->from_value) * eased;
 }
 
-bool px_estimate_is_animating(px_estimate* e) {
-    if (!e || !e->animating) return false;
-    /* Check if animation finished */
-    double elapsed = px_now_ms() - e->start_time_ms;
-    if (elapsed >= e->duration_ms) {
-        /* Finish: set final value, clear animating */
-        e->animating = false;
-        e->value     = e->to_value;
-        /* Notify observers that animation finished */
-        notify(e);
-        return false;
-    }
-    return true;
+/* v0.5: px_estimate_is_animating is now a pure query. Previously it
+ * finalized the animation as a side effect of the check; the new
+ * contract requires the caller to call px_estimate_advance first if
+ * they want finalization. See header doc + leak-budgets.md §2. */
+bool px_estimate_is_animating(const px_estimate* e) {
+    if (!e) return false;
+    return e->animating;
 }
 
-double px_estimate_now(px_estimate* e) {
+/* v0.5: px_estimate_now is now a const alias of px_estimate_value.
+ * Callers needing the animated value at current time should call
+ * px_estimate_advance(e, px_now_ms()) first. */
+double px_estimate_now(const px_estimate* e) {
     if (!e) return 0.0;
-    if (e->animating) {
-        double elapsed = px_now_ms() - e->start_time_ms;
-        if (elapsed >= e->duration_ms) {
-            /* Animation finished — finalize and return final value */
-            e->animating = false;
-            e->value     = e->to_value;
-            notify(e);
-            return e->value;
-        }
-        return px_estimate_sample(e, elapsed);
-    }
     return e->value;
 }
 
@@ -244,9 +254,17 @@ void px_estimate_observe(px_estimate* e, px_estimate_observer fn, void* user) {
  * A derived estimate subscribes to each source via the observer
  * mechanism. When any source changes, derived_recompute() runs
  * the user's fn and updates the derived's value via
- * px_estimate_set() — which fires the derived's own observers.
+ * px_estimate_set() — which fires the derived's own observers
+ * (and, in v0.5+, auto-invokes perceptions depending on the
+ * derived).
  *
- * Cycle detection: NOT implemented. User must ensure DAG.
+ * Cycle detection (v0.5): each px_estimate carries a `recomputing`
+ * flag. If recompute is called on an estimate whose flag is already
+ * true, the call returns immediately, breaking the cycle. The flag
+ * is set on entry and cleared on exit. This means cycles no longer
+ * cause stack overflow; values along a cycle may be stale (a
+ * cyclic dependency has no well-defined resolution order), but the
+ * program continues to run. See leak-budgets.md §2.
  * ============================================================ */
 
 static void derived_on_source_changed(px_estimate* src, void* user) {
@@ -257,12 +275,23 @@ static void derived_on_source_changed(px_estimate* src, void* user) {
 
 void px_derived_recompute(px_estimate* derived) {
     if (!derived || !derived->derived) return;
+    /* v0.5 cycle detection: if this estimate is already mid-recompute,
+     * we've re-entered via a cyclic dependency. Return without
+     * recursing further. The cycle is broken; values along the cycle
+     * may be stale (last writer wins), but no stack overflow. */
+    if (derived->recomputing) return;
+    derived->recomputing = true;
+
     px_derived_state* st = derived->derived;
     double new_value = st->fn(st->sources, st->n_sources, st->user);
-    /* Use internal set to avoid infinite loop if fn indirectly
-     * calls set on the derived (it shouldn't, but be defensive). */
-    /* Use regular set to fire observers of the derived. */
+    /* px_estimate_set fires observers + auto-invokes perceptions.
+     * Observers may chain to other deriveds' recompute — that's fine,
+     * each has its own recomputing flag. If a downstream derived
+     * depends back on us, our flag is still true → its recompute of
+     * us returns early. */
     px_estimate_set(derived, new_value, derived->confidence);
+
+    derived->recomputing = false;
 }
 
 px_estimate* px_derived_new(px_derive_fn fn, void* user,

@@ -531,7 +531,9 @@ static void test_animate_now_samples(void) {
     px_estimate* e = px_estimate_new(0, 1.0);
     px_estimate_animate(e, 100, 1000);
 
-    /* At t≈0, px_estimate_now should be near 0 (just past start) */
+    /* v0.5: queries are const; must call advance() before reading
+     * to bring cached value up to current animation time. */
+    px_estimate_advance(e, px_now_ms());
     double v0 = px_estimate_now(e);
     assert(v0 >= 0 && v0 < 10);  /* should be very early in animation */
 
@@ -539,6 +541,7 @@ static void test_animate_now_samples(void) {
     px_sleep_ms(50);
 
     /* At t≈50ms, value should be in mid-range (ease-out, so > 5) */
+    px_estimate_advance(e, px_now_ms());
     double v50 = px_estimate_now(e);
     assert(v50 > v0);  /* strictly increased */
     assert(v50 < 100); /* not yet at target */
@@ -552,6 +555,10 @@ static void test_animate_completes(void) {
 
     /* Sleep long enough for animation to complete */
     px_sleep_ms(100);
+
+    /* v0.5: advance finalizes the animation (clears animating flag,
+     * sets value=target, fires observers). */
+    px_estimate_advance(e, px_now_ms());
 
     /* is_animating should return false (animation completed) */
     assert(!px_estimate_is_animating(e));
@@ -584,6 +591,8 @@ static void test_animate_chain(void) {
     /* Wait ~30ms */
     px_sleep_ms(30);
 
+    /* v0.5: advance to bring cached value up to current time */
+    px_estimate_advance(e, px_now_ms());
     double mid = px_estimate_now(e);
     assert(mid > 0 && mid < 100);
 
@@ -593,6 +602,7 @@ static void test_animate_chain(void) {
 
     /* from_value should be the current sampled value, not 0 */
     /* (internal detail — test indirectly: value should be near mid) */
+    px_estimate_advance(e, px_now_ms());
     double now = px_estimate_now(e);
     assert(now >= mid - 1);  /* approximately continuous */
 

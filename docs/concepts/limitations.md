@@ -1,6 +1,6 @@
 # Limitations and Known Gaps
 
-> **Applies to**: v0.4. What Planex claims vs. what Planex actually delivers. This document exists to keep the README's "4 abstractions" tagline honest by surfacing the gaps that the tagline hides.
+> **Applies to**: v0.5. What Planex claims vs. what Planex actually delivers. This document exists to keep the README's "4 abstractions" tagline honest by surfacing the gaps that the tagline hides.
 
 Research-grade projects gain credibility by being explicit about their limitations. seL4 lists which security properties are proven and which aren't. Lean lists which axioms are consistent and which are open. Planex must do the same.
 
@@ -8,11 +8,11 @@ This document is the **canonical source of truth** for "what's not done yet." If
 
 ---
 
-## L1: Perception — Phase 1 done, Phase 2 pending (was: "no-op")
+## L1: Perception — Phase 1 done, Phase 2 done as of v0.5
 
-**Severity:** Medium — Phase 1 closed the API gap; Phase 2 will close the runtime gap
+**Severity:** ~~Medium — Phase 1 closed the API gap; Phase 2 will close the runtime gap~~ **Closed in v0.5.**
 
-**Status:** **Resolved (Phase 1) — partially open (Phase 2 pending)**
+**Status:** **RESOLVED (Phase 1 + Phase 2).** As of v0.5, `px_estimate_set` auto-invokes dependent perceptions via `px_perception_invoke_for_estimate(e)` internally. The three manual invoke ops (`invoke_all`, `invoke_single`, `invoke_for_estimate`) remain in the public API as **diagnostic seams** — their raison d'être is no longer abstraction incompleteness; they exist for testing, debugging, and view-only refresh outside a `px_loop`.
 
 ### History (superseded)
 
@@ -27,21 +27,18 @@ Originally (v0.1.0), Planex claimed "4 abstractions" but Perception was a no-op 
 - `px_closure_new` signature changed: removed `perception` parameter
 - 25 legacy 3-abstraction-era demos removed; new `counter_4abs.c` and `multi_perception.c` demos added
 
-### Current gap (Phase 2 pending)
+### Phase 2 resolution (ADR-0013, v0.5)
 
-Phase 1 (current state): The API surface is complete and tested (`perception_smoke.c` 9 tests pass, `multi_perception.c` shows 4 perceptions coexisting). But the runtime does **not yet auto-invoke perceptions** — `px_perceptions_for_estimate()` is a stub that returns NULL.
+[ADR-0013](../decisions/ADR-0013-v05-leak-budget-retire.md) landed Phase 2 auto-invocation:
 
-Phase 2 (planned v0.3): Implement runtime perception-driven rendering. Replace the `on_render` callback in `px_app_desc` with perception invocation. When Estimates change, the runtime will:
+1. `px_estimate_set` calls `px_perception_invoke_for_estimate(e)` after `notify(e)`.
+2. Perceptions fire automatically when their source estimates change.
+3. The three manual invoke ops remain as diagnostic seams (testing, debugging, view-only refresh outside a `px_loop`).
+4. A representamen cache (`last_representamen` + `has_last` fields on `struct px_perception`) avoids the double-fire bug between auto-invocation and `px_loop_step`'s `invoke_single`.
 
-1. Query which perceptions depend on the changed Estimate
-2. Invoke their pure functions
-3. Blit the results to appropriate outputs (screen / a11y / log)
+**Quantitative confirmation (closed):** this gap was also quantified in [`leak-budgets.md`](leak-budgets.md) — Perception's L2 (semantic-leak) rate was **50%** at v0.4 (3 of 6 public operations existed only as workarounds for the missing Phase 2 auto-invocation). **As of v0.5, Perception L2 = 0%** (the 3 leaks retired). The single biggest leak-budget win available without introducing new abstractions has been realized.
 
-Until Phase 2, perceptions must be invoked manually (as `counter_4abs.c` does in its `main()`).
-
-**Quantitative confirmation:** this gap is also quantified in [`leak-budgets.md`](leak-budgets.md) — Perception's L2 (semantic-leak) rate is **50%** (3 of 6 public operations exist only as workarounds for the missing Phase 2 auto-invocation), the highest among Planex's 5 shipping abstractions. Closing L1 (Phase 2) is also the single biggest leak-budget win available without introducing new abstractions.
-
-**Status in roadmap matrix:** Perception row — Theory ✅, Proof ⚠️ (Phase 1 stub), Engineering 🔴 (Phase 2), Docs ✅, Anti-pattern 🔴.
+**Status in roadmap matrix:** Perception row — Theory ✅, Proof ✅ (Phase 2 landed), Engineering ✅, Docs ✅, Anti-pattern 🔴 (the `antipattern_perception.c` demo still uses manual invocation; should be updated to show the auto-invocation path).
 
 ---
 
@@ -304,13 +301,13 @@ Per essence-driven principle (ADR-0007): **a deferred essence candidate must rem
 
 If you're evaluating Planex for a use case:
 
-- **Embedded device with simple UI:** L6, L8 may matter. L1 (Phase 2 pending) doesn't.
+- **Embedded device with simple UI:** L6, L8 may matter. L1 (Phase 2) was resolved in v0.5.
 - **Desktop tool / research prototype:** Most limitations are tolerable.
 - **Production system needing long-term support:** L10 is a hard blocker.
 - **Safety-critical system:** L8 is a hard blocker.
 - **Accessibility-required application:** L9 is a hard blocker.
 - **Performance-critical (high-DPI, 4K+):** L6 may matter.
 - **Heavy hover/drag/focus interaction:** L11 means you'll have to write integration tests manually; UI-layer unit tests for these interactions are not possible yet.
-- **Need real-time perception-driven rendering:** L1 Phase 2 pending — perceptions are not auto-invoked yet. Use `counter_4abs.c` pattern (manual invocation) for now.
+- **Need real-time perception-driven rendering:** L1 Phase 2 landed in v0.5 — perceptions now auto-invoke when their source estimates change. No manual invocation needed in application code (manual invoke ops remain as diagnostic seams for testing/debugging).
 
 This document is the canonical answer to "is Planex ready for X?" questions. If a limitation is not listed here, please file an issue.

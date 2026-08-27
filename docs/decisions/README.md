@@ -136,6 +136,7 @@ After listing counterexamples, write a **Scope Statement**: "This decision appli
 | [0010](ADR-0010-v4-design-rationale-not-essence-discovery.md) | v4 essence derivation is design rationale, not essence discovery | Accepted |
 | [0011](ADR-0011-essence-justified-abstraction-exempts-rule-of-three.md) | Essence-justified abstraction is exempt from the Rule of Three | Accepted |
 | [0012](ADR-0012-v4-orthogonality-pressure-test-four-findings.md) | v4 orthogonality pressure test — four findings (2 L2 leaks + 1 migration gap + 1 protocol coupling) | Accepted |
+| [0013](ADR-0013-v05-leak-budget-retire.md) | v0.5 leak budget retire — 7 L2 leaks retired (4 Estimate + 3 Perception), aggregate 17% → 3.8% | Accepted |
 
 ## Style rules
 

@@ -87,9 +87,9 @@ static inline void px_sleep_ms(int ms) {
  * ============================================================ */
 
 #define PLANEX_VERSION_MAJOR 0
-#define PLANEX_VERSION_MINOR 4
+#define PLANEX_VERSION_MINOR 5
 #define PLANEX_VERSION_PATCH 0
-#define PLANEX_VERSION "0.4.0"
+#define PLANEX_VERSION "0.5.0"
 
 /* ============================================================
  * Relation — basic existence
@@ -161,36 +161,72 @@ typedef void (*px_estimate_observer)(px_estimate* e, void* user);
 px_estimate* px_estimate_new(double value, double confidence);
 void         px_estimate_free(px_estimate* e);
 
-double       px_estimate_value(px_estimate* e);  /* NOT const: auto-samples animation */
+/* v0.5: queries are now pure (const-correct). Previously these
+ * auto-sampled animations on every read, which was an L2 semantic
+ * leak (apparent query with side effect). The new contract is:
+ *
+ *   1. px_estimate_set / px_estimate_animate mutate state.
+ *   2. px_estimate_advance(e, t_ms) explicitly advances animation
+ *      state to time t_ms, finalizing if elapsed >= duration and
+ *      caching the interpolated value mid-animation.
+ *   3. px_estimate_value / px_estimate_now / px_estimate_is_animating
+ *      are pure queries — they read the cached state without
+ *      mutating anything.
+ *
+ * Migration: callers who relied on the old auto-sampling behavior
+ * should call px_estimate_advance(e, px_now_ms()) before reading.
+ *
+ * See docs/concepts/leak-budgets.md §2 for the leak that this retires. */
+double       px_estimate_value(const px_estimate* e);
 double       px_estimate_confidence(const px_estimate* e);
+
+/* v0.5: explicitly advance an estimate's animation state to time
+ * t_ms (typically px_now_ms()). If the animation has finished
+ * (elapsed >= duration), finalizes: clears animating, sets value
+ * to target, fires observers. If mid-animation, caches the
+ * interpolated value at t_ms (does NOT fire observers — continuous
+ * change is not a discrete event). If not animating, no-op.
+ *
+ * Safe to call repeatedly; cheap when not animating. The "advance
+ * then read" pattern replaces the old auto-sampling queries. */
+void         px_estimate_advance(px_estimate* e, double t_ms);
 
 /* Set value (cancels any ongoing animation). Notifies observers. */
 void         px_estimate_set(px_estimate* e, double value, double confidence);
 
 /* Begin a trajectory from current value to `target` over `duration_ms`.
- * Use px_estimate_sample() to read intermediate values.
- * This is the kernel of all animation in Planex. */
+ * Use px_estimate_sample() to read intermediate values, or call
+ * px_estimate_advance(e, px_now_ms()) to bring cached value up to
+ * current time before reading px_estimate_value(). This is the
+ * kernel of all animation in Planex. */
 void         px_estimate_animate(px_estimate* e, double target, double duration_ms);
 
 /* Sample value at time t_ms (relative to animation start).
- * Uses ease-out curve. Returns current value if not animating.
+ * Uses ease-out curve. Returns current cached value if not animating.
+ * Pure function of (state, t) — no side effects.
  *
- * NOTE: px_estimate_value() does NOT auto-sample. To get the
- * animated value at the current time, use px_estimate_now()
- * or px_estimate_sample(e, px_now_ms() - e->start_time_ms).
- * px_estimate_value() returns the last set/sampled value. */
+ * To get the current animated value at the current wall-clock time,
+ * either:
+ *   px_estimate_advance(e, px_now_ms());  // then read px_estimate_value
+ * or directly:
+ *   px_estimate_sample(e, px_now_ms() - start_time);  // if start_time known
+ * The first form is preferred (start_time is internal). */
 double       px_estimate_sample(px_estimate* e, double t_ms);
 
-/* Get current value, auto-sampling the animation if one is in
- * progress. This is what most callers want. */
-double       px_estimate_now(px_estimate* e);
+/* Get current cached value (alias of px_estimate_value). Kept for
+ * back-compat with code that reads the cached value. To get the
+ * animated value at the current time, call px_estimate_advance
+ * first. */
+double       px_estimate_now(const px_estimate* e);
 
 /* Get the current monotonic time in milliseconds.
  * Used as the time source for animations. */
 double       px_now_ms(void);
 
-/* Is this estimate currently animating? */
-bool         px_estimate_is_animating(px_estimate* e);  /* NOT const: finalizes animation */
+/* Is this estimate currently animating? Pure query — does not
+ * finalize. To finalize an in-progress animation, call
+ * px_estimate_advance(e, px_now_ms()). */
+bool         px_estimate_is_animating(const px_estimate* e);
 
 /* Subscribe to value changes. Returns immediately; observer
  * is called on every px_estimate_set(). */
@@ -215,8 +251,9 @@ void         px_estimate_observe(px_estimate* e, px_estimate_observer fn, void* 
  *   px_estimate* srcs[] = {a, b, c};
  *   px_estimate* total = px_derived_new(sum, NULL, srcs, 3);
  *
- * Cycles are not detected (Stage 3 limitation); user must
- * ensure DAG structure.
+ * v0.5: cycle detection is now implemented via a per-estimate
+ * "recomputing" flag in px_derived_recompute. Cycles no longer
+ * cause stack overflow; values along a cycle may be stale.
  * ============================================================ */
 
 typedef double (*px_derive_fn)(px_estimate* const* sources, int n, void* user);
@@ -239,7 +276,15 @@ int          px_derived_source_count(const px_estimate* derived);
 /* Manually recompute a derived estimate. Usually unnecessary —
  * derived values auto-update when sources change. Use this only
  * when sources are mutated in ways that bypass px_estimate_set()
- * (e.g. animation sampling, direct memory writes). */
+ * (e.g. animation sampling, direct memory writes).
+ *
+ * v0.5: cycle detection is now implemented. If the dependency
+ * graph contains a cycle (A derived from B, B derived from A),
+ * recompute will not stack-overflow; the cycle is broken by a
+ * per-estimate "recomputing" flag. Values along the cycle may
+ * be stale (the cycle has no well-defined resolution), but the
+ * program does not crash. See docs/concepts/leak-budgets.md §2
+ * for the L2 leak this retires. */
 void         px_derived_recompute(px_estimate* derived);
 
 /* ============================================================
@@ -450,21 +495,39 @@ px_perception** px_perceptions_for_estimate(px_estimate* est, int* out_count);
 /* Total registered perceptions (for debugging). */
 int            px_perception_count(void);
 
-/* Phase 2: invoke all registered perceptions.
- * Calls each perception's fn with its inputs and user.
- * Returns the number of perceptions invoked. */
+/* v0.5 Phase 2: perceptions are now auto-invoked when their source
+ * estimates change (px_estimate_set triggers invoke_for_estimate
+ * internally). The three invoke_* operations below are kept as
+ * DIAGNOSTIC seams — manual invocation is for testing/debugging
+ * and for the px_loop's explicit view-refresh path. In normal
+ * application code, you no longer need to call these.
+ *
+ * See docs/concepts/leak-budgets.md §4 for the L2 leak this retires
+ * (the three ops previously "existed only because Phase 2 was not
+ * wired up"; that is no longer their raison d'être). */
+
+/* Invoke all registered perceptions. Calls each perception's fn
+ * with its inputs and user. Returns the number of perceptions invoked.
+ *
+ * Diagnostic — auto-invocation handles the normal case (estimate
+ * changes). Use this for: tests, benchmarks, explicit view refresh
+ * outside a px_loop. */
 int            px_perception_invoke_all(void);
 
-/* v3 prototype: invoke a single perception's fn and return the
- * produced representamen. Used by px_loop_step to obtain the
- * representamen before calling px_perception_interpret.
+/* Invoke a single perception's fn and return the produced
+ * representamen. Used by px_loop_step to obtain the representamen
+ * before calling px_perception_interpret.
  *
  * Returns NULL if p is NULL or p->fn is NULL. */
 void*          px_perception_invoke_single(px_perception* p);
 
-/* Phase 2: invoke only perceptions that depend on the given Estimate.
+/* Invoke only perceptions that depend on the given Estimate.
  * More efficient than invoke_all when only one Estimate changed.
- * Returns the number of perceptions invoked. */
+ * Returns the number of perceptions invoked.
+ *
+ * Diagnostic — auto-invoked by px_estimate_set when an estimate
+ * changes. Use this for tests or for re-perceiving after a state
+ * change that bypassed estimate_set (e.g. direct memory write). */
 int            px_perception_invoke_for_estimate(px_estimate* est);
 
 /* ============================================================
@@ -516,7 +579,12 @@ bool           px_undo_is_enabled(void);
  * called px_perception_invoke_for_estimate() after px_closure_trigger().
  * The loop existed structurally but was not first-class.
  *
- * v0.4 promotes the loop to first-class via `px_loop`:
+ * v0.4 promoted the loop to first-class via `px_loop`.
+ * v0.5 closed the implicit-seam gap: px_estimate_set now auto-invokes
+ * dependent perceptions (Phase 2). The loop's role narrows to
+ * audit + interpretant capture + replay (still essential).
+ *
+ * `px_loop` API:
  *
  *   1. px_loop_new(closure, perception) — bind intent side to view side
  *   2. px_loop_step(loop) — run one full iteration:

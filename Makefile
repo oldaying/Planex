@@ -119,8 +119,10 @@ TEST_ORTHO     = $(BUILD)/test_orthogonality
 TEST_ORTHO_SRC = $(TST_DIR)/test_orthogonality.c
 TEST_FEEDBACK  = $(BUILD)/test_feedback
 TEST_FEEDBACK_SRC = $(TST_DIR)/test_feedback.c
+TEST_V05       = $(BUILD)/test_v05_retire
+TEST_V05_SRC   = $(TST_DIR)/test_v05_retire.c
 
-.PHONY: all clean test test_ortho test_feedback examples backends-info
+.PHONY: all clean test test_ortho test_feedback test_v05 examples backends-info
 
 all: examples test
 
@@ -175,6 +177,12 @@ test_feedback: $(TEST_FEEDBACK)
 
 $(TEST_FEEDBACK): $(TEST_FEEDBACK_SRC) $(CORE_OBJS) | $(BUILD)
 	$(CC) $(CFLAGS) -I$(INC_DIR) $(TEST_FEEDBACK_SRC) $(CORE_OBJS) -o $@ $(LDFLAGS)
+
+test_v05: $(TEST_V05)
+	./$(TEST_V05)
+
+$(TEST_V05): $(TEST_V05_SRC) $(CORE_OBJS) | $(BUILD)
+	$(CC) $(CFLAGS) -I$(INC_DIR) $(TEST_V05_SRC) $(CORE_OBJS) -o $@ $(LDFLAGS)
 
 # ============================================================
 # Backend info
