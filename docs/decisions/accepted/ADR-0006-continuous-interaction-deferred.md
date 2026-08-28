@@ -131,6 +131,36 @@ Instead:
 - **What**: Don't document, don't write demo, pretend it doesn't exist
 - **Why rejected**: Violates Planex's "honest acknowledgment" commitment (see [path-C-lineage.md](../../concepts/background/path-C-lineage.md)). Research-grade projects must document their boundaries.
 
+## CAVEATS
+
+This ADR is a *deferral decision*. It does NOT:
+
+- Reject the 5th abstraction permanently. The decision is "do NOT implement in v0.x"; the question remains open for v1.0+. If `hover_drag_4abs.c` reveals the Estimate hack is intolerable, ADR-0007 (or a successor) will propose the 5th abstraction with concrete API design based on real hack experience.
+- Dictate the 5th abstraction's shape if it is later accepted. The decision defers implementation; the API design (whether it's `px_interaction`, `px_flow`, `px_trajectory`, or something else) is a separate decision requiring its own ADR when the time comes.
+- Address gesture / touch / multi-touch UI patterns. Planex does not target touch UI (see [NG-6](../../concepts/canonical/non-goals.md)); the 5th abstraction question is about continuous/transient *mouse-driven* interaction, not touch gestures. Touch UI is a separate non-goal.
+- Cover the broader "Planex's abstraction set is complete" question. This ADR covers only the continuous-interaction axis. Other deferred essence candidates (Embodiment, Situatedness, Affordance-as-relation, Breakdown) are tracked in ADR-0007 and `limitations.md` and are orthogonal.
+- Address the v4 essence-rederivation proposal (Interpretant / Perlocution / Breakdown) — those are tracked in `essence-derivation-v4-clean.md` and ADR-0010 and are orthogonal to the continuous-interaction deferral.
+
+The decision here is narrowly scoped: defer continuous interaction to v1.0+, gather evidence via `hover_drag_4abs.c`, and explicitly mark the boundary in L12. All downstream consequences (whether to add the abstraction, what shape it takes, when to revisit) are out of scope.
+
+## Known issues
+
+- **Issue**: 15/68 UI patterns are forced or impossible in Planex as of v0.5. Category D (Continuous/transient interaction) is 0/15 clean — every hover, drag, scroll, gesture is either forced into Estimate (semantically wrong) or cannot be expressed at all. This is a significant coverage gap.
+- **Why accepted**: the alternative (implementing a 5th abstraction now) would trigger Path C failure modes (simultaneous change on unstable foundation, theoretical ambition without proof, no incremental adoption). The 4 abstractions just stabilized in v0.3; adding a 5th now means a new matrix row entirely red on unstable substrate.
+- **Tracking**: deferred to v1.0+ per this ADR. Evidence-gathering approach: `hover_drag_4abs.c` demo (implemented) provides concrete hack-experience data; future ADR will decide based on that evidence.
+- **Mitigation**: the 0/15 finding is documented in `limitations.md` L12 and the [UI Pattern Coverage Matrix](../../concepts/state/ui-pattern-coverage.md). Users who need hover/drag/gesture today must use the Estimate hack (transient state with timestamp) or choose a different library — Planex does not target touch / creative-tool UIs in v0.x.
+
+- **Issue**: The Estimate hack for hover/drag is semantically wrong — transient input is not state, and conflating them makes Estimate's semantics unclear. Each hack adds ~20-30 lines per pattern and adds cognitive load.
+- **Why accepted**: the hack is a stopgap, not a design. Its purpose is to expose the cost of the missing abstraction so that the future 5th-abstraction decision is grounded in measured pain, not theoretical argument. Without `hover_drag_4abs.c`, the 5th abstraction would be designed blind.
+- **Tracking**: the hack is documented inline in `hover_drag_4abs.c` with comments marking each semantic compromise. The 5th abstraction (if accepted) will replace the hack entirely.
+- **Mitigation**: callers who don't need hover/drag are unaffected. Callers who do should treat the hack as expedient, not idiomatic — and should expect the API to change when the 5th abstraction lands.
+
+## HISTORY
+
+- 2026-08-26: Proposed
+- 2026-08-26: Accepted
+- 2026-08-28: Confirmed still-Accepted at v0.5 cycle close; 5th abstraction still deferred; `hover_drag_4abs.c` evidence-gathering demo landed; no supersession, no deprecation
+
 ## References
 
 - [UI Pattern Coverage Matrix](../../concepts/state/ui-pattern-coverage.md) — the 68-pattern analysis that revealed 0/15 in Category D

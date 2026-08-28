@@ -61,6 +61,36 @@ Specifically:
 - **What:** Don't mention AI at all. Let users decide.
 - **Why rejected:** Silence creates ambiguity. Given the current industry pressure, "no position" gets read as "we'll add it eventually". An explicit non-goal is more honest.
 
+## CAVEATS
+
+This ADR records a *philosophical commitment* (no AI in Planex core). It does NOT:
+
+- Forbid users from driving Planex with an external AI agent. The Intent stream is serializable; an external process (LLM, agent framework, remote service) can emit Intents and Planex will execute them. The decision is that Planex does not *facilitate* this as a first-class feature, not that it forbids it.
+- Forbid future Planex 2.0 from adding AI. The decision is reversible at the architecture level — if a future major version finds a principled reason to add AI, the Intent-as-value foundation supports it without rewrite. This ADR records a v1.x stance, not a permanent veto.
+- Address AI in *tooling* (developer productivity). If a future Planex contributor uses Copilot / Claude / GPT to write Planex code, that's orthogonal — the ADR concerns the runtime, not the development workflow.
+- Address the philosophical question of whether Planex's Intent-as-value design is *better because of AI compatibility*. It is not. Intent-as-value is justified by serialization, replay, audit, undo — all non-AI benefits. AI compatibility is a side-effect, not a justification.
+- Address adjacent non-AI-but-probabilistic features (fuzzy matching, predictive text, ML-based input classification). Those are evaluated individually on their own merits, not blanket-prohibited by this ADR.
+
+The decision here is narrowly scoped: no AI runtime, no AI API, no AI marketing. Adjacent questions are deferred to individual evaluation.
+
+## Known issues
+
+- **Issue**: External reviewers familiar with the 2020s AI-native UI trend may dismiss Planex as "behind the times" without reading the ADR. The decision is philosophical, but the surface signal ("no AI") reads as a technical gap to AI-fluent audiences.
+- **Why accepted**: Planex's stance is research-grade essence-driven design, not market-share maximization. The audience that dismisses Planex for lacking AI is not Planex's target audience; the audience that values determinism, audit, and embedded-friendly design is. The cost of being misread by the wrong audience is lower than the cost of corrupting the abstraction's justification.
+- **Tracking**: accepted as permanent cost for v1.x. Re-evaluation at Planex 2.0 if a principled AI integration is proposed.
+- **Mitigation**: the FAQ entry "Why no AI?" (in `docs/faq.md`) and this ADR provide the counter-signal. Reviewers who read either will understand the decision; those who don't would not have been satisfied by a partial AI integration either.
+
+- **Issue**: The Intent-as-value design will be misread by some as "AI-ready but unused" rather than as a justified-independent design choice. This misreading creates a false expectation that "turning on AI" is a configuration flip.
+- **Why accepted**: the alternative — weakening Intent-as-value to make AI-incompatibility obvious — would corrupt the abstraction. The misreading is a documentation problem, not a design problem.
+- **Tracking**: deferred to documentation improvement; FAQ entry can be sharpened in a future docs commit.
+- **Mitigation**: this ADR's Alternatives Considered section explicitly rejects the "AI-ready" framing (Alternative 1). Reviewers who cite this ADR can correct the misreading.
+
+## HISTORY
+
+- 2026-08-24: Proposed
+- 2026-08-24: Accepted
+- 2026-08-28: Confirmed still-Accepted at v0.5 cycle close; no supersession, no deprecation, no reconsideration triggered
+
 ## References
 
 - Code: `include/planex/planex.h` — Intent as value, no AI hooks

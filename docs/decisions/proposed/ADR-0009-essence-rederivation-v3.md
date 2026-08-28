@@ -444,6 +444,44 @@ all expressible. The 2-tradition research sprint can still be
 commissioned separately to rule out single-author bias in the v3
 derivation, but it is no longer a prerequisite for Path B.
 
+## CAVEATS
+
+This ADR is a **Proposed** prototype ADR. Its implementation stands (the v3 prototype is in `v4/src/`), but its essence-claim language is stale. It does NOT:
+
+- Carry the authority of an Accepted ADR. ADR-0009 remains Proposed; its essence-claim language was downgraded by ADR-0010 (v4 is design rationale, not essence discovery). The implementation is approved as a prototype; the framing is not.
+- Address the Layer 5 (Adaptation / Hoffman-Friston) essence category. `Estimate.confidence` remains a stub in the v3 prototype; Layer 5 is explicitly out of scope for this ADR.
+- Address the Medium-ness essence category (Kay/Engelbart/Victor). This is far-future; out of scope.
+- Open `px_intent_kind` enum to `const char*`. The closed enum (5 Winograd/Flores illocutionary forces) is still functional; opening the enum is an ABI-breaking change deferred to a separate future ADR.
+- Add `px_loop_step_for_actor(loop, actor, payload, size)`. The prototype uses NULL actor throughout; promoting actor to first-class loop parameter is a future refinement.
+- Add `px_breakdown_free()`. Breakdowns live in a global list in the prototype (matching the perception registry's style); a future production version should add per-actor cleanup.
+- Update `why-four-abstractions.md` → `why-six-abstractions.md`. Deferred until this ADR moves from Proposed to Accepted.
+- Update `limitations.md`, `ui-essence-layers.md`, `non-goals.md`, `path-C-lineage.md`. Deferred until this ADR is Accepted.
+
+The decision here is narrowly scoped: implement the v3 Path B prototype API surface, validate feasibility via tests + examples. All framing + downstream docs are out of scope.
+
+## Known issues
+
+- **Issue**: The v3 prototype is unproven under industrial use. Every Planex reference is literature (essence-derivation-v3.md), not industrial practice. The v2 cycle suffered this "industrial-leg ⚠️ zero adoption" problem; v3 inherits it.
+- **Why accepted**: the v3 derivation demanded implementation-level validation; theory-level claims are not enough. Path B is the most direct validation: if the 4 essence categories are not expressible in Planex's C17 zero-dependency style, that would have surfaced during implementation. They were all expressible. Industrial adoption is a separate concern tracked in `limitations.md` L10 (single-maintainer).
+- **Tracking**: deferred. A 2-tradition research sprint (semiotics + cybernetics) can still be commissioned separately to rule out single-author bias in the v3 derivation, but it is no longer a prerequisite for Path B.
+- **Mitigation**: the 60/60 test suite + 4 examples validate the API works as designed; the 4 traditions (Heidegger / Winograd-Flores / Dourish / Suchman) for Breakdown exceed v2's ≥3-tradition threshold for essence elevation.
+
+- **Issue**: `px_breakdown` lives in a global list, like the perception registry. This is a Stage 0 limitation — no per-actor breakdown storage, no `px_breakdown_free()`. Memory grows unboundedly with breakdown entries until the caller manually clears.
+- **Why accepted**: the v3 prototype scope is API surface validation, not production hardening. Per-actor breakdown storage would require per-actor allocators, which would obscure the essence validation with engineering concerns. Stage 0 (global list) matches the perception registry's style and is consistent across v3.
+- **Tracking**: deferred to a future production version. A `px_breakdown_free()` API and per-actor breakdown storage are natural follow-ups.
+- **Mitigation**: callers can manually clear via `px_breakdown_recover_all()` (if added) or by triggering breakdown recovery for each entry; the global list is bounded by the number of distinct breakdown events.
+
+- **Issue**: `px_loop_step` leaks the interpretant returned by `interpret_fn` — no `free_fn` convention is defined. Callers must know to free the interpretant themselves, or accept the leak.
+- **Why accepted**: defining a free_fn convention requires choosing between caller-provided free_fn, stack-allocated convention, or refcounting. Each has tradeoffs; the v3 prototype exposes the leak as a known cost rather than locking in one convention prematurely.
+- **Tracking**: documented in `src/feedback.c` comment. Production fix: caller-provided free_fn or stack-allocated convention. Deferred to v1.0+.
+- **Mitigation**: callers using `interpret_fn` should manually free the returned interpretant if ownership is unclear; the examples show this pattern.
+
+## HISTORY
+
+- 2026-08-27: Proposed (with the v3 Path B prototype implementation in repo)
+- 2026-08-27: Essence-claim framing downgraded by ADR-0010 (v4 is design rationale, not essence discovery) — the implementation decisions stand; the framing language is stale until this ADR is Accepted or Rejected
+- 2026-08-28: Confirmed still-Proposed at v0.5 cycle close; no acceptance, no rejection; implementation remains in `v4/src/` as prototype; framing remains downgraded per ADR-0010
+
 ## References
 
 - [essence-derivation-v3.md](../../concepts/history/essence-derivation-v3.md)

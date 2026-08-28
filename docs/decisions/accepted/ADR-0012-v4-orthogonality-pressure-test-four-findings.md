@@ -1,10 +1,12 @@
 # ADR-0012: v4 Orthogonality Pressure Test — Four Findings (Two L2 Leaks + One Migration Gap + One Protocol Coupling)
 
-> **Status:** Accepted (2026-08-28)
->
-> **Closes:** `abstraction-form.md` Prerequisite 2 honesty-table row "3/3 v4 untested"
->
-> **Opens:** Retire targets for v4 L2 leaks (when v4 ships) + migration-cycle proposal (ADR-0013 candidate)
+## Status
+
+**Accepted** (2026-08-28).
+
+**Closes:** `abstraction-form.md` Prerequisite 2 honesty-table row "3/3 v4 untested"
+
+**Opens:** Retire targets for v4 L2 leaks (when v4 ships) + migration-cycle proposal (ADR-0013 candidate)
 
 ---
 
@@ -209,6 +211,46 @@ If, despite this, the leaks compound (e.g., future v4 operations are added that 
 ### Alternative D: After finding L2 leaks, mark v4 as "rejected" and stay on v0.4
 
 **Rejected.** The two L2 leaks are bounded and retire-target-able; they do not indicate Prerequisite 2 failure. The migration gap is real but is ADR-0013's territory, not a reason to abandon v4. The three v4 abstractions (Interpretant, Perlocution, Breakdown) are essence-correct; the leaks are implementation defects, not essence errors. Rejecting v4 would be the "premature ossification" failure mode that `abstraction-form.md` Prerequisite 1 warns against.
+
+## CAVEATS
+
+This ADR is a *pressure-test record*. It does NOT:
+
+- Reject the v4 proposal. The two L2 leaks (Finding 1, Finding 2) are bounded and retire-target-able; they do not indicate Prerequisite 2 failure. v4's three abstractions (Interpretant, Perlocution, Breakdown) are essence-correct; the leaks are implementation defects, not essence errors. Rejecting v4 would be the "premature ossification" failure mode that `abstraction-form.md` Prerequisite 1 warns against.
+- Accept the v4 proposal. The migration gap (Finding 3) is real and ADR-0013's territory. Until ADR-0013 closes the migration question, v4 cannot ship. This ADR records findings; it does not adjudicate v4's promotion.
+- Address the Layer 5 (Adaptation) or Medium-ness essence categories. Those remain deferred per ADR-0009 and ADR-0010.
+- Dictate the v0.4→v4 migration API. ADR-0013 will specify the migration cycle (semantic-preserving transforms, deprecation registry entries, etc.); this ADR only names the gap (Finding 3) that ADR-0013 must close.
+- Address the protocol-coupling leak (Finding 4) beyond recording it. The recipe is documented; whether to add `px_loop_auto_record_breakdowns()` is a separate decision requiring its own ADR.
+
+The decision here is narrowly scoped: pressure-test v4, record findings, open ADR-0013 for the migration gap, and update the leak-budget for v4 L2 retire targets. All v4 promotion / migration / protocol-extension decisions are out of scope.
+
+## Known issues
+
+- **Issue**: v4's Interpretant constructor accepts a `predicted_interpretant` parameter that no current operation reads. The field exists in the struct but is never queried by `px_interpretant_predict`, `px_interpretant_record`, or any other Interpretant API function. This is an L2 (semantic) leak — the abstraction's API surface promises a capability its operations don't deliver.
+- **Why accepted**: the v4 prototype scope was API surface validation, not production hardening. The field was added in anticipation of Layer 5 (Adaptation) where predicted_interpretant would be compared against actual interpretant to compute prediction error. Removing the field now would require an ABI break; leaving it documents the intent for Layer 5 without committing to a Layer 5 implementation timeline.
+- **Tracking**: retire target set in `leak-budgets.md` v4 preview section — when v4 ships, the predicted_interpretant field must either be consumed by a Layer 5 operation or removed. Tracked as v4 L2 leak #1.
+- **Mitigation**: callers using v4 today should treat the `predicted_interpretant` parameter as documentation-only; passing NULL is safe and matches the test suite's pattern.
+
+- **Issue**: v4's Perlocution constructor accepts a `target_audience_state` parameter that no current operation reads. Same pattern as Finding 1 — the field exists but is unused. The Perlocution API's `px_perlocution_track`, `px_perlocution_get_effect` all ignore `target_audience_state`.
+- **Why accepted**: same rationale as Finding 1 — the field anticipates Layer 5 (Adaptation) where `target_audience_state` would be the actor's prior mental state, against which the perlocution effect is computed. Removing it now would be an ABI break; leaving it is a bounded L2 leak.
+- **Tracking**: retire target set in `leak-budgets.md` v4 preview section. Tracked as v4 L2 leak #2.
+- **Mitigation**: callers using v4 today should pass NULL for `target_audience_state`; the parameter is documentation-only.
+
+- **Issue**: v0.4→v4 migration has no `px_closure_get_status` equivalent in v4. v4 moves Closure's status/promise/declare/fail functions to Perlocution, but the v0.4 idiom `px_closure_get_status(c)` has no direct v4 replacement — callers must obtain the closure's perlocution first via `px_perlocution_for_closure(c)`, then call `px_perlocution_get_status(p)`. This is a migration gap.
+- **Why accepted**: the gap is intentional — v4's essence-correct structure has Perlocution owning status semantics, not Closure. A direct status accessor on Closure would re-introduce the v1 conflation flaw (one abstraction carrying multiple essence dimensions). The migration cycle (ADR-0013) must specify a semantic-preserving transform, not a one-line replacement.
+- **Tracking**: ADR-0013 opened to specify the migration cycle. Tracked as Finding 3.
+- **Mitigation**: callers using v4 today must update their code to use `px_perlocution_for_closure(c)` + `px_perlocution_get_status(p)`. The migration is mechanical but not one-line.
+
+- **Issue**: Breakdown-Relation protocol coupling: `px_breakdown_to_relation(b, g, node)` declares `PX_REL_PRESENTS_FOR` in the graph, but `px_loop_step` does NOT auto-record breakdowns from the recipe — callers must explicitly call `px_breakdown_record` before `px_breakdown_to_relation` works. The recipe ("declare PRESENTS_FOR in the graph") suggests auto-recording, but the implementation requires explicit recording first.
+- **Why accepted**: auto-recording would require `px_loop_step` to scan all closures for breakdown conditions every iteration, which is O(N) per step and changes the loop's complexity. The current explicit-record approach is O(1) per step but breaks the recipe's apparent ergonomics.
+- **Tracking**: documented as Finding 4. A future ADR may add `px_loop_auto_record_breakdowns()` as an opt-in flag; deferred.
+- **Mitigation**: callers must explicitly call `px_breakdown_record(actor, kind, ...)` before `px_breakdown_to_relation(b, g, node)` will succeed; the test suite (`test_v4_orthogonality.c` D4) shows this pattern.
+
+## HISTORY
+
+- 2026-08-28: Proposed (with the v4 pressure-test suite in repo as `tests/test_v4_orthogonality.c`)
+- 2026-08-28: Accepted (same day — the test suite was the falsifiable artifact; once tests passed, the findings were on the record)
+- 2026-08-28: ADR-0013 opened to address Finding 3 (migration gap) — ADR-0013 specifies the v0.4→v4 migration cycle
 
 ## References
 

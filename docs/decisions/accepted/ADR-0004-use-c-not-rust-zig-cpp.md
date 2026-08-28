@@ -76,6 +76,41 @@ The choice is principled, not nostalgic. Three reasons:
 - **What:** Planex core stays C, but we ship Rust / Zig / Python bindings.
 - **Why rejected for now:** Not rejected in principle — but deferred. Until the abstractions are proven (see ADR-0001, ADR-0002), bindings would lock in a possibly-wrong API. Bindings come after stability, not before.
 
+## CAVEATS
+
+This ADR records the *language choice* (C17, zero external deps). It does NOT:
+
+- Dictate the build system. CMake is currently used; a future migration to Meson, Bazel, or even a hand-written Makefile is permitted by this ADR — the language is the contract, not the build.
+- Forbid *optional* external dependencies at the demo/example layer. Examples may link FreeType / fontconfig for CJK font rendering; the contract is that the *core library* has zero deps, not that every demo is pure C.
+- Promise ABI stability across C standard versions. C17 is the choice for v0.x–v1.x; a future Planex 2.0 could move to C23 (with modules, slices, etc.) without violating this ADR — the ADR is a v0.x–v1.x commitment, not a permanent vow.
+- Address Planex's *bindings* strategy. Bindings in Rust / Zig / Python are deferred per Alternative 4 — when they come, they live outside the core library and are not constrained by this ADR.
+- Address tooling: linters, formatters, static analyzers. Planex uses `clang-format`, `clang-tidy`, `cppcheck`; those are dev-time tools, not runtime deps, and are not affected by this ADR.
+
+The decision here is narrowly scoped: the runtime core library is C17 with zero external deps. Build system, demo deps, future language versions, bindings, and tooling are all out of scope.
+
+## Known issues
+
+- **Issue**: No memory safety. Buffer overflows, use-after-free, double-free are all possible in Planex code. A single forgotten `px_*_free` call leaks; an inverted pointer arithmetic corrupts.
+- **Why accepted**: memory safety would require Rust (rejected per Alternative 1) or a garbage collector (incompatible with embedded targets and the zero-deps constraint). The cost is mitigated by careful review, the orthogonality test suite, and `valgrind`/ASAN in CI.
+- **Tracking**: permanent cost for v1.x. A future Planex 2.0 in Rust or with a safe-subset linter could close this; not pursued in v1.x.
+- **Mitigation**: every public API documents ownership transfer; the test suite (78 tests) exercises free-path coverage; ASAN is enabled in CI builds.
+
+- **Issue**: No RAII. Cleanup is explicit (`px_*_free`); users can leak. Demos and examples carry the cognitive load of remembering free order.
+- **Why accepted**: RAII requires C++ (rejected per Alternative 3) or a non-trivial cleanup-attribute hack (GCC extension, not portable). The cost is manual discipline.
+- **Tracking**: permanent cost. Documented in every public API's doc comment ("caller must free with `px_*_free`").
+- **Mitigation**: the examples directory uses a consistent free-pattern (allocate at top of main, free at bottom in reverse order); contributors following this pattern avoid most leaks.
+
+- **Issue**: Some contributors refuse to touch C. The pool of potential contributors is narrower than for Rust or TypeScript.
+- **Why accepted**: the loss is accepted as the cost of the language choice. Planex is research-grade; contributor count is not the optimization target. A smaller contributor pool that can audit the code is preferable to a larger pool that cannot.
+- **Tracking**: permanent cost. The CONTRIBUTING.md file flags C as a precondition.
+- **Mitigation**: the codebase is ~11K LOC, small enough for a determined contributor to read in a weekend; the API is intentionally minimal (5 abstractions × ~10 functions each); the test suite serves as executable documentation.
+
+## HISTORY
+
+- 2026-08-24: Proposed
+- 2026-08-24: Accepted
+- 2026-08-28: Confirmed still-Accepted at v0.5 cycle close; C17 + zero-deps contract intact; no supersession, no deprecation
+
 ## References
 
 - Code: `CMakeLists.txt` — `set(CMAKE_C_STANDARD 17)`

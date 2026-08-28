@@ -168,6 +168,38 @@ Rejected because v2's literature survey found strong cross-tradition support for
 
 Rejected because it's incomplete honesty. If Embodiment/Situatedness/Affordance-as-relation/Breakdown are essence (per v2's survey), not acknowledging them is the same as v1's omission. Half-honesty is not honesty.
 
+## CAVEATS
+
+This ADR is a *framing revision*. It does NOT:
+
+- Change any code. The 4 implemented abstractions (Estimate, Closure, Perception, Relation) remain as-is. The ADR revises the *claim*, not the *code* — this is a documentation-only change.
+- Close the Feedback gap. The ADR acknowledges the gap (Feedback is partial, implemented implicitly via Closure+Perception); it does not close it. ADR-0008 is the ADR that closes the gap by adding `px_loop` as the 5th abstraction.
+- Implement any of the 4 deferred essence candidates (Embodiment, Situatedness, Affordance-as-relation, Breakdown). The ADR acknowledges them as essence; it does not promise implementation. Each deferred candidate is a separate future decision.
+- Address the v4 essence-rederivation proposal (Interpretant / Perlocution / Breakdown). That proposal post-dates this ADR; v4 would extend the claim further. See `essence-derivation-v4-clean.md` and ADR-0010.
+- Address the question of whether Feedback is *better* modeled as a derived property vs a primitive essence category. The ADR asserts cross-tradition convergence treats Feedback as primitive; whether that convergence is correct is a deeper philosophical question this ADR does not engage.
+
+The decision here is narrowly scoped: revise the canonical claim from "4 = 4" to "4 implemented + 1 partial + 4 deferred". All downstream consequences (whether to close the Feedback gap, whether to implement deferred candidates, what to do if v3/v4 surfaces more essence categories) are out of scope.
+
+## Known issues
+
+- **Issue**: The revised claim is more complex than the original. "4 essence + 1 partial + 4 deferred" is harder to communicate in a single sentence than "4 = 4". The README and manifesto now require nuance, which may make Planex harder to pitch to casual readers.
+- **Why accepted**: the simpler claim was wrong. Honesty is a stated commitment (`path-C-lineage.md` "honest acknowledgment"). The cost of complexity is the cost of accuracy.
+- **Tracking**: permanent cost for v1.x. A future Planex 2.0 could simplify the claim if (a) Feedback becomes first-class AND (b) the 4 deferred candidates are definitively rejected or implemented — but that requires multiple future ADRs.
+- **Mitigation**: the README has a one-line tagline plus a "honest framing" section that breaks down the claim; readers who want the nuance get it without scrolling; casual readers get the tagline.
+
+- **Issue**: Acknowledging 4 deferred essence candidates may create "completeness anxiety" pressure — contributors may push to implement Embodiment/Situatedness/etc. prematurely, before use cases demand. This is the v2 cycle's recurrence of the v1 cycle's over-claim pattern in the opposite direction.
+- **Why accepted**: the alternative — not acknowledging the deferred candidates — is the same over-claim v2 itself corrected. Half-honesty is not honesty; the candidates must be acknowledged even at the cost of anxiety pressure.
+- **Tracking**: permanent process cost. Documented in the ADR's Consequences section.
+- **Mitigation**: the ADR's D4 ("acknowledge deferred essence candidates") includes a "why deferred" note for each candidate, making the deferral reasoned, not arbitrary. A contributor who pushes for implementation must engage with the deferral reason, not just the existence.
+
+## HISTORY
+
+- 2026-08-27: Proposed (as the v2 derivation landed)
+- 2026-08-27: Accepted
+- 2026-08-27: Feedback gap closed by ADR-0008 (px_loop) — the "1 partial" became "5 implemented". The 4 deferred candidates remain deferred.
+- 2026-08-27: Essence-claim framing further downgraded by ADR-0010 (v4 is design rationale, not essence discovery). The claim "4 essence + 1 partial + 4 deferred" is downgraded to "4 implemented abstractions with strong tradition support; 1 (Feedback/px_loop) added in v0.4; 4 deferred candidates acknowledged".
+- 2026-08-28: Confirmed still-Accepted at v0.5 cycle close; no supersession, no deprecation
+
 ## References
 
 - [essence-derivation-v2.md](../../concepts/history/essence-derivation-v2.md) — the v2 derivation that grounds this ADR

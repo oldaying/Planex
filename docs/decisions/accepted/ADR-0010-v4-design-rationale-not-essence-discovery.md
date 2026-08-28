@@ -640,6 +640,23 @@ This ADR is a framing downgrade. It does NOT cover:
 
 The ADR's only commitment: as of v0.5, v4 is framed as "design rationale, not essence discovery" in all canonical docs (abstraction-form.md, why-four-abstractions.md, the README). Future ADRs may upgrade or retire this framing.
 
+## Known issues
+
+- **Issue**: The framing downgrade is invisible to readers who don't read ADRs. The README, manifesto, and `abstraction-form.md` will now say "abstraction with strong tradition support" instead of "essence category", but a reader who only reads the README will see no flag that the framing was downgraded — they may treat the language as always having been this careful.
+- **Why accepted**: the alternative — adding a "previously we over-claimed, see ADR-0010" banner to every canonical doc — would clutter the docs with correction markers and become a maintenance burden. The ADR is the correction record; canonical docs reflect the current state, not the history.
+- **Tracking**: accepted as permanent cost. The ADR is the audit trail; reviewers who care about framing history consult the ADR; reviewers who only care about the current state read the canonical docs.
+- **Mitigation**: the ADR's References section links to every doc whose framing was downgraded; a reviewer who notices overly-careful language in `why-four-abstractions.md` can follow the trail.
+
+- **Issue**: v3 (ADR-0009) remains in `proposed/`, but its essence-claim language is now stale. ADR-0009's D4 table says "6 implemented + 2 partial + 2 deferred" as if those numbers carried essence weight; this ADR downgrades them to abstraction counts.
+- **Why accepted**: ADR-0009 is Proposed, not Accepted. Modifying a Proposed ADR's body to reflect ADR-0010's downgrade would be invasive and create a moving target. The cleanest fix is for ADR-0009's eventual Acceptance (or rejection) to use the downgraded framing; if Accepted, the ADR body is rewritten to reflect ADR-0010's framing at acceptance time.
+- **Tracking**: deferred to ADR-0009's resolution (Acceptance or rejection). If Accepted, the body will be rewritten with downgraded framing; if Rejected, the stale framing is moot.
+- **Mitigation**: ADR-0009's References section will be updated to cite this ADR; readers of ADR-0009 will see the framing note.
+
+- **Issue**: A future maintainer who disagrees with the downgrade (e.g., believes v4 *is* essence discovery) has no immediate mechanism to reverse this ADR without writing ADR-0014+ to supersede it. The framing lock-in is real.
+- **Why accepted**: the lock-in is by design — framing downgrades should be sticky, not flippable. If a future maintainer has new evidence that v4 is essence discovery, writing a superseding ADR is the correct process; it forces the new evidence to be on the record, not silently smuggled in.
+- **Tracking**: permanent process cost. Documented in `TEMPLATE-GUIDE.md` as the "framing downgrade is sticky" rule.
+- **Mitigation**: the ADR explicitly says "Future ADRs may upgrade or retire this framing" (CAVEATS last sentence) — the path to reversal is named, just non-trivial by design.
+
 ## HISTORY
 
 - 2026-08-27: Accepted (with the v4 derivation already in repo as `essence-derivation-v4-clean.md`)

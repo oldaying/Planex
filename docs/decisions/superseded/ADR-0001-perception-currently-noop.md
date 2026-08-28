@@ -109,6 +109,51 @@ This ADR is retained for historical record only. It does NOT cover:
 
 Do not act on this ADR. Read [ADR-0005](../accepted/ADR-0005-promote-perception-to-fourth-abstraction.md) instead.
 
+## Known issues
+
+> This ADR is **Superseded**; the "known issues" recorded below are the
+> ones that were accepted *at acceptance time* (2026-08-24) and motivated
+> the eventual supersession. They are retained for historical audit
+> rather than as current operating constraints.
+
+- **Issue**: The "3 abstractions" tagline in the README continued to
+  over-claim while this ADR was active (2026-08-24 → 2026-08-25).
+  During that ~24-hour window, anyone reading the README + ADR-0001
+  together received a self-contradictory signal: README said "3",
+  ADR-0001 said "actually 2.5 plus an empty slot".
+- **Why accepted**: the over-claim window was bounded (one day); the
+  ADR itself was the corrective action, so the contradiction was
+  already public and on the record. Repairing the README before the
+  ADR landed would have created the inverse problem (README says
+  "2.5" with no ADR explaining why).
+- **Tracking**: closed by [ADR-0005](../accepted/ADR-0005-promote-perception-to-fourth-abstraction.md)
+  on 2026-08-25, which promoted Perception to the 4th first-class
+  abstraction and made the (now revised) "4 abstractions" claim true.
+- **Mitigation (no longer applicable)**: while this ADR was active,
+  callers reading the README's "3 abstractions" claim were directed
+  to consult `docs/concepts/state/roadmap-matrix.md` row for
+  Perception, which was entirely red — the matrix was the honest
+  counter-signal against the README's tagline.
+
+- **Issue**: Path (c) (Conal Elliott's denotative route) was recorded
+  as a viable candidate but never prototyped during this ADR's
+  active window. The decision to defer prototyping until
+  evidence-of-need meant the cleanest theoretical path was unevidenced.
+- **Why accepted**: the v0.1 codebase was 48 hours old when this ADR
+  was accepted; prototyping all three paths (a/b/c) before choosing
+  would have stalled the project. The ADR's role was to *name* the
+  paths, not to evaluate them.
+- **Tracking**: the (c) route's pure-function technique was
+  subsequently validated by `counter_denotative.c`,
+  `calculator_denotative.c`, `counter_interactive.c` (10 unit tests
+  pass). ADR-0005's (b) route absorbed (c)'s pure-function
+  implementation while keeping the philosophically-honest 4th-abstraction
+  framing. Path (c) is therefore preserved as engineering technique,
+  superseded as philosophical stance.
+- **Mitigation (historical)**: callers wanting pure-function render
+  could use the `on_render(fb, user)` callback pattern — which is
+  structurally the (c) route without the philosophical commitment.
+
 ## HISTORY
 
 - 2026-08-24: Proposed

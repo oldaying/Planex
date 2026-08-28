@@ -328,6 +328,60 @@ This ADR decides only one thing: that Perception is the 4th first-class abstract
 
 The decision here is narrowly scoped: Perception is a first-class abstraction. All downstream framing consequences (README text, manifesto phrasing, "completes the essence coverage" claims) are out of scope for this ADR.
 
+## Known issues
+
+- **Issue**: Hit-region pattern is required for interactive demos. The
+  `counter_interactive.c` prototype proved that hit testing must be
+  expressed as part of Perception output (pixels + hit regions), not
+  as a separate callback. Demos that omit hit regions cannot be
+  interactive — they render but do not respond.
+- **Why accepted**: hit regions are the natural denotation of
+  interactive UI (you cannot click what you cannot see, and you
+  cannot see what has no pixel representation). Pushing hit regions
+  into Perception is the semantically-correct choice; the
+  alternative (a separate `on_hit_test` callback) would re-introduce
+  the very callback-indirection that ADR-0005 was created to
+  eliminate.
+- **Tracking**: permanent cost for the Perception abstraction. Hit
+  regions are documented in `examples/counter_interactive.c` and
+  will be a first-class concern in the planned `px_hit_region` API
+  (deferred).
+- **Mitigation**: callers who don't need interactivity can return
+  hit-region-empty Perception output. The cost is only paid by
+  interactive UIs, which is the correct scope.
+
+- **Issue**: GPU acceleration will face per-frame texture upload cost
+  (~1–2ms at 1080p) when/if a GPU backend is added. The pure-function
+  `px_perceive_fn` returns a CPU-side pixel buffer today; uploading
+  this to a GPU texture every frame is the (c) route's known cost,
+  inherited by (b).
+- **Why accepted**: GPU backend is [NG-7](../../concepts/canonical/non-goals.md)
+  for v1.x. When GPU becomes a goal, texture-pooling or render-cmd
+  abstractions layered on top of Perception can address the cost —
+  both compatible with (b)'s structure.
+- **Tracking**: deferred until GPU backend becomes a real goal
+  (post-v1.0).
+- **Mitigation**: current CPU-side rendering is sufficient for
+  Planex's target use cases (desktop, embedded, headless test).
+  Performance is acceptable: `counter_interactive.c` measures 1273
+  frames / 60fps on Windows.
+
+- **Issue**: Multi-frame interaction processes (hover trajectory,
+  drag preview, gesture) cannot be naturally expressed as
+  Perception takes single-frame Estimates as input. The current API
+  signature `px_perceive_fn(inputs, n_inputs, user)` has no notion
+  of "the last 50ms of mouse positions".
+- **Why accepted**: this is documented as [Limitations L11](../../concepts/state/limitations.md)
+  — multi-frame interaction processes are not abstracted by any UI
+  library, including Planex. ADR-0006 explicitly deferred the 5th
+  abstraction for continuous interaction to v1.0+.
+- **Tracking**: deferred per ADR-0006. Evidence from
+  `hover_drag_4abs.c` will inform whether a 5th abstraction is
+  needed.
+- **Mitigation**: callers needing hover/drag today use Estimate
+  hacks (transient state stored as Estimate with timestamp); the
+  hack is documented, not hidden.
+
 ## HISTORY
 
 - 2026-08-24: Proposed (as part of the gap-acknowledgment cycle started by ADR-0001)

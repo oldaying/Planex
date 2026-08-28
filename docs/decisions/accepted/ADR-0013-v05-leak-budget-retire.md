@@ -1,7 +1,11 @@
 # ADR-0013: v0.5 Leak Budget Retire
 
-**Status:** Accepted — 2026-08-28
-**Decider:** Planex author
+## Status
+
+**Accepted** — 2026-08-28
+
+**Decider:** Planex author (single-maintainer posture, no FCP)
+
 **Tags:** v0.5, leak-budget, abstraction-form, retire
 
 ## Context
@@ -57,7 +61,7 @@ Fix:
 
 This fix was necessary for Phase 2 to not break the loop's audit semantics.
 
-## Alternatives considered
+## Alternatives Considered
 
 ### A. Keep auto-invocation outside `px_loop_step` (disable flag)
 
@@ -124,6 +128,23 @@ Plus: all preexisting test suites still pass:
 - `tests/test_feedback.c` — 13/13 (the preexisting test_b1 double-fire failure is now fixed).
 
 Plus: all 11 examples build and run without behavior regression.
+
+## Known issues
+
+- **Issue**: Representamen cache leak. The new `void* last_representamen; bool has_last;` cache in `struct px_perception` holds a non-owning reference to the representamen. When overwritten, the previous value is leaked — perception fns are heterogeneous (some return pixel buffers, some return a11y trees, some return strings), and the abstraction has no `free_fn` convention to know which deallocator to call.
+- **Why accepted**: adding a `free_fn` parameter to `px_perception_new` would change the API signature and require migrating every existing caller. The leak is bounded by the number of active perceptions × cache slot count (1 per perception); in practice, ~10-50 leaked representamens over a long-running demo. Not acceptable for production; acceptable for pre-v1.0 research-grade scope.
+- **Tracking**: known v0.5 limitation; future `px_perception_new` overload or `px_perception_set_free_fn(p, fn)` extension can close this.
+- **Mitigation**: callers wanting zero-leak can manually clear via `px_perception_invoke_single(p)` followed by freeing the previous result themselves; the cache is then refreshed with the new (NULL or owned) value.
+
+- **Issue**: ABI break on three const-corrected signatures. `px_estimate_value`, `px_estimate_now`, `px_estimate_is_animating` now take `const px_estimate*` instead of `px_estimate*`. Callers passing non-const pointers are fine (implicit conversion), but any caller code that takes the address of these functions or stores them in a function pointer table needs the new signature type.
+- **Why accepted**: the const-correctness is the whole point of the retire — the old signatures were the leak (a query that mutated). Reverting to non-const would re-introduce the leak. Pre-v1.0 ABI breaks are explicitly permitted by NG-4.
+- **Tracking**: pre-existing callers (test files, examples) updated in this commit. External callers (none at this stage) would need migration; documented in `UPGRADING.md`.
+- **Mitigation**: `UPGRADING.md` (added by Part IX cross-channel augmentation) documents the migration: "prepend `px_estimate_advance(e, px_now_ms())` before reading if you relied on auto-sampling side effects".
+
+- **Issue**: `px_loop_replay` no longer over-fires perceptions. In v0.4, replay called `invoke_all` for every audit entry, which over-fired perceptions whose sources hadn't changed. In v0.5, replay only fires `invoke_all` for entries where `closure_triggered` was false (view-only iterations); other entries rely on auto-invocation to update only affected perceptions. This is correct behavior but is a subtle semantic shift from v0.4.
+- **Why accepted**: the v0.4 over-firing was the bug, not the feature. Replay should faithfully reproduce the original iteration's perception state, not fire everything blindly. The shift is correct behavior; documenting it as a Known issue is for migration transparency.
+- **Tracking**: documented as a Consequence (Negative) in this ADR; not a bug to fix.
+- **Mitigation**: callers depending on the v0.4 over-firing behavior (none currently) would need to call `px_perception_invoke_all()` manually after replay; the change is correct behavior.
 
 ## CAVEATS
 

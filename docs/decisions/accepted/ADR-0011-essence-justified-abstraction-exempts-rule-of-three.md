@@ -133,6 +133,23 @@ This ADR only rebuts the Rule-of-Three critique. It does NOT cover:
 - External contributor pressure — the ADR's reasoning assumes a single-maintainer posture (limitation L10). The criterion's robustness under external contribution (where Rule-of-Three pressure is highest) is untested. Defer to v1.0+ when external contribution becomes a real force.
 - The relationship between Rule of Three and the leak-budget mechanism — these are two parallel filters: Rule of Three is about *admission* (whether to add an abstraction); leak budgets are about *retirement* (whether to remove one). They are complementary, not redundant. This ADR addresses admission only.
 
+## Known issues
+
+- **Issue**: The essence-justified criterion is documented but not CI-enforced. A contributor can add a new abstraction that fails any of the three criteria (no tradition sourcing / not orthogonally separable / no denotational semantics) and the test suite will not flag it. The criterion is a paper gate, not a code gate.
+- **Why accepted**: writing a CI lint that detects "this new struct's constructor accepts a parameter no operation reads" (the L2-leak at admission time) is non-trivial — it requires interprocedural reachability analysis across the entire API surface. The leak-budget mechanism (ADR-0013) handles post-admission retirement; an admission-time lint is a separate tool that needs its own design.
+- **Tracking**: deferred to ADR-0014 (placeholder) which would specify a CI lint for essence-justified admission. The lint belongs in `scripts/check_essence_admission.sh` (companion to `check_doc_sections.sh`).
+- **Mitigation**: the REVIEW-RUBRIC.md (`docs/decisions/REVIEW-RUBRIC.md`) names criterion-1/tradition-sourcing as a review check; a reviewer applying the rubric will catch a tradition-less abstraction. The cost is human review time, not correctness.
+
+- **Issue**: The single-maintainer assumption. The ADR's reasoning assumes one maintainer applies the three criteria in good faith. Under external contribution (multiple maintainers, varying interpretations of "tradition sourcing"), the criterion's robustness is untested. A contributor could cite a tradition the maintainer disagrees is essence-grounding (e.g., "AGI alignment" as a "tradition").
+- **Why accepted**: Planex is currently single-maintainer (limitation L10). Designing the criterion for multi-maintainer robustness before there are multiple maintainers would be premature. The criterion's robustness is a hypothesis to be tested when external contribution becomes a real force.
+- **Tracking**: deferred to v1.0+ when external contribution pressure is real. A future ADR may add a "tradition vetting" process (e.g., requires ≥2 maintainers to agree a tradition qualifies).
+- **Mitigation**: the comparative-study research report (`docs/research/2025-08-28-abstraction-as-form-comparative-study.md`) lists 6 concrete traditions that qualify (phenomenology, semiotics, cybernetics, speech-act theory, FRP, HCI). A new abstraction claiming a 7th tradition should be cross-checked against this list or argued as equivalent.
+
+- **Issue**: The Rule-of-Three critique is rebuted, but the broader "abstraction-count" critique (e.g., "8 abstractions is too many for a UI library") is not addressed. A skeptic can shift the critique from "Rule of Three" to "abstraction inflation" without this ADR applying.
+- **Why accepted**: this ADR rebuts one specific critique. The broader "abstraction inflation" critique has different grounds (cognitive-load per user, not duplication-justification per maintainer) and requires a different rebuttal (likely grounded in Planex's leak-budget retire curve — bad abstractions get retired by data, not by count).
+- **Tracking**: deferred. A future ADR may address "abstraction inflation" directly; until then, the `leak-budgets.md` retire mechanism is the de facto response.
+- **Mitigation: the FAQ entry "Why 5 (or 8) abstractions, not 3 like React?" can point to this ADR's criterion + leak-budgets retire mechanism as the two-sided answer.
+
 ## HISTORY
 
 - 2026-08-28: Accepted (closes the gap recorded as Gap 2 in `docs/research/2025-08-28-abstraction-as-form-comparative-study.md`)

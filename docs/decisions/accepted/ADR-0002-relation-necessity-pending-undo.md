@@ -61,6 +61,37 @@ Specifically:
 - **What:** Instead of undo-via-graph, prove Relation's necessity via something else (e.g. multi-window state synchronization, or hot reload).
 - **Why rejected:** undo-via-graph is the cleanest because it directly uses Relation's defining feature (globally queryable graph). Other tests are weaker because they could be done without Relation's full power.
 
+## CAVEATS
+
+This ADR records a *diagnosis* (Relation's necessity is unproven) and *names a test* (undo-via-graph) — it does NOT:
+
+- Prove Relation is necessary. The undo-via-graph existence proof is a *forward-looking* criterion, not a *retroactive* validation. Until the proof lands, the claim is on credit.
+- Prove Relation is unnecessary. The flip side — if Solid.js's reactive primitives can also do undo-via-graph, Relation would be demoted. Neither direction is closed; both remain open.
+- Dictate the implementation path. Whether undo-via-graph is implemented as a snapshot-only-on-triggered-closure optimization, a global graph query API, or a per-Closure subgraph walk is a separate engineering decision.
+- Close the broader "is Planex's abstraction set correct?" question. This ADR covers only Relation. Estimate and Closure have separate existence proofs (animation time; 7-stage loop) that this ADR does not touch.
+- Address the v4 essence-rederivation proposal (Interpretant / Perlocution / Breakdown) — those are tracked in `essence-derivation-v4-clean.md` and ADR-0010 and are orthogonal to Relation's necessity.
+
+The decision here is narrowly scoped: acknowledge the gap, name the test. All downstream consequences (whether to demote Relation, when to implement undo, what API shape) are out of scope.
+
+## Known issues
+
+- **Issue**: Relation's necessity remains unproven as of v0.5. The undo-via-graph test named in this ADR has not been implemented; demos still use Relation as declarative sugar over what could be Solid-style signals.
+- **Why accepted**: implementing undo-via-graph correctly requires the v0.4+ `px_loop` API (added by ADR-0008) and the v3 Path B 3-place Relation (proposed by ADR-0009). Until those landed, undo-via-graph would have been built on unstable substrate. v0.5's leak-budget retire (ADR-0013) was the higher-priority falsifiability work.
+- **Tracking**: deferred to v1.0 cycle. The roadmap matrix (`docs/concepts/state/roadmap-matrix.md`) Relation row, Proof-of-concept column remains 🔴. A future ADR (placeholder: ADR-0014) will specify the undo-via-graph API and the Solid.js comparison test.
+- **Mitigation**: callers who suspect Relation is sugar-over-signals can read this ADR + the roadmap matrix; the gap is on the record. No user is misled into thinking Relation is proven-necessary.
+
+- **Issue**: Without undo-via-graph, Planex's anti-pattern claim against Solid.js ("Solid tracks dependencies per-effect; Planex tracks them as a globally queryable graph") is asserted but not demonstrated. Skeptics can fairly ask "show me the code where Solid can't do X".
+- **Why accepted**: the demonstration requires a non-trivial Solid.js reference implementation (~500-1000 LOC) plus a Planex undo-via-graph implementation (~200 LOC). This is roughly 2 weeks of focused work and is gated on ADR-0009 + ADR-0013 landing first.
+- **Tracking**: deferred; the demonstration is a natural follow-up to ADR-0014.
+- **Mitigation**: the conceptual argument is documented in this ADR's Context and Alternatives sections; skeptics can engage with the argument until the demonstration lands.
+
+## HISTORY
+
+- 2026-08-24: Proposed
+- 2026-08-24: Accepted
+- 2026-08-27: Open question (undo-via-graph implementation) confirmed still-open at v0.4 cycle close; no supersession, no deprecation
+- 2026-08-28: Confirmed still-open at v0.5 leak-budget retire (ADR-0013); explicitly deferred to v1.0 cycle
+
 ## References
 
 - Code: `src/relation.c` — current Relation implementation

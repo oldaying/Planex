@@ -174,6 +174,42 @@ Rejected. v2 already identified Feedback as essence via cross-tradition converge
 
 Not rejected — deferred to v0.5+. The v0.4 API uses `invoke_all` because Planex's perception API doesn't have `invoke(p)` yet. Adding it would require changes to perception.c and the perception registry. v0.4 keeps the scope minimal; v0.5+ can refine.
 
+## CAVEATS
+
+This ADR closes the Feedback gap acknowledged by ADR-0007 by adding `px_loop` as a first-class abstraction. It does NOT:
+
+- Address the 4 deferred essence candidates (Embodiment, Situatedness, Affordance-as-relation, Breakdown). Those remain deferred per ADR-0007; ADR-0008 only closes the Feedback gap.
+- Implement the v4 essence-rederivation proposal (Interpretant / Perlocution / Breakdown). The proposal post-dates this ADR and is tracked in `essence-derivation-v4-clean.md` and ADR-0010. `px_loop` does not anticipate or scaffold v4 — v4's API surface (per ADR-0009) is additive to `px_loop`'s audit struct, not modifying the core loop abstraction.
+- Provide per-perception invocation. `px_loop` currently uses `px_perception_invoke_all()` (global), not `px_perception_invoke(p)` (specific). This means a loop will invoke other registered perceptions, not just its own — a v0.4 limitation that v0.5+ may refine.
+- Support multi-payload replay. `px_loop_replay(n)` uses the closure's `last_intent` payload; callers wanting to replay 5 different payloads must capture each before triggering. This is documented in the API; future API refinement could add explicit payload capture.
+- Address thread-safety. `px_loop` is single-threaded; concurrent access from multiple threads is undefined. Planex is single-threaded by design (no threading in v0.x); a future multi-threaded variant would require its own ADR.
+
+The decision here is narrowly scoped: add `px_loop` as the Feedback abstraction, close the gap acknowledged in ADR-0007. All downstream consequences (per-perception invocation, multi-payload replay, thread-safety, v4 extension) are out of scope.
+
+## Known issues
+
+- **Issue**: `px_loop` uses `px_perception_invoke_all()` (global), which means a loop will invoke *all* registered perceptions, not just its own. A caller running multiple loops simultaneously will see each loop invoking all perceptions, leading to redundant rendering and audit entries.
+- **Why accepted**: the v0.4 Perception API does not have `px_perception_invoke(p)` yet. Adding it would require changes to `perception.c` and the perception registry. v0.4 kept the scope minimal to validate the loop concept; v0.5+ can refine.
+- **Tracking**: deferred to v0.5+ per A4 in Alternatives Considered. The v0.5 leak-budget retire (ADR-0013) was the higher-priority falsifiability work; per-perception invocation remains a v0.6+ candidate.
+- **Mitigation**: callers running one loop at a time are unaffected. Callers running multiple loops should manually filter audit entries by closure_triggered flag, or wait for the per-perception API.
+
+- **Issue**: Audit buffer is fixed-size (1024 entries, oldest overwritten). A long-running loop with rapid iterations will lose early audit entries — the audit log is a ring buffer, not a growable record.
+- **Why accepted**: growable storage would complicate the API (caller-configured max-size, allocation policy, OOM handling). 1024 entries cover roughly 17 seconds at 60fps, which is sufficient for most debugging scenarios. Production callers needing longer audit windows can read periodically and clear.
+- **Tracking**: permanent cost for v1.x. Production variants may grow the buffer; not pursued in core.
+- **Mitigation**: callers needing longer audit windows should periodically drain the audit log via `px_loop_audit_get` + `px_loop_audit_clear` in their own code.
+
+- **Issue**: `px_loop_replay(n)` re-triggers the closure using its `last_intent` payload, which is overwritten on each trigger. A caller wanting to replay 5 different payloads must capture each before triggering, defeating the convenience of replay.
+- **Why accepted**: full multi-payload replay requires a payload-history ring buffer, which adds memory cost and complicates the API (capture policy, eviction policy, OOM handling). The current API serves the common case (replay last action for debugging) and exposes the limitation for the uncommon case (replay multiple actions).
+- **Tracking**: deferred. Future API refinement could add `px_loop_capture_payloads(n)` and `px_loop_replay_payloads(n)` if demand emerges.
+- **Mitigation**: callers needing multi-payload replay should capture payloads themselves (caller-side array) and trigger them in sequence; this is documented in `src/feedback.c`.
+
+## HISTORY
+
+- 2026-08-27: Proposed (immediately after ADR-0007's gap acknowledgment)
+- 2026-08-27: Accepted
+- 2026-08-27: Audit struct extended by ADR-0009 (Proposed) — added `perlocution_kind`, `interpretant_constructed`, `breakdown_transition` fields per v3 Path B prototype
+- 2026-08-28: Confirmed still-Accepted at v0.5 cycle close; no supersession, no deprecation; per-perception invocation remains a v0.6+ candidate
+
 ## References
 
 - [ADR-0007](ADR-0007-essence-derivation-v2-revision.md) — acknowledged the Feedback gap; this ADR closes it
