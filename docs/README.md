@@ -68,13 +68,15 @@ The doc-organization proposal (see [`doc-organization.md`](doc-organization.md) 
 | [`scripts/check_links.sh`](../scripts/check_links.sh) | Every internal markdown link resolves to an existing file. | Wave 1 link-rewrite drift — wrong path depth after a doc was moved between subdirectories. |
 | [`scripts/find_orphans.sh`](../scripts/find_orphans.sh) | Every doc is linked from at least one other doc (allowlist aside for `staging/`, `changelog.md`, and entry-point `README`s). | A doc that lands in `staging/` and is never graduated (Principle 5). |
 | [`scripts/check_terms.sh`](../scripts/check_terms.sh) | Each glossary term used in `docs/concepts/canonical/` is linked to its glossary anchor at least once. Pass `--scope=all` for doc-wide coverage. | A canonical doc mentions a Planex abstraction without linking to its definition (Principle 3, Wave 4.1 scope). |
+| [`scripts/check_stale_abstraction_count.sh`](../scripts/check_stale_abstraction_count.sh) | No stale "4 abstractions" references in v0.5-current docs; no "Relation + Estimate + Closure + Perception" without "+ px_loop". | ADR-0008 (v0.4) added `px_loop` as 5th abstraction; v0.5-current docs that still say "4 abstractions" are post-ADR-0008 drift. Historical files (ADRs / changelog / research / v0.4 snapshots) are exempt; intentional quotations can be marked `<!-- stale-allow: reason -->`. (CONTRIBUTING.md rule 5, automated.) <!-- stale-allow: this row describes the script's detection targets; "4 abstractions" is the literal stale-pattern the script grep's for --> |
 
-Run all six locally before pushing doc edits:
+Run all seven locally before pushing doc edits:
 
 ```
 for s in scripts/check_doc_sections.sh scripts/gen_adr_index.sh \
          scripts/check_adr_lifecycle.sh scripts/check_links.sh \
-         scripts/find_orphans.sh scripts/check_terms.sh; do
+         scripts/find_orphans.sh scripts/check_terms.sh \
+         scripts/check_stale_abstraction_count.sh; do
     "$s" --check || exit 1
 done
 ```

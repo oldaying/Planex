@@ -2,7 +2,8 @@ name: Docs
 
 # Doc-organization contract enforcers (6 gates from doc-organization.md
 # Part VI + 1 completeness gate landed in commit f7fc630 + 2 more gates
-# landed in commit 98295cc + 1 essence-admission gate landed in T7).
+# landed in commit 98295cc + 1 essence-admission gate landed in T7 +
+# 1 stale-abstraction-count gate landed in T8).
 # These run alongside .github/workflows/ci.yml (the code build). The two
 # workflows are independent: a green Docs check does NOT imply the code
 # builds.
@@ -13,11 +14,11 @@ name: Docs
 #     .github/PULL_REQUEST_TEMPLATE.md (a separate file, not a CI gate;
 #     the rubric is human-applied at PR review time, not CI-scored).
 #
-# The 10 gates are: 6 shell scripts (check_doc_sections, check_adr_lifecycle,
-# gen_adr_index, check_links, find_orphans, check_terms) + 4 make targets
-# (check-completeness, check-compression, check-examples, check-essence).
-# All 10 are wired across 5 jobs. Each gate is its own step so the GitHub
-# UI shows which contract broke.
+# The 11 gates are: 7 shell scripts (check_doc_sections, check_adr_lifecycle,
+# gen_adr_index, check_links, find_orphans, check_terms, check_stale_abstraction_count)
+# + 4 make targets (check-completeness, check-compression, check-examples,
+# check-essence). All 11 are wired across 5 jobs. Each gate is its own step
+# so the GitHub UI shows which contract broke.
 
 on:
   push:
@@ -95,6 +96,21 @@ jobs:
       - name: check_terms (glossary term saturation)
         run: scripts/check_terms.sh --check
 
+      # ------------------------------------------------------------------
+      # Gate 8: No stale 4-abstraction references in v0.5-current docs.
+      # Closes the gap surfaced in commit aa752e7 (docs(spec): refresh
+      # stale 4-abstraction references) by making CONTRIBUTING.md rule
+      # 5's manual grep self-enforcing. Post-ADR-0008 (v0.4, added
+      # px_loop as 5th abstraction), any v0.5-current doc still saying
+      # "4 abstractions" or listing "Relation + Estimate + Closure +
+      # Perception" without px_loop is stale. Historical files (ADRs,
+      # changelog, research, v0.4 snapshots) are exempt; intentional
+      # historical quotations can be marked inline with
+      # <!-- stale-allow: reason -->.
+      # ------------------------------------------------------------------
+      - name: check_stale_abstraction_count (no stale 4-abstraction refs)
+        run: scripts/check_stale_abstraction_count.sh --check
+
   completeness-corpus:
     # Separate job from doc-org-contract because it needs the C toolchain
     # to build tests/test_completeness.c. The 6 doc-org gates above are
@@ -108,7 +124,7 @@ jobs:
         run: make BACKEND=headless check-completeness
 
   compression-metric:
-    # The 8th gate: Planex Compression Metric (PCM) v0.1.
+    # The 9th gate: Planex Compression Metric (PCM) v0.1.
     # Closes the last engineering-mechanism gap in abstraction-form.md
     # Prerequisite 3. Pure shell + awk; needs no compiler, but runs in
     # its own job for clean CI signal isolation.
@@ -121,7 +137,7 @@ jobs:
         run: make check-compression
 
   examples-regression:
-    # The 9th gate: Wave 4.3 from doc-organization.md (Principle 7).
+    # The 10th gate: Wave 4.3 from doc-organization.md (Principle 7).
     # Each examples/X.c paired with examples/X.expected; CI runs each
     # example, diffs stdout+stderr against expected, fails on drift.
     # Timestamps and addresses are normalized before diffing so
@@ -138,7 +154,7 @@ jobs:
         run: make BACKEND=headless check-examples
 
   essence-admission:
-    # The 10th gate: ADR-0014's essence-justified admission enforcement.
+    # The 11th gate: ADR-0014's essence-justified admission enforcement.
     # Runs scripts/check_essence_admission.sh in two modes:
     #   --check     -> scans docs/decisions/{proposed,validated}/ for
     #                  ADRs with `## Essence Check` sections; verifies

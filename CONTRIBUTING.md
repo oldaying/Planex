@@ -61,7 +61,7 @@
 
 ## 4. Demo design rule
 
-**LESSON**: hover_drag_4abs.c was written to "prove 4 abstractions can do hover/drag" — but all UI libraries can do hover/drag. The demo's purpose was wrong. It should have been "measure how painful the hack is" (which it did, but the framing was misleading).
+**LESSON**: hover_drag_4abs.c was written to "prove 4 abstractions can do hover/drag" — but all UI libraries can do hover/drag. The demo's purpose was wrong. It should have been "measure how painful the hack is" (which it did, but the framing was misleading). <!-- stale-allow: historical framing quoted from v0.3-era hover_drag_4abs.c demo; filename itself encodes 4abs -->
 
 **Rule**: Before writing a demo, ask:
 1. What question does this demo answer?
@@ -72,7 +72,7 @@
 **Good demo purposes**:
 - "Prove abstraction X is necessary" (anti-pattern test)
 - "Measure hack pain for a boundary" (hover_drag_4abs)
-- "Show 4 abstractions working together" (future integration demo)
+- "Show 5 abstractions working together" (future integration demo)
 - "Validate an ADR decision" (counter_denotative validated ADR-0005)
 
 **Bad demo purposes**:
@@ -83,7 +83,7 @@
 
 ## 5. Documentation sync rule
 
-**LESSON**: Multiple docs still said "3 abstractions" after ADR-0005 promoted Perception to 4th. README was updated but non-goals.md, limitations.md, and roadmap-matrix.md were not. The same pattern repeated in v0.4 when ADR-0008 added `px_loop` as the 5th abstraction (Feedback) — multiple docs kept saying "4 abstractions" long after the 5th shipped. This rule now also covers the v0.5 leak-budget retire (ADR-0013) and the Validated lifecycle stage + essence-justified admission enforcement (ADR-0014).
+**LESSON**: Multiple docs still said "3 abstractions" after ADR-0005 promoted Perception to 4th. README was updated but non-goals.md, limitations.md, and roadmap-matrix.md were not. The same pattern repeated in v0.4 when ADR-0008 added `px_loop` as the 5th abstraction (Feedback) — multiple docs kept saying "4 abstractions" long after the 5th shipped. This rule now also covers the v0.5 leak-budget retire (ADR-0013) and the Validated lifecycle stage + essence-justified admission enforcement (ADR-0014). <!-- stale-allow: rule 5 LESSON describes the stale-ref pattern itself; the literal "4 abstractions" string is the detection target this rule grep's for -->
 
 **Rule**: When making a decision that changes the project's claims:
 1. Update README.md (the front door)
@@ -156,7 +156,7 @@
 
 ## 9. Essence check rule
 
-**LESSON**: The hover_drag demo was framed as "proving 4 abstractions can do hover/drag" — but that's not an essence question. It's a capability question. Essence questions are about what UI IS, not what it CAN DO.
+**LESSON**: The hover_drag demo was framed as "proving 4 abstractions can do hover/drag" — but that's not an essence question. It's a capability question. Essence questions are about what UI IS, not what it CAN DO. <!-- stale-allow: rule 9 LESSON quotes the v0.3-era hover_drag_4abs.c framing; filename encodes 4abs -->
 
 **Rule**: Before starting work, ask the 5 essence questions (from ADR template):
 1. Which essence axis does this affect?
@@ -215,7 +215,7 @@ If the answer to Q1 is "none" — this is engineering, not essence. Fine, but do
 | 2. API sweep | test_core.c missed | grep ALL call sites when changing signatures |
 | 3. const | px_estimate_value had side effects | Check function body before adding const |
 | 4. Demo design | hover_drag proved nothing new | Ask "what question does this demo answer?" |
-| 5. Doc sync | "3 abstractions" stale in v0.3, "4 abstractions" stale in v0.4→v0.5 | grep for old terminology (both forms + missing-`px_loop` form) |
+| 5. Doc sync | "3 abstractions" stale in v0.3, "4 abstractions" stale in v0.4→v0.5 | grep for old terminology (both forms + missing-`px_loop` form) | <!-- stale-allow: summary row names the stale-ref pattern itself; "4 abstractions" is the detection target this row summarizes -->
 | 6. Commit msg | Non-ASCII caused Python errors | ASCII only in commit messages |
 | 7. Platform test | Win32 missing mouse-up/move | Check ALL backends for new events |
 | 8. Paper first | Text editor demo would prove nothing | Analyze before coding |

@@ -16,7 +16,7 @@ This document is the **canonical source of truth** for "what's not done yet." If
 
 ### History (superseded)
 
-Originally (v0.1.0), Planex claimed "4 abstractions" but Perception was a no-op placeholder in `Closure`'s stage 5. This was a structural gap documented in [ADR-0001](../../decisions/superseded/ADR-0001-perception-currently-noop.md) (now superseded).
+Originally (v0.1.0), Planex claimed "4 abstractions" but Perception was a no-op placeholder in `Closure`'s stage 5. This was a structural gap documented in [ADR-0001](../../decisions/superseded/ADR-0001-perception-currently-noop.md) (now superseded). <!-- stale-allow: historical claim about v0.1.0 state; the "4 abstractions" tagline was real at that version -->
 
 ### Resolution (ADR-0005, v0.2)
 
