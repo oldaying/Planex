@@ -6,6 +6,7 @@
 
 ADR lifecycle state is encoded in the directory:
 - `accepted/` — Active decisions that govern the codebase today.
+- `validated/` — ADRs whose enforcement mechanism is implemented and proven to fire on a synthetic violation case (ADR-0014's TC39 Stage 2.7 analog). Cannot reach `accepted/` until the demonstration is in place.
 - `proposed/` — Draft ADRs not yet ruled on.
 - `deferred/`  — ADRs whose own acceptance is deferred (distinct from `accepted/ADR-*` that decide to defer something).
 - `deprecated/` — ADRs whose decision is no longer active and has no specific successor.
@@ -16,7 +17,7 @@ ADR numbering (ADR-0001 onward) is permanent; the directory only encodes the cur
 | # | Title | Status |
 |---|-------|--------|
 | ADR-0009 | [Essence re-derivation v3 + Path B prototype (Proposed)](proposed/ADR-0009-essence-rederivation-v3.md) | proposed |
-| ADR-0014 | [Add a Validated lifecycle stage between Proposed and Accepted (TC39 Stage 2.7 analog + essence-justified enforcement)](proposed/ADR-0014-validated-stage-and-essence-justified-enforcement.md) | proposed |
+| ADR-0014 | [Add a Validated lifecycle stage between Proposed and Accepted (TC39 Stage 2.7 analog + essence-justified enforcement)](validated/ADR-0014-validated-stage-and-essence-justified-enforcement.md) | validated |
 | ADR-0002 | [Relation's necessity is not yet proven](accepted/ADR-0002-relation-necessity-pending-undo.md) | accepted |
 | ADR-0003 | [No AI integration in Planex core](accepted/ADR-0003-no-ai-integration.md) | accepted |
 | ADR-0004 | [Implementation language is C17, not Rust / Zig / C++](accepted/ADR-0004-use-c-not-rust-zig-cpp.md) | accepted |

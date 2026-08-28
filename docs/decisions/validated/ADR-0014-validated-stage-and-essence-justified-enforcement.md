@@ -38,7 +38,23 @@ implemented and proven to fire on its target."
 
 ## Status
 
-Proposed
+**Validated.** Date: 2026-08-28.
+
+This ADR records the implementation of its own enforcement mechanism
+(`scripts/check_essence_admission.sh`) and the demonstration that the
+mechanism fires on its synthetic violation case (`tests/synthetic_adr_0015.md`).
+Per Part 1 of this ADR's own decision, it cannot progress to **Accepted**
+until the synthetic case demonstration is preserved in CI — that has now
+happened (the `essence-admission` job in `.github/workflows/docs.yml` runs
+both `--check` on real ADRs and `--synthetic` on the synthetic case).
+
+Promotion to **Accepted** remains pending (a) the wiring of
+`scripts/check_essence_admission.sh` as a CI gate (done in this commit),
+(b) the demonstration that the lint fires on the synthetic case (also
+done in this commit — see `## Validation` below for the actual output),
+and (c) reviewer sign-off on the synthetic case as non-trivial per
+REVIEW-RUBRIC.md criterion 2 (Honesty). Reviewer sign-off is the only
+remaining gate before promotion to Accepted.
 
 ## Context
 
@@ -433,19 +449,49 @@ Context. ADR-0011 requires a specific paper or book citation, not a
 general vibe.
 ```
 
+### Actual enforcement output (preserved on 2026-08-28)
+
+Running `scripts/check_essence_admission.sh --synthetic` on
+`tests/synthetic_adr_0015.md` produces the following output (all three
+criteria fail simultaneously, which is stronger than the predicted
+criterion-1-only failure — the synthetic case is intentionally
+broken on every axis):
+
+```
+check_essence_admission: ADR- (Memory is a 6th abstraction) FAILS the essence-justified admission gate:
+  criterion 1 (tradition citation): no tradition source cited in Essence Check or Context.
+    ADR-0011 requires a specific paper or book citation, not a general vibe.
+  criterion 2 (real alternatives): no `### Alternative` sub-heading with substantive body found.
+    ADR-0014 requires at least one non-strawman alternative in `## Alternatives Considered`.
+  criterion 3 (negative consequences): no `### Negative` sub-section with substantive body found.
+    TEMPLATE-GUIDE.md's "Zero-negative-consequences" failure mode requires at least one.
+
+check_essence_admission: 0 PASS, 1 FAIL, 0 OUT OF SCOPE across 1 ADR file(s).
+OK: synthetic case correctly triggered the lint (expected fail, got fail).
+```
+
+The synthetic case is the falsifiability record: a future contributor
+can re-run `scripts/check_essence_admission.sh --synthetic` and verify
+the lint still fires. If the lint ever stops firing on this synthetic
+case, the ADR's `Validated` claim is broken and must revert to
+`Proposed` until the regression is fixed.
+
 ### CI encoding
 
 The synthetic case is encoded in `tests/synthetic_adr_0015.md` (a
 literal copy of the snippet above) and `check_essence_admission.sh` is
-wired into `.github/workflows/docs.yml` as the 10th gate, running on
-every PR that touches `decisions/proposed/`. The synthetic ADR is
-excluded from the ADR index (`gen_adr_index.sh` skips files in
-`tests/synthetic_*`), so the synthetic does not pollute the real ADR
-registry.
+wired into `.github/workflows/docs.yml` as the 10th gate (the
+`essence-admission` job, running both `--check` on real ADRs and
+`--synthetic` on the synthetic case). The synthetic ADR is
+excluded from the ADR index (`gen_adr_index.sh` only walks
+`docs/decisions/{proposed,validated,accepted,deferred,deprecated,superseded}/`,
+so `tests/synthetic_*` files never appear in the index), so the
+synthetic does not pollute the real ADR registry.
 
-This ADR cannot progress from `Validated` to `Accepted` until the
-above enforcement is demonstrated to fire on the synthetic case. The
-demonstration is in the commit that promotes this ADR.
+This ADR's promotion to `Accepted` remains pending reviewer sign-off
+on the synthetic case as non-trivial per REVIEW-RUBRIC.md criterion 2
+(Honesty). Once a reviewer has signed off, the ADR moves to
+`docs/decisions/accepted/` and the Status becomes `Accepted`.
 
 ## Known issues
 
@@ -483,12 +529,21 @@ demonstration is in the commit that promotes this ADR.
 ## HISTORY
 
 - 2026-08-28: Proposed
+- 2026-08-28: Validated — `scripts/check_essence_admission.sh`
+  implemented; `tests/synthetic_adr_0015.md` encoded as the synthetic
+  violation case; `.github/workflows/docs.yml` wired as the 10th CI
+  gate (the `essence-admission` job, running both `--check` on real
+  ADRs and `--synthetic` on the synthetic case). See `## Validation`
+  for the actual enforcement output preserved as the falsifiability
+  record per Part 1 of this ADR's own decision.
 
 ## References
 
-- **Code:** `scripts/check_essence_admission.sh` (to be implemented in
-  the commit that promotes this ADR to Validated)
-- **Code:** `tests/synthetic_adr_0015.md` (synthetic violation case)
+- **Code:** `scripts/check_essence_admission.sh` — the enforcement
+  mechanism (implemented in this commit; ADR-0011's deferred
+  `check_essence_admission.sh` is now landed).
+- **Code:** `tests/synthetic_adr_0015.md` — synthetic violation case
+  encoded as the ADR's falsifiability record.
 - **Related ADRs:** [ADR-0010](../accepted/ADR-0010-v4-design-rationale-not-essence-discovery.md) — the honesty downgrade this ADR
   operationalizes at the lifecycle level; [ADR-0011](../accepted/ADR-0011-essence-justified-abstraction-exempts-rule-of-three.md) — the three-criterion this ADR partially automates (Known issues names the gap); [ADR-0012](../accepted/ADR-0012-v4-orthogonality-pressure-test-four-findings.md) — Q3 self-acknowledged gap this ADR's `Validated` stage would have caught at ADR-0011 acceptance time.
 - **Related docs:** [`../../doc-organization.md`](../../doc-organization.md) Part VIII — names "TC39 Stage 2.7 named ADR state" as the deferred proposal this ADR addresses; [`../TEMPLATE.md`](../TEMPLATE.md) — gains the optional `## Validation` section per this ADR's Part 2; [`../TEMPLATE-GUIDE.md`](../TEMPLATE-GUIDE.md) — gains guidance for the `## Validation` section; [`../REVIEW-RUBRIC.md`](../REVIEW-RUBRIC.md) — criterion 2 (Honesty) and criterion 3 (Compressiveness) are the reviewer-applied complements to the automated halves of this ADR's enforcement.

@@ -124,7 +124,7 @@ TEST_V05_SRC   = $(TST_DIR)/test_v05_retire.c
 TEST_COMP      = $(BUILD)/test_completeness
 TEST_COMP_SRC  = $(TST_DIR)/test_completeness.c
 
-.PHONY: all clean test test_ortho test_feedback test_v05 check-completeness check-compression check-examples examples backends-info
+.PHONY: all clean test test_ortho test_feedback test_v05 check-completeness check-compression check-examples check-essence examples backends-info
 
 all: examples test
 
@@ -281,6 +281,21 @@ check-examples: examples
 	        echo "[SKIP] $$ex: no .expected file"; \
 	    fi; \
 	done
+
+# ============================================================
+# Essence-justified admission enforcement (Gate 10 from ADR-0014).
+# Runs scripts/check_essence_admission.sh in two modes:
+#   --check     -> scans decisions/{proposed,validated}/ for ADRs
+#                  with `## Essence Check` sections; all must pass.
+#   --synthetic -> runs on tests/synthetic_adr_0015.md; must exit
+#                  non-zero (the falsifiability demonstration that
+#                  the lint fires on the synthetic violation case).
+# Run: make check-essence
+# ============================================================
+
+check-essence:
+	./scripts/check_essence_admission.sh --check
+	./scripts/check_essence_admission.sh --synthetic
 
 clean:
 	rm -rf $(BUILD)

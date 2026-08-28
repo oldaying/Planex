@@ -65,7 +65,17 @@ filtered-feed path covered by ADR-0008."]
 
 ## Status
 
-Proposed | Accepted | Deprecated | Superseded by ADR-MMMM
+Proposed | Validated | Accepted | Deprecated | Superseded by ADR-MMMM
+
+> The `Validated` state (added by ADR-0014) is an intermediate stage
+> between `Proposed` and `Accepted` for ADRs that propose an enforcement
+> mechanism. The ADR's `## Validation` section (see below) records the
+> synthetic violation case and the actual enforcement output as the
+> falsifiability record. An ADR cannot reach `Accepted` until it has
+> first been `Validated` (if it proposes an enforcement mechanism) — i.e.,
+> the mechanism is implemented and proven to fire on at least one
+> synthetic case. ADRs that do NOT propose an enforcement mechanism skip
+> `Validated` and go directly from `Proposed` to `Accepted`.
 
 ## Context
 
@@ -188,6 +198,54 @@ cannot name a caveat, write "None identified" and explain why.
 - Caveat 1: ...
 - Caveat 2: ...
 
+## Validation (mandatory for `Validated`-track ADRs; optional otherwise)
+
+> Research basis: TC39 Stage 2.7 — the stage where a proposal's
+> reference implementation and key tests must be in place before the
+> proposal can advance to Stage 3 (Accepted-equivalent). Adapted for
+> ADRs by ADR-0014: an ADR that proposes an enforcement mechanism
+> (a CI lint, a test, a metric, a gate) cannot reach `Accepted` until
+> the mechanism is implemented in the repo AND proven to fire on at
+> least one synthetic violation case included in this section.
+>
+> ADRs that do NOT propose an enforcement mechanism (purely-engineering
+> ADRs, observation ADRs, convention-naming ADRs) OMIT this section
+> entirely. See ADR-0014 counterexamples 1-3 for the scope statement.
+
+### Synthetic violation case
+
+[A small code or doc snippet that *should* trigger the enforcement
+mechanism. Inline as a fenced code block. Example: a fake ADR that
+proposes a new abstraction with no tradition citation, demonstrating
+that `scripts/check_essence_admission.sh` exits non-zero on it.]
+
+```
+[synthetic violation case here]
+```
+
+### Expected enforcement behavior
+
+[What the enforcement mechanism should do when run on the synthetic
+case. Example: "exits 1 with the message '...tradition citation
+missing for abstraction Memory'".]
+
+### Actual enforcement output (preserved on YYYY-MM-DD)
+
+[When the ADR is promoted to `Validated`, run the enforcement mechanism
+on the synthetic case and preserve the actual output verbatim here.
+This is the falsifiability record: a future contributor can re-run
+the enforcement and verify the output matches. If the output drifts,
+the ADR's `Validated` claim is broken.]
+
+### CI encoding
+
+[Pointer to where the synthetic case is encoded as a CI test. Example:
+"The synthetic case is encoded in `tests/synthetic_adr_0015.md` and
+`scripts/check_essence_admission.sh` is wired into
+`.github/workflows/docs.yml` as the 10th gate (the `essence-admission`
+job, running both `--check` on real ADRs and `--synthetic` on the
+synthetic case)."]
+
 ## Known issues
 
 > Research basis: GOV.UK Design System component pages (`#### Known issues`
@@ -219,6 +277,7 @@ This section is the per-ADR analogue of the project-level `changelog.md`
 and is the falsifiable record of when the ADR's status changed.
 
 - YYYY-MM-DD: Proposed
+- YYYY-MM-DD: Validated (if this ADR proposes an enforcement mechanism; per ADR-0014, the synthetic violation case in `## Validation` is in the repo and the enforcement fires)
 - YYYY-MM-DD: Accepted
 - YYYY-MM-DD: Superseded by ADR-MMMM (if applicable)
 - YYYY-MM-DD: Deprecated (if applicable)

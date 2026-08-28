@@ -1,9 +1,11 @@
 name: Docs
 
 # Doc-organization contract enforcers (6 gates from doc-organization.md
-# Part VI + 1 completeness gate landed in commit f7fc630). These run
-# alongside .github/workflows/ci.yml (the code build). The two workflows
-# are independent: a green Docs check does NOT imply the code builds.
+# Part VI + 1 completeness gate landed in commit f7fc630 + 2 more gates
+# landed in commit 98295cc + 1 essence-admission gate landed in T7).
+# These run alongside .github/workflows/ci.yml (the code build). The two
+# workflows are independent: a green Docs check does NOT imply the code
+# builds.
 #
 # Closed deferrals (see doc-organization.md Part IX deferral table):
 #   - "Wire check_doc_sections.sh into CI" (Principle 11)
@@ -11,8 +13,10 @@ name: Docs
 #     .github/PULL_REQUEST_TEMPLATE.md (a separate file, not a CI gate;
 #     the rubric is human-applied at PR review time, not CI-scored).
 #
-# All seven gates are shell scripts under scripts/. They exit 0 on
-# PASS, non-zero on failure. Each gate is its own step so the GitHub
+# The 10 gates are: 6 shell scripts (check_doc_sections, check_adr_lifecycle,
+# gen_adr_index, check_links, find_orphans, check_terms) + 4 make targets
+# (check-completeness, check-compression, check-examples, check-essence).
+# All 10 are wired across 5 jobs. Each gate is its own step so the GitHub
 # UI shows which contract broke.
 
 on:
@@ -23,6 +27,7 @@ on:
       - 'examples/**'
       - 'scripts/**'
       - 'tests/test_completeness.c'
+      - 'tests/synthetic_adr_0015.md'
       - 'Makefile'
       - '.github/workflows/docs.yml'
   pull_request:
@@ -32,6 +37,7 @@ on:
       - 'examples/**'
       - 'scripts/**'
       - 'tests/test_completeness.c'
+      - 'tests/synthetic_adr_0015.md'
       - 'Makefile'
       - '.github/workflows/docs.yml'
 
@@ -130,3 +136,26 @@ jobs:
         run: make BACKEND=headless examples
       - name: Run examples-as-regression-tests (diff against .expected)
         run: make BACKEND=headless check-examples
+
+  essence-admission:
+    # The 10th gate: ADR-0014's essence-justified admission enforcement.
+    # Runs scripts/check_essence_admission.sh in two modes:
+    #   --check     -> scans docs/decisions/{proposed,validated}/ for
+    #                  ADRs with `## Essence Check` sections; verifies
+    #                  each passes the 3 admission criteria (tradition
+    #                  cite + real alternatives + negative consequences).
+    #   --synthetic -> runs on tests/synthetic_adr_0015.md (the
+    #                  synthetic violation case from ADR-0014's
+    #                  `## Validation` section); expects non-zero exit
+    #                  as the falsifiability demonstration that the
+    #                  lint correctly fires on a tradition-less
+    #                  essence-justified claim.
+    # Closes the "essence-justified criterion documented but not enforced"
+    # gap from ADR-0011's Known issues + doc-organization.md Part IX.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build deps
+        run: sudo apt-get update && sudo apt-get install -y make build-essential
+      - name: Essence-justified admission check (real ADRs + synthetic case)
+        run: make check-essence

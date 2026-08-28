@@ -61,10 +61,15 @@ the author; the author confirms the surface area below. -->
 - [ ] `make BACKEND=headless check-completeness` passes (68-pattern corpus invariants)?
 - [ ] `make check-compression` passes (no catastrophic AEL drift, LLE > 0.3)?
 - [ ] If examples/ touched: `make BACKEND=headless check-examples` passes (no .expected drift)?
+- [ ] If decisions/{proposed,validated}/ touched: `make check-essence` passes (essence-justified admission 3 criteria + synthetic case fires)?
 
-<!-- These 9 gates also run as .github/workflows/docs.yml on push and
+<!-- These 10 gates also run as .github/workflows/docs.yml on push and
 PR. Checking them locally avoids round-trips; the CI gate is the
-authoritative record. -->
+authoritative record. Gate 10 (essence-admission) is the
+self-referential gate from ADR-0014: it runs `--check` on real ADRs
+(verify tradition-cite + real-alternatives + negative-consequences)
+and `--synthetic` on tests/synthetic_adr_0015.md (verify the lint
+fires on the synthetic violation case). -->
 
 ### Code contract (only if src/, include/, or tests/ touched)
 

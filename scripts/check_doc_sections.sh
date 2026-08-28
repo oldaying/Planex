@@ -9,7 +9,7 @@
 #   scripts/check_doc_sections.sh --check        # same, but prints drift summary first
 #   scripts/check_doc_sections.sh --report       # always exit 0, print human report
 #
-# Required ADR sections (every ADR under docs/decisions/{proposed,accepted,deferred,deprecated,superseded}/):
+# Required ADR sections (every ADR under docs/decisions/{proposed,validated,accepted,deferred,deprecated,superseded}/):
 #   - "## Status"            (lifecycle field)
 #   - "## Context"           (why this decision was made)
 #   - "## Decision"          (the actual decision)
@@ -61,9 +61,9 @@ mandatory=(
     "## References"
 )
 
-# Find every ADR markdown file under the 5 lifecycle subdirs.
+# Find every ADR markdown file under the 6 lifecycle subdirs.
 adr_files=()
-for state in proposed accepted deferred deprecated superseded; do
+for state in proposed validated accepted deferred deprecated superseded; do
     if [[ -d "$ADR_ROOT/$state" ]]; then
         while IFS= read -r f; do
             adr_files+=("$f")
@@ -72,7 +72,7 @@ for state in proposed accepted deferred deprecated superseded; do
 done
 
 if [[ ${#adr_files[@]} -eq 0 ]]; then
-    echo "check_doc_sections: no ADR files found under $ADR_ROOT/{proposed,accepted,deferred,deprecated,superseded}/" >&2
+    echo "check_doc_sections: no ADR files found under $ADR_ROOT/{proposed,validated,accepted,deferred,deprecated,superseded}/" >&2
     exit 2
 fi
 

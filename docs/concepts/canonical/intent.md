@@ -136,20 +136,20 @@ Planex's claim that *abstraction is the right form* is **conditional on three pr
 |---|---|---|
 | 1. **Ontological stability** — the essences survive scrutiny | Partial (tradition-grounded; ADR-0010 admits v4 satisfies 0/10 constitutive demands) | Pattern language |
 | 2. **Orthogonal separability** — clean abstraction boundaries | 5/5 shipping pass; v0.5 leak budget 2 L2 / 54 ops (3.8%); v4 pressure-tested (ADR-0012) | DSL |
-| 3. **Falsifiability** — mechanisms that detect a wrong abstraction | Satisfied (epistemic + 4 of 4 engineering mechanisms in place: leak-budget + completeness corpus + first migration cycle ADR-0013 + compression metric v0.1) | Component library |
+| 3. **Falsifiability** — mechanisms that detect a wrong abstraction | Satisfied (epistemic + 5 of 5 engineering mechanisms in place: leak-budget + completeness corpus + first migration cycle ADR-0013 + compression metric v0.1 + essence-justified admission enforcement ADR-0014) | Component library |
 
 A future audit that finds one of these prerequisites broken flips Planex's form choice to the named fallback. The fallback is named in advance; the project does not get to bluff its way out of a broken prerequisite.
 
 ---
 
-## The CI contract (9 gates)
+## The CI contract (10 gates)
 
-The doc-organization contract is enforced by 9 CI gates. If any one fails, the PR cannot merge. The gates are listed in `.github/workflows/docs.yml`.
+The doc-organization contract is enforced by 10 CI gates. If any one fails, the PR cannot merge. The gates are listed in `.github/workflows/docs.yml`.
 
 | Gate | What it falsifies |
 |---|---|
 | 1. `check_doc_sections.sh` | Every ADR has all 9 mandatory sections (Mathlib docBlame analogue) |
-| 2. `check_adr_lifecycle.sh` | ADR's lifecycle subdirectory matches its Status field (seL4 lifecycle-as-directory) |
+| 2. `check_adr_lifecycle.sh` | ADR's lifecycle subdirectory matches its Status field (seL4 lifecycle-as-directory, now including the `validated/` stage from ADR-0014) |
 | 3. `gen_adr_index.sh` | The hand-maintained `decisions/README.md` matches the auto-generated index (Nygard auto-ADR-1) |
 | 4. `check_links.sh` | Every internal markdown link resolves (no silent dead links) |
 | 5. `find_orphans.sh` | No unreferenced doc files (no orphan drift) |
@@ -157,6 +157,7 @@ The doc-organization contract is enforced by 9 CI gates. If any one fails, the P
 | 7. `make check-completeness` | 68-pattern UI corpus invariants hold (75 checks: count + verdict distribution + grounding) |
 | 8. `make check-compression` | Planex Compression Metric v0.1: no example AEL > 25.0 (catastrophic) and aggregate LLE > 0.3 |
 | 9. `make check-examples` | Every `examples/X.expected` matches the actual output of `examples/X.c` (timestamps normalized) — closes Wave 4.3 |
+| 10. `make check-essence` | Every ADR with `## Essence Check` section passes ADR-0011's three-criterion admission gate (tradition-cite + real alternatives + negative consequences); the synthetic case `tests/synthetic_adr_0015.md` correctly triggers the lint — closes ADR-0014's `Validated` stage |
 
 Plus the 4 code gates in `.github/workflows/ci.yml`: build (Linux + Windows), test (test_core + test_ortho + test_feedback + test_v05_retire + test_completeness), and `-Werror` strict-warnings.
 

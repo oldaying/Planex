@@ -13,8 +13,9 @@
 # Status field is extracted from the first non-blank line under the `## Status`
 # heading. The script accepts the following declared forms (case-insensitive):
 #
-#   accepted   -> docs/decisions/accepted/ADR-*.md
-#   proposed  -> docs/decisions/proposed/ADR-*.md
+#   accepted    -> docs/decisions/accepted/ADR-*.md
+#   validated   -> docs/decisions/validated/ADR-*.md
+#   proposed   -> docs/decisions/proposed/ADR-*.md
 #   deferred  -> docs/decisions/deferred/ADR-*.md
 #   deprecated-> docs/decisions/deprecated/ADR-*.md
 #   superseded-> docs/decisions/superseded/ADR-*.md
@@ -51,12 +52,12 @@ esac
 
 # Lifecycle directories and the Status tokens that map to them.
 # Order matters: more specific tokens (superseded, deprecated) are tested
-# before more general ones (accepted, proposed) — otherwise ADR-0001's
-# `**Superseded by ...**` followed by `Accepted: 2026-08-24` would match
-# `accepted` first and report a false mismatch.
-declare -a LIFECYCLE_DIRS=(superseded deprecated deferred accepted proposed)
+# before more general ones (accepted, validated, proposed) — otherwise
+# ADR-0001's `**Superseded by ...**` followed by `Accepted: 2026-08-24`
+# would match `accepted` first and report a false mismatch.
+declare -a LIFECYCLE_DIRS=(superseded deprecated deferred accepted validated proposed)
 
-# Find every ADR markdown file across the 5 lifecycle subdirs.
+# Find every ADR markdown file across the 6 lifecycle subdirs.
 adr_files=()
 for state in "${LIFECYCLE_DIRS[@]}"; do
     dir="$ADR_ROOT/$state"

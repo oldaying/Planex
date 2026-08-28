@@ -17,7 +17,7 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$REPO_ROOT"
 
 DECISIONS_DIR="docs/decisions"
-STATES=(proposed accepted deferred deprecated superseded)
+STATES=(proposed validated accepted deferred deprecated superseded)
 
 emit_header() {
     echo "# Planex Architecture Decision Records"
@@ -28,6 +28,7 @@ emit_header() {
     echo
     echo "ADR lifecycle state is encoded in the directory:"
     echo "- \`accepted/\` — Active decisions that govern the codebase today."
+    echo "- \`validated/\` — ADRs whose enforcement mechanism is implemented and proven to fire on a synthetic violation case (ADR-0014's TC39 Stage 2.7 analog). Cannot reach \`accepted/\` until the demonstration is in place."
     echo "- \`proposed/\` — Draft ADRs not yet ruled on."
     echo "- \`deferred/\`  — ADRs whose own acceptance is deferred (distinct from \`accepted/ADR-*\` that decide to defer something)."
     echo "- \`deprecated/\` — ADRs whose decision is no longer active and has no specific successor."
