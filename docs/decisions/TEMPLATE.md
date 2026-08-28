@@ -1,18 +1,71 @@
+<!--
+Document freshness — every ADR carries this metadata block (research basis:
+Software Engineering at Google Ch. 10 "Documentation", the freshness:{owner,
+reviewed} pattern). CI (planned: see doc-organization.md Part IX, Principle 13)
+flags ADRs whose reviewed: date is older than 12 months for re-review.
+-->
+<!--
+freshness: { owner: "github-handle", reviewed: "YYYY-MM-DD" }
+-->
+
 # ADR-NNNN: [Decision title — one short sentence]
 
-> Copy this template to `ADR-NNNN-short-kebab-title.md`. Replace every section.
+> Copy this template to `decisions/<state>/ADR-NNNN-short-kebab-title.md`
+> where `<state>` is `proposed` until accepted. Read [`TEMPLATE-GUIDE.md`](TEMPLATE-GUIDE.md)
+> for how to fill each section well. Submit the PR; reviewer applies
+> [`REVIEW-RUBRIC.md`](REVIEW-RUBRIC.md).
 >
 > The "Essence Check" section (5 questions) is **mandatory** for any decision
 > that touches the three core abstractions (Relation / Estimate / Closure /
 > Perception) or their semantics. For purely engineering decisions (new
 > backend, build system change, etc.), that section may be omitted, but the
-> other six sections are still required.
+> other sections below are still required.
+
+## Status of This Memo
+
+> One-paragraph boilerplate (research basis: RFC 7841 §3.2-3.5, the
+> three-paragraph "Status of This Memo" boilerplate). This block is
+> *immutable* once the ADR is Accepted; lifecycle changes after Acceptance
+> (deprecation, supersession) are recorded in `## HISTORY` below, not by
+> editing this block.
+
+This ADR records a decision of the Planex project. The initial status is
+**Proposed**. Upon acceptance, the status becomes **Accepted** and the
+file moves from `decisions/proposed/` to `decisions/accepted/`. The
+current authoritative status is in the `## HISTORY` log and the lifecycle
+subdirectory under which the file is filed.
+
+Date: YYYY-MM-DD (date of the decision, not the draft)
+
+## When to use this decision
+
+> Research basis: GOV.UK Design System component-page template ("When to use
+> this component"). Adapted for ADRs: this section names the *scope of
+> applicability* — under what conditions this decision applies. Distinct from
+> the *scope statement* in Essence Check Q5 (which is about counterexamples);
+> this section is the *positive* applicability statement.
+
+[1-3 sentences describing when this decision applies. Example: "This
+decision applies to any code path that constructs an Estimate from a
+Perception feed. It does not apply to Estimates constructed from explicit
+caller-supplied values, which use the unicast path covered by ADR-0007."]
+
+## When NOT to use this decision
+
+> Research basis: GOV.UK Design System ("When not to use this component").
+> This section is the *negative* applicability statement. Pairing "when to
+> use" with "when NOT to use" makes the decision's scope falsifiable — a
+> future reader can cite this section when proposing to extend or restrict
+> the scope.
+
+[1-3 sentences describing when this decision does NOT apply. Example: "Do
+not apply this decision to Estimates constructed from Perception feeds
+that have been pre-filtered by a domain-specific denoiser; those use the
+filtered-feed path covered by ADR-0008."]
 
 ## Status
 
 Proposed | Accepted | Deprecated | Superseded by ADR-MMMM
-
-Date: YYYY-MM-DD
 
 ## Context
 
@@ -134,6 +187,30 @@ cannot name a caveat, write "None identified" and explain why.
 
 - Caveat 1: ...
 - Caveat 2: ...
+
+## Known issues
+
+> Research basis: GOV.UK Design System component pages (`#### Known issues`
+> subsection under each variant). Adapted for ADRs: this section records the
+> *known falsifications* of this decision — concrete scenarios where the
+> decision produces a known-bad outcome that we accept as the cost of the
+> decision. Distinct from CAVEATS (non-promises) and from Consequences
+> (expected downstream effects). Known issues are *accepted leaks* the
+> decision explicitly tolerates.
+
+For each known issue, document:
+
+- **Issue**: 1-sentence description of the known-bad outcome
+- **Why accepted**: 1-sentence justification (cost-of-decision, deferred
+  fix, no better alternative at this time)
+- **Tracking**: link to issue, future ADR, or "deferred" / "accepted as
+  permanent cost"
+- **Mitigation**: what the caller can do today to avoid the issue
+
+If no known issues, write "None identified at acceptance time." — but
+expect the reviewer to push back. A decision with zero known issues at
+acceptance is suspect; either we haven't looked hard enough, or the
+decision is so trivial it shouldn't be an ADR.
 
 ## HISTORY
 

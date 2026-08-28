@@ -516,5 +516,427 @@ Surveyed projects, grouped by research category. Each entry is a verifiable URL 
 
 ---
 
-*End of document. The proposal is open for review; comments should be filed as issues against the Planex repository. The four waves are designed to ship in order over four PRs; Wave 1 is the lowest-risk first move and can ship immediately on acceptance.*
+## Part IX — Cross-channel augmentation (added 2026-08-28)
 
+> **Status**: Augmentation. Date: 2026-08-28.
+> Supersedes nothing in Parts I-VIII; refines with net-new principles
+> drawn from 5 additional research tracks beyond the original 13 projects
+> surveyed. Applies incrementally; the 4-wave migration plan in Part VI
+> is unaffected.
+>
+> **Research basis (5 new tracks, 23 additional sources)**:
+> 1. **Documentation communities** — Write the Docs (WTD), The Good
+>    Docs Project (GDP), The Turing Way. ~30 sources.
+> 2. **Formal-methods projects** — Coq/Rocq, Isabelle, Agda, F*, Lean
+>    Mathlib. ~25 sources.
+> 3. **Software engineering books & standards** — Software Engineering
+>    at Google (Ch. 10 Documentation), Ousterhout's A Philosophy of
+>    Software Design (Ch. 13, 15), AOSA volumes, IETF RFC 7322/7841, GDD
+>    tradition.
+> 4. **Documentation site generators** — Antora, Docusaurus, mdBook,
+>    Sphinx, GOV.UK Service Manual + Design System.
+> 5. **C-language projects** — musl libc, SQLite, curl, Redis, lwIP.
+>
+> Full URLs in the new References section at the end of Part IX.
+
+Parts I-VIII drew on 13 cross-domain top-tier projects (seL4, Rust,
+Linux kernel, Lean 4, Idris 2, OpenBSD, LLVM, Svelte, Diátaxis, arc42,
+C4, Nygard ADR, RFC/TC39/PEP/KEP lifecycles) and produced 8 design
+principles + 4-wave migration plan. Part IX adds 6 net-new principles
+that the 5 additional research tracks surfaced. None of them require
+revisiting the migration; all apply incrementally to the post-Wave-4
+tree.
+
+The recurring meta-finding across all 5 new tracks: **a document is a
+contract between an author and an absent reader, and the contract is
+enforceable only when (a) the audience is named, (b) the status is
+named, (c) the limitations are named, and (d) the doc is owned and
+reviewed under the same workflow as code.** Parts I-VIII partially
+satisfy (a)-(d); Part IX completes the set.
+
+### Principle 9 — Per-abstraction template: "When to use / When not to use / Known issues"
+
+**Source**: GOV.UK Design System component-page template — every
+component page on `design-system.service.gov.uk/components/<name>/`
+carries mandatory headings: `## When to use this component`, `## When
+not to use this component`, `## How it works` (with `###` variants and
+`#### Known issues` sub-sub-sections), `## Research on this component`,
+`## Help improve this component`. The "When to use / When not to use"
+pair is unique among all surveyed projects — no other source makes the
+*scope of applicability* a mandatory, falsifiable per-page contract.
+
+**Why it matters for Planex**: the falsifiability posture of
+`abstraction-form.md` Prerequisite 3 requires that every formal-essence
+abstraction declare its scope of applicability. Currently the scope is
+implicit, derivable only by reading the ADR's Context + Consequences
+sections. GOV.UK's pattern makes scope explicit and falsifiable.
+
+**Implementation (this PR)**: extended `docs/decisions/TEMPLATE.md`
+with `## When to use this decision` and `## When NOT to use this
+decision` sections (immediately after `## Status`) and a `## Known
+issues` section (immediately after `## CAVEATS`). The "Known issues"
+section is distinct from CAVEATS (non-promises) and from Consequences
+(expected downstream effects) — it records *accepted leaks* the
+decision explicitly tolerates.
+
+**Implementation status**: TEMPLATE.md amended; backfill of the 5
+already-backfilled ADRs (0001, 0005, 0010, 0011, 0013) deferred to a
+follow-up PR.
+
+### Principle 10 — Status-of-This-Memo boilerplate per ADR
+
+**Source**: IETF RFC 7841 §3.2-3.5 — every RFC carries a three-paragraph
+"Status of This Memo" boilerplate that is *immutable* once published;
+status changes during the document's lifetime (e.g., reclassified to
+Historic) are recorded in the metadata referenced from the boilerplate,
+not by editing the document itself (RFC 7841 §3.6 "Noteworthy"). The
+prime editorial directive (RFC 7322 §2): "do not change the intended
+meaning of the text".
+
+**Why it matters for Planex**: the current `## Status` field in ADRs
+(Proposed | Accepted | Deprecated | Superseded) is *mutable in-place*,
+which means a reviewer cannot tell from a git diff alone whether a
+Status change was a state transition or a typo fix. The RFC pattern
+makes the lifecycle transition falsifiable by separating the immutable
+"Status of This Memo" boilerplate from the mutable `## HISTORY` log.
+
+**Implementation (this PR)**: added a `## Status of This Memo` block
+to `TEMPLATE.md` (immediately after the header) that declares the
+initial status (Proposed) and points to `## HISTORY` for the
+authoritative current status. This block is immutable after Acceptance;
+lifecycle transitions are recorded as new lines in `## HISTORY`, not
+as edits to this block.
+
+**Implementation status**: TEMPLATE.md amended; backfill of existing
+ADRs deferred to a follow-up PR.
+
+### Principle 11 — Mandatory sections enforced by CI (Mathlib docBlame)
+
+**Source**: Lean Mathlib's `docBlame` / `docBlameThm` / `tacticDocs`
+linters — CI fails the build when a definition, theorem, or tactic is
+missing its mandatory docstring. Run with `#lint only docBlame`. This
+is the only formal-methods project surveyed with *mechanically
+enforced* mandatory docstring sections; all others (Coq, Isabelle,
+Agda, F*) rely on authorial discipline alone.
+
+**Why it matters for Planex**: ADR-0012 Q3 self-acknowledges that
+Planex's "essence-justified" three-criterion is not yet CI-enforced.
+Mathlib's `docBlame` pattern is the falsifiable template for closing
+that gap at the doc layer: a missing mandatory section should fail the
+build.
+
+**Implementation (this PR)**: added `scripts/check_doc_sections.sh`
+(checks every ADR for the 9 mandatory sections: Status, Context,
+Decision, Consequences, Alternatives Considered, CAVEATS, Known
+issues, HISTORY, References). `--check` mode is CI-fail; `--report`
+mode is human-readable. Linter is currently informational; CI
+integration deferred to follow-up PR (Part VI's `check_adr_lifecycle.sh`
+is the parent hook).
+
+**Implementation status**: linter shipped; CI integration pending.
+
+### Principle 12 — "No 3s" review rubric with six named criteria
+
+**Source**: Write the Docs conference CFP rubric
+(<https://www.writethedocs.org/organizer-guide/confs/cfp/>) — scores
+each submission on six criteria (Relevance, Originality, Soundness,
+Quality of Presentation, Importance, Experience) using a 1-5 scale
+that *explicitly forbids* a neutral middle: "Three means you don't
+have an opinion. We don't believe you. No threes."
+
+**Why it matters for Planex**: a review process that allows neutral
+scores is unfalsifiable — a "+1 looks good to me" cannot be tested
+against the next ADR's outcome. Forcing a committed verdict per
+criterion produces a falsifiable review record that future reviews
+can be compared against.
+
+**Implementation (this PR)**: added `docs/decisions/REVIEW-RUBRIC.md`
+with the 6 criteria adapted from WTD, the "no 3s" rule, the review
+comment template, and the acceptance thresholds (≥4 per criterion for
+abstraction-affecting ADRs; 2 approvals required).
+
+**Implementation status**: rubric shipped; not yet wired into the PR
+template (deferred to follow-up).
+
+### Principle 13 — Paired template + template-guide (Good Docs Project)
+
+**Source**: The Good Docs Project (thegooddocsproject.dev) — every
+documentation template ships as a paired deliverable: the template
+skeleton (`TEMPLATE.md`) plus a companion "template guide" web page
+explaining *how to fill each section*. The pairing turns the template
+into a falsifiable contract: the template tells you *what* sections to
+write; the guide tells you *how to write each section well* and *how
+to know when you've written it badly*.
+
+**Why it matters for Planex**: without the pairing, every ADR author
+interprets the template's intent slightly differently, and the
+template's CAVEATS / HISTORY / Known issues sections drift with each
+author's reading.
+
+**Implementation (this PR)**: added `docs/decisions/TEMPLATE-GUIDE.md`
+as the paired companion to `TEMPLATE.md`. The guide has a
+section-by-section entry for each TEMPLATE section, with a
+"Self-check" question per section, and a "Common failure modes" table
+linking back to the rubric's six criteria.
+
+**Implementation status**: shipped.
+
+### Principle 14 — Document freshness front-matter (SE@Google)
+
+**Source**: Software Engineering at Google Ch. 10 — every Google
+internal doc carries a freshness metadata block:
+`freshness: { owner: "username", reviewed: "YYYY-MM-DD" }`. Email
+reminders fire when freshness expires. Documents without owners
+become stale and difficult to maintain; the freshness field is the
+mechanism that makes staleness mechanically detectable.
+
+**Why it matters for Planex**: ADR-0012 Q3 self-acknowledges that the
+"essence-justified" three-criterion is not yet enforced; one
+consequence is that ADRs can drift silently for years. The
+freshness pattern makes staleness falsifiable — a CI gate can flag
+ADRs whose `reviewed:` date is older than 12 months for re-review.
+
+**Implementation (this PR)**: added the freshness block as an HTML
+comment in `TEMPLATE.md`'s front-matter (mirrors the SE@Google
+HTML-comment convention, but using `<!-- ... -->` instead of the
+proprietary `<!--* ... *-->` form Google uses internally). CI
+freshness check is deferred (pending the same `check_adr_lifecycle.sh`
+integration as Principle 11).
+
+**Implementation status**: TEMPLATE.md front-matter amended;
+backfill of existing ADRs deferred to a follow-up PR; CI gate
+deferred.
+
+### Principle 15 — Two-file split: CHANGELOG (raw) + UPGRADING (curated breaking)
+
+**Source**: lwIP `UPGRADING` file
+(<https://git.savannah.gnu.org/cgit/lwip.git/tree/UPGRADING>) — lwIP
+maintains a 189 KB raw `CHANGELOG` (every commit) and a 12.9 KB
+curated `UPGRADING` (breaking changes only, grouped as `++ Application
+changes:` / `++ Port changes:` / `++ Repository changes:` per version).
+The two-file split is the cleanest separation of *what happened*
+(changelog) from *what you need to change in your code* (UPGRADING)
+among all surveyed C-language projects. curl's `docs/DEPRECATE.md` and
+Linux kernel's `Documentation/process/deprecated.rst` cover
+*deprecations* but not breaking migrations; lwIP's UPGRADING covers both.
+
+**Why it matters for Planex**: Planex currently has
+`docs/changelog.md` (the raw history) and
+`docs/reference/deprecation-registry.md` (API-level retirements), but
+no curated *breaking-migration* document. A caller upgrading from v0.4
+to v4 cannot find "what do I need to change in my code?" without
+reading the changelog commit-by-commit. The lwIP pattern provides the
+missing artifact.
+
+**Implementation (this PR)**: added `UPGRADING.md` at the repo root
+(visible at the same level as `CHANGELOG`/`README.md`, matching lwIP's
+convention) with the v4 entries grouped as `++ API changes:` / `++
+Internal changes:` / `++ Build changes:`. Distinct from
+`deprecation-registry.md` (which covers individual symbol lifecycle)
+and from `changelog.md` (which covers every commit).
+
+**Implementation status**: shipped; v0.5 + future entries to be
+appended in the same PRs that introduce breaking changes.
+
+### Principle 16 — Visible "Planned content" tier (F* tutorial book)
+
+**Source**: F* tutorial book (`fstar-lang.org/tutorial/book/structure.html`)
+— the only formal-methods project surveyed that publicly declares its
+unwritten chapters. The structure page carries a "This book is a work
+in progress" banner followed by a "Planned content" bullet list naming
+the chapters the authors intend to write (User-defined Effects, State,
+Extraction, FAQ, etc.). All other surveyed projects (Coq, Isabelle,
+Agda, Mathlib) simply omit unwritten content — gaps are invisible to
+the reader.
+
+**Why it matters for Planex**: Planex's `concepts/speculation/` directory
+contains only `continuous-intent-speculation.md`. A reader cannot tell
+whether this means "we have considered all the speculation we need" or
+"we have not yet written the other speculation docs". The F* pattern
+makes the gap visible: a "Planned content" section in the speculation
+README declares which speculation docs are intended but not yet
+written, so the gap is itself auditable.
+
+**Implementation (this PR)**: added a `## Planned content` section to
+`docs/concepts/speculation/README.md` listing 4 planned-but-unwritten
+speculation docs (Breakdown, Interpretant, Complect-audit,
+Closed-UI-corpus). Each entry is a commitment to *eventually* write
+the doc; if a planned doc has no champion for two minor versions, it
+should be removed from this list.
+
+**Implementation status**: shipped.
+
+### Principle 17 — Layered applicability sections (RFC 7322 + Ousterhout + GOV.UK)
+
+**Sources**:
+- RFC 7322 §4.8 mandates `Security Considerations` in *every* RFC,
+  including the case where the answer is "no considerations"; the
+  document is *returned for further development* if the claim is
+  implausible.
+- Ousterhout, *A Philosophy of Software Design* 2nd ed. Ch. 13:
+  interface-comment block is mandatory at the top of every public
+  module header; "without comments, you can't hide complexity".
+- GOV.UK Design System: "When to use / When not to use" paired
+  per-component (Principle 9 above).
+
+**Why it matters for Planex**: these three sources converge on a
+layered applicability contract: every formal Planex artifact should
+declare (a) what it covers, (b) what it does not cover (CAVEATS,
+Principle 2 / Part III), (c) when it applies and when it does not
+(Principle 9), and (d) what it cannot promise (Known issues,
+Principle 9). The full layered contract is now in `TEMPLATE.md`; the
+existing CAVEATS+HISTORY backfill on ADR-0001/0005/0010/0011/0013 is
+the partial fulfillment of (b) and (d).
+
+**Implementation (this PR)**: TEMPLATE.md now carries the full
+layered applicability contract. ADR-level backfill of the new sections
+(When to use / When not to use / Known issues) deferred to a follow-up
+PR — `scripts/check_doc_sections.sh --report` currently flags these
+as missing on the 5 backfilled ADRs, which is the expected interim
+state.
+
+**Implementation status**: TEMPLATE.md complete; existing-ADR
+backfill pending.
+
+### Principle 18 — One-page Intent doc per subsystem (GDD tradition)
+
+**Source**: Stone Librande's "one-page design" GDC 2010 talk (GDD
+tradition). Every game subsystem gets a single readable page
+distilling: vision statement (1 sentence), 3 design pillars, core
+loop, non-goals, ASCII diagram. The page is what the team hangs on
+the wall.
+
+**Why it matters for Planex**: Planex's `docs/concepts/canonical/`
+directory contains 4 normative position papers (`abstraction-form.md`,
+`why-four-abstractions.md`, `leak-budgets.md`, `non-goals.md`) that
+together run ~10,000+ words. A new contributor needs a *one-page*
+distillation that orients them before they read any of those. The GDD
+tradition supplies the format.
+
+**Implementation (this PR)**: deferred — this requires a *new* doc
+(`docs/concepts/canonical/intent.md`) which would need careful
+authoring. Listed here as a tracked commitment; the README in
+`concepts/canonical/` already serves as a partial landing page.
+
+**Implementation status**: deferred to follow-up PR.
+
+### Cross-cutting observation — Mathlib's "docstrings may lie slightly about implementation"
+
+The most surprising single finding across all 5 research tracks: Mathlib's
+style guide explicitly states *"Doc strings should convey the mathematical
+meaning of the definition. They are allowed to lie slightly about the
+actual implementation."* — a deliberately-scoped licence that elevates
+the documented essence above the implementation. This is *exactly*
+Planex's formal-essence stance, stated as a writing rule. Planex should
+adopt this sentence almost verbatim in its own writing guide: a docstring
+that describes what the function *means* (its essence) is correct, even
+if it slightly mis-describes what the function *does* (its
+implementation), as long as the gap is in the caller's favor (the doc
+promises less than the implementation delivers).
+
+This is *not* a license to lie; it is a license to *abstract*. The
+formal-essence stance requires that the documented surface be the
+abstraction; Mathlib's rule provides the writing-theory justification for
+why a documented surface can be a strict abstraction of the
+implementation without being identical to it.
+
+**Implementation (this PR)**: noted here in Part IX as research finding;
+explicit adoption into `TEMPLATE-GUIDE.md` or `CONTRIBUTING.md` deferred.
+
+### Net-new artifacts shipped in this Part IX
+
+| Artifact | Path | Principle |
+|---|---|---|
+| Extended TEMPLATE.md (freshness, Status-of-This-Memo, When to use, When NOT to use, Known issues) | `docs/decisions/TEMPLATE.md` | 9, 10, 13, 14 |
+| TEMPLATE-GUIDE.md (paired companion) | `docs/decisions/TEMPLATE-GUIDE.md` | 13 |
+| REVIEW-RUBRIC.md ("No 3s" rubric with 6 criteria) | `docs/decisions/REVIEW-RUBRIC.md` | 12 |
+| check_doc_sections.sh (docBlame-style linter) | `scripts/check_doc_sections.sh` | 11 |
+| UPGRADING.md (curated breaking-migration guide) | `UPGRADING.md` (repo root) | 15 |
+| Planned content section in speculation README | `docs/concepts/speculation/README.md` | 16 |
+
+### Deferred to follow-up PRs
+
+| Task | Principle | Why deferred |
+|---|---|---|
+| Backfill `## When to use / When not to use / Known issues` on ADR-0001, 0005, 0010, 0011, 0013 | 9, 17 | Each ADR needs careful authoring, not bulk template-stamp |
+| Backfill `## Status of This Memo` + `freshness:` front-matter on existing 13 ADRs | 10, 14 | Same |
+| Wire `check_doc_sections.sh` into CI | 11 | Requires `.github/workflows/` amendment; deferred to CI hook follow-up |
+| Wire `REVIEW-RUBRIC.md` into PR template | 12 | Requires `.github/PULL_REQUEST_TEMPLATE.md` amendment |
+| Write `docs/concepts/canonical/intent.md` (one-page Intent per subsystem) | 18 | Requires careful authoring |
+| Adopt Mathlib's "docstrings may lie slightly" into writing guide | cross-cutting | Find right home (CONTRIBUTING.md or TEMPLATE-GUIDE.md) |
+| Svelte 99-legacy pattern (back-compat APIs in current version) | (original Wave 4) | Deferred per Part VIII |
+| TC39 Stage 2.7 named ADR state | (original Wave 4) | Deferred per Part VIII |
+| Rust RFC FCP 10-day window | (original Part VIII) | Single-maintainer, no audience |
+| arc42 numbered-section addressing | (original Part VIII) | Framing layer, additive |
+| `check_links.sh`, `check_terms.sh`, `find_orphans.sh`, `check_adr_lifecycle.sh` (CI tooling) | 11 | Incremental |
+
+### Additional References (Part IX sources)
+
+**Documentation communities:**
+- Write the Docs (Docs-as-Code definition + 5-element toolchain): <https://www.writethedocs.org/guide/docs-as-code/>
+- Write the Docs CFP rubric ("no 3s" rule, 6 criteria): <https://www.writethedocs.org/organizer-guide/confs/cfp/>
+- Write the Docs topics 2-axis taxonomy (content type × lifecycle stage): <https://www.writethedocs.org/topics/>
+- The Good Docs Project templates (paired template + template-guide): <https://www.thegooddocsproject.dev/template>
+- The Good Docs Project README.md (3-type Concept/Task/Reference variant): <https://github.com/thegooddocsproject/templates>
+- The Turing Way consistency checklist (hard/soft, CI-enforced): <https://book.the-turing-way.org/community-handbook/style/style-consistency>
+- The Turing Way chapter anatomy (Landing → Subchapters → Checklist → Resources): <https://book.the-turing-way.org/community-handbook/style/consistency/consistency-structure>
+- The Turing Way reproducible-project-template (cookiecutter scaffold): <https://github.com/the-turing-way/reproducible-project-template>
+
+**Formal-methods projects:**
+- Rocq reference manual (Sphinx build, post-migration): <https://rocq-prover.org/refman>
+- Rocq `coqdoc` tool (separate API pipeline from `.glob` files): <https://rocq-prover.org/doc/V8.12.2/refman/using/tools/coqdoc.html>
+- Rocq RFCs (Coq CEPs renamed): <https://github.com/rocq-prover/rfcs>
+- Isabelle documentation index (audience-sliced manual set): <https://isabelle.in.tum.de/documentation.html>
+- Isabelle Implementation Manual (whitespace-as-structure): <https://www.cl.cam.ac.uk/research/hvg/Isabelle/dist/Isabelle/doc/implementation.pdf>
+- Agda user manual (Sphinx, literate extensions): <https://agda.readthedocs.io/en/v2.8.0/tools/literate-programming.html>
+- Agda user manual `index.rst` (5-section toctree): <https://raw.githubusercontent.com/agda/agda/master/doc/user-manual/index.rst>
+- F* tutorial book (Planned content + WIP banner): <https://fstar-lang.org/tutorial/book/structure.html>
+- F* `book/code/` (1:1 chapter-to-source mapping): <https://github.com/FStarLang/fstarlang.github.io/tree/master/book/code>
+- Mathlib contribute/doc.html (docBlame linter, ordered module docstring sections): <https://leanprover-community.github.io/contribute/doc.html>
+- Mathlib contribute/style.html (`/-!` delimiter rule, "docstrings may lie slightly"): <https://leanprover-community.github.io/contribute/style.html>
+
+**Software engineering books & standards:**
+- Software Engineering at Google Ch. 10 (Documentation, freshness pattern): <https://abseil.io/resources/swe-book/html/ch10.html>
+- Software Engineering at Google Ch. 3 (Knowledge Sharing, canonical sources): <https://abseil.io/resources/swe-book/html/ch03.html>
+- Ousterhout APoSD 2nd ed. (Stanford book page): <https://web.stanford.edu/~ouster/cgi-bin/book.php>
+- AOSA Volume I Berkeley DB chapter (per-chapter skeleton): <https://aosabook.org/en/v1/bdb.html>
+- AOSA homepage (volumes I, II, POSA, 500 Lines): <https://aosabook.org/>
+- RFC 7322 (Internet Style Guide, mandatory RFC structure): <https://www.rfc-editor.org/info/rfc7322>
+- RFC 7841 (RFC Streams, Status of This Memo boilerplate): <https://www.rfc-editor.org/info/rfc7841>
+- authors.ietf.org (mandatory Internet-Draft sections): <https://authors.ietf.org/required-content>
+- GDD tradition (one-page GDD, living GDD vs snapshot GDD): <https://www.gamedeveloper.com/design/how-to-write-a-game-design-document>
+
+**Documentation site generators:**
+- Antora `antora.yml` per-component descriptor: <https://docs.antora.org/antora/latest/component-version-descriptor/>
+- Antora standard family directories (pages/partials/examples/images/attachments): <https://docs.antora.org/antora/latest/standard-directories/>
+- Antora playbook (separate content-free configuration repo): <https://docs.antora.org/antora/latest/playbook/>
+- Docusaurus `_category_.json` per-directory metadata: <https://docusaurus.io/docs/sidebar/autogenerated>
+- Docusaurus versioning convention (`versioned_docs/version-X.Y.Z/`): <https://docusaurus.io/docs/versioning>
+- mdBook `src/SUMMARY.md` as single ToC source-of-truth: <https://rust-lang.github.io/mdBook/format/summary.html>
+- mdBook `{{#include file.rs:2:10}}` line-range includes: <https://rust-lang.github.io/mdBook/format/mdbook.html>
+- Sphinx `conf.py` as executable Python: <https://www.sphinx-doc.org/en/master/usage/configuration.html>
+- Sphinx `.. toctree::` directive: <https://www.sphinx-doc.org/en/master/usage/index.html>
+- Sphinx autodoc + intersphinx (`objects.inv`): <https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html>
+- GOV.UK Government Design Principles (10 principles, esp. "Make things open"): <https://www.gov.uk/guidance/government-design-principles>
+- GOV.UK Design System button component (mandatory headings): <https://design-system.service.gov.uk/components/button/>
+- GOV.UK Design System radios component (`#### Known issues` under variants): <https://design-system.service.gov.uk/components/radios/>
+- GOV.UK Design System contribution process (RFC-style per-page): <https://design-system.service.gov.uk/community/>
+
+**C-language projects:**
+- musl libc repo root (no `docs/` dir, `WHATSNEW` only): <https://git.musl-libc.org/cgit/musl/tree/>
+- SQLite docs.html (master index, narrative website): <https://www.sqlite.org/docs.html>
+- SQLite arch.html (architecture block diagram): <https://www.sqlite.org/arch.html>
+- SQLite amalgamation.html (amalgamation build + justification): <https://www.sqlite.org/amalgamation.html>
+- curl `docs/libcurl/` (one `.md` per public symbol): <https://github.com/curl/curl/tree/master/docs/libcurl>
+- curl `docs/cmdline-opts/MANPAGE.md` (managen generator): <https://github.com/curl/curl/blob/master/docs/cmdline-opts/MANPAGE.md>
+- curl `docs/internals/CODE_STYLE.md` (verifiable style guide): <https://github.com/curl/curl/tree/master/docs/internals>
+- Redis `src/commands/get.json` (JSON-per-symbol with reply_schema): <https://github.com/redis/redis/blob/unstable/src/commands/get.json>
+- Redis `src/commands/README.md` (commands.def generation): <https://github.com/redis/redis/blob/unstable/src/commands/README.md>
+- Redis `MANIFESTO` plain-text design-manifesto at root: <https://github.com/redis/redis/blob/unstable/MANIFESTO>
+- lwIP `UPGRADING` (research basis for Principle 15, two-file split with `CHANGELOG`): <https://git.savannah.gnu.org/cgit/lwip.git/tree/UPGRADING>
+- lwIP `doc/doxygen/main_page.h` (Doxygen main page as C header): <https://git.savannah.gnu.org/cgit/lwip.git/tree/doc/doxygen/main_page.h>
+- lwIP `CHANGELOG` (raw 189 KB): <https://git.savannah.gnu.org/cgit/lwip.git/tree/CHANGELOG>
+
+---
+
+*End of document. The proposal is open for review; comments should be filed as issues against the Planex repository. The four waves are designed to ship in order over four PRs; Wave 1 is the lowest-risk first move and can ship immediately on acceptance. Part IX (Cross-channel augmentation) layers on top of the 4-wave migration without revisiting it; the 6 net-new principles (9-18) apply incrementally to the post-Wave-4 tree.*

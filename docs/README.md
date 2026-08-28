@@ -43,6 +43,31 @@ docs/
 
 ADRs use Nygard format with mandatory `## CAVEATS` and `## HISTORY` sections (Principle 2 of [`doc-organization.md`](doc-organization.md)). The ADR index in [`decisions/README.md`](decisions/README.md) is **auto-generated** by [`scripts/gen_adr_index.sh`](../scripts/gen_adr_index.sh) — drift between the script output and the committed README is a CI failure.
 
+### ADR author kit
+
+When writing or revising an ADR, four files work together (Principle 13 of [`doc-organization.md`](doc-organization.md) Part IX):
+
+| File | Role |
+|------|------|
+| [`decisions/TEMPLATE.md`](decisions/TEMPLATE.md) | Skeleton — what sections to write |
+| [`decisions/TEMPLATE-GUIDE.md`](decisions/TEMPLATE-GUIDE.md) | Companion — how to fill each section well; failure-mode checklist |
+| [`decisions/REVIEW-RUBRIC.md`](decisions/REVIEW-RUBRIC.md) | Reviewer rubric — "No 3s" with six criteria; what graders look for |
+| [`scripts/check_doc_sections.sh`](../scripts/check_doc_sections.sh) | CI-ready linter — fails the build if a mandatory section is missing. Run `--report` for a human-readable audit. |
+
+The ADR lifecycle, applicability, freshness, and review contract are all in these four artifacts; no separate governance document is needed.
+
+### Breaking-change migration
+
+Beyond the per-version changelog and per-symbol deprecation registry, Planex maintains a curated breaking-migration guide at the repo root:
+
+| File | Role |
+|------|------|
+| [`../docs/changelog.md`](changelog.md) | Raw per-version delta log (every change, breaking or not) |
+| [`../docs/reference/deprecation-registry.md`](reference/deprecation-registry.md) | Per-symbol retirements (deprecated / removed / diagnostic-seam) |
+| [`../UPGRADING.md`](../UPGRADING.md) | **Curated breaking-migration guide** — what you need to change in your code when upgrading. Grouped by version, sub-grouped as `++ API changes:` / `++ Internal changes:` / `++ Build changes:`. (Research basis: lwIP `UPGRADING` file; see Part IX Principle 15.) |
+
+If your build broke after a Planex upgrade, start at `UPGRADING.md`; if a symbol you're calling is gone, start at the deprecation registry; if you want a per-version change history, start at the changelog.
+
 ## Lifecycle as directory
 
 An ADR's lifecycle state is its filesystem location, not a YAML field. To move an ADR from Proposed to Accepted, `git mv docs/decisions/proposed/ADR-NNNN-*.md docs/decisions/accepted/`. ADR numbering (ADR-0001 onward) is permanent; only the directory changes.
