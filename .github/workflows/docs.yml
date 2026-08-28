@@ -1,0 +1,102 @@
+name: Docs
+
+# Doc-organization contract enforcers (6 gates from doc-organization.md
+# Part VI + 1 completeness gate landed in commit f7fc630). These run
+# alongside .github/workflows/ci.yml (the code build). The two workflows
+# are independent: a green Docs check does NOT imply the code builds.
+#
+# Closed deferrals (see doc-organization.md Part IX deferral table):
+#   - "Wire check_doc_sections.sh into CI" (Principle 11)
+#   - "Wire REVIEW-RUBRIC.md into PR template" (Principle 12) -- see
+#     .github/PULL_REQUEST_TEMPLATE.md (a separate file, not a CI gate;
+#     the rubric is human-applied at PR review time, not CI-scored).
+#
+# All seven gates are shell scripts under scripts/. They exit 0 on
+# PASS, non-zero on failure. Each gate is its own step so the GitHub
+# UI shows which contract broke.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'examples/**'
+      - 'scripts/**'
+      - 'tests/test_completeness.c'
+      - 'Makefile'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'examples/**'
+      - 'scripts/**'
+      - 'tests/test_completeness.c'
+      - 'Makefile'
+      - '.github/workflows/docs.yml'
+
+jobs:
+  doc-org-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ------------------------------------------------------------------
+      # Gate 1: Every ADR has all 9 mandatory sections.
+      # Closes the docBlame-style "is the heading present?" contract.
+      # Research basis: Mathlib's docBlame linter.
+      # ------------------------------------------------------------------
+      - name: check_doc_sections (ADR section completeness, 9 mandatory)
+        run: scripts/check_doc_sections.sh --check
+
+      # ------------------------------------------------------------------
+      # Gate 2: ADR directory state matches the Status field in the file.
+      # Closes the "lifecycle is invisible in the filesystem" gap
+      # (doc-organization.md Principle 1, seL4's lifecycle-as-directory).
+      # ------------------------------------------------------------------
+      - name: check_adr_lifecycle (ADR dir state matches Status field)
+        run: scripts/check_adr_lifecycle.sh --check
+
+      # ------------------------------------------------------------------
+      # Gate 3: ADR index in decisions/README.md is up to date.
+      # Closes the "hand-maintained index can drift from ADR set" gap
+      # (doc-organization.md Principle 8, Nygard's auto-generated ADR 1).
+      # ------------------------------------------------------------------
+      - name: gen_adr_index (auto-generated ADR index matches committed)
+        run: scripts/gen_adr_index.sh --check
+
+      # ------------------------------------------------------------------
+      # Gate 4: All internal markdown links resolve to existing files.
+      # Closes the "broken links hide silently" gap. The script auto-strips
+      # inline code spans so links inside backticks don't false-positive.
+      # ------------------------------------------------------------------
+      - name: check_links (all internal markdown links resolve)
+        run: scripts/check_links.sh --check
+
+      # ------------------------------------------------------------------
+      # Gate 5: No unreferenced doc files (staging/changelog/README
+      # whitelisted). Closes the "orphan drift" gap where a doc can
+      # be added but never linked into the docs graph.
+      # ------------------------------------------------------------------
+      - name: find_orphans (no unreferenced docs)
+        run: scripts/find_orphans.sh --check
+
+      # ------------------------------------------------------------------
+      # Gate 6: Every glossary term used in canonical/ is linked to
+      # glossary.md. Closes the "terms float without saturation" gap
+      # (doc-organization.md Principle 3, Lean 4 module docstring rule).
+      # ------------------------------------------------------------------
+      - name: check_terms (glossary term saturation)
+        run: scripts/check_terms.sh --check
+
+  completeness-corpus:
+    # Separate job from doc-org-contract because it needs the C toolchain
+    # to build tests/test_completeness.c. The 6 doc-org gates above are
+    # pure shell; this one compiles and runs a C test binary.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build deps
+        run: sudo apt-get update && sudo apt-get install -y make build-essential
+      - name: Build and run completeness corpus test (68 patterns x 4 invariants)
+        run: make BACKEND=headless check-completeness

@@ -858,17 +858,17 @@ explicit adoption into `TEMPLATE-GUIDE.md` or `CONTRIBUTING.md` deferred.
 
 | Task | Principle | Why deferred |
 |---|---|---|
-| Backfill `## When to use / When not to use / Known issues` on ADR-0001, 0005, 0010, 0011, 0013 | 9, 17 | Each ADR needs careful authoring, not bulk template-stamp |
-| Backfill `## Status of This Memo` + `freshness:` front-matter on existing 13 ADRs | 10, 14 | Same |
-| Wire `check_doc_sections.sh` into CI | 11 | Requires `.github/workflows/` amendment; deferred to CI hook follow-up |
-| Wire `REVIEW-RUBRIC.md` into PR template | 12 | Requires `.github/PULL_REQUEST_TEMPLATE.md` amendment |
+| ~~Backfill `## When to use / When not to use / Known issues` on ADR-0001, 0005, 0010, 0011, 0013~~ | ~~9, 17~~ | **Landed in commit `422b9f2` (T4).** All 13 ADRs backfilled with the 9-section contract; check_doc_sections.sh now passes 13/13. |
+| ~~Backfill `## Status of This Memo` + `freshness:` front-matter on existing 13 ADRs~~ | ~~10, 14~~ | **Landed in commit `422b9f2` (T4).** Same backfill wave; all 13 ADRs carry RFC 7841 boilerplate. |
+| ~~Wire `check_doc_sections.sh` into CI~~ | ~~11~~ | **Landed in commit (T6a).** See `.github/workflows/docs.yml` — Gates 1-6 (check_doc_sections, check_adr_lifecycle, gen_adr_index, check_links, find_orphans, check_terms) + Gate 7 (make check-completeness) compose into a single `Docs` workflow alongside the existing `CI` (code-build) workflow. Path filters limit the run to docs/examples/scripts/tests/Makefile touches so doc-only changes don't re-trigger the code build. |
+| ~~Wire `REVIEW-RUBRIC.md` into PR template~~ | ~~12~~ | **Landed in commit (T6a).** See `.github/PULL_REQUEST_TEMPLATE.md` — the rubric table (6 criteria, score 3 forbidden) is inlined for ADR PRs; the 7 CI gates are inlined as a pre-merge checklist for any PR touching docs/. The rubric is human-applied at review time (the scoring requires judgment, not lint logic), while the gates are CI-applied. |
+| ~~Adopt Mathlib's "docstrings may lie slightly" into writing guide~~ | ~~cross-cutting~~ | **Landed in commit (T6a).** See `TEMPLATE-GUIDE.md` § "Writing theory — Mathlib's 'docstrings may lie slightly about implementation'". The rule is restated verbatim, scoped to abstraction-affecting docs only (not utility code, per ADR-0011 counterexample 1), and paired with a 4-row failure-mode table + 3-question self-check. |
 | Write `docs/concepts/canonical/intent.md` (one-page Intent per subsystem) | 18 | Requires careful authoring |
-| Adopt Mathlib's "docstrings may lie slightly" into writing guide | cross-cutting | Find right home (CONTRIBUTING.md or TEMPLATE-GUIDE.md) |
 | Svelte 99-legacy pattern (back-compat APIs in current version) | (original Wave 4) | Deferred per Part VIII |
-| TC39 Stage 2.7 named ADR state | (original Wave 4) | Deferred per Part VIII |
+| TC39 Stage 2.7 named ADR state | (original Wave 4) | Deferred per Part VIII; ADR-0014 candidate named in ADR-0011 Known issues |
 | Rust RFC FCP 10-day window | (original Part VIII) | Single-maintainer, no audience |
 | arc42 numbered-section addressing | (original Part VIII) | Framing layer, additive |
-| ~~`check_links.sh`, `check_terms.sh`, `find_orphans.sh`, `check_adr_lifecycle.sh` (CI tooling)~~ | ~~11~~ | **Landed in commit (T5).** See `docs/README.md` § "CI tooling — doc-organization contract enforcers". Six gates now compose with `check_doc_sections.sh` + `gen_adr_index.sh` to form the Part VI acceptance contract. |
+| ~~`check_links.sh`, `check_terms.sh`, `find_orphans.sh`, `check_adr_lifecycle.sh` (CI tooling)~~ | ~~11~~ | **Landed in commit `5d24758` (T5).** See `docs/README.md` § "CI tooling — doc-organization contract enforcers". Six gates now compose with `check_doc_sections.sh` + `gen_adr_index.sh` to form the Part VI acceptance contract. |
 
 ### Additional References (Part IX sources)
 

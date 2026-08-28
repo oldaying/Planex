@@ -128,6 +128,63 @@ work" explicitly.
 
 ---
 
+## Writing theory — Mathlib's "docstrings may lie slightly about implementation"
+
+> Research basis: doc-organization.md Part IX, cross-cutting observation.
+> Mathlib style guide: <https://leanprover-community.github.io/contribute/style.html>.
+> This rule is the writing-theory justification for Planex's formal-essence
+> stance, stated as a concrete writing rule.
+
+Planex adopts Mathlib's rule almost verbatim. The rule covers *all*
+Planex writing about abstractions — ADR Context/Decision prose, the
+manifesto (`why-four-abstractions.md`), `abstraction-form.md`, and the
+glossary entry for any abstraction. The rule is:
+
+> **A docstring (or ADR prose, or glossary entry) that describes what
+> the abstraction *means* (its essence) is correct, even if it slightly
+> mis-describes what the code *does* (its implementation), as long as
+> the gap is in the caller's favor — the doc promises less than the
+> implementation delivers.**
+
+This is *not* a license to lie; it is a license to *abstract*. The
+formal-essence stance (ADR-0010) requires that the documented surface
+be the abstraction. Mathlib's rule provides the writing-theory
+justification for why a documented surface can be a strict abstraction
+of the implementation without being identical to it. The four stated
+goals of Planex (intent-as-value, multi-channel denotation,
+semantic-level audit, cognitive-bandwidth constraint) require the
+abstraction-as-typed-value form; that form is upheld by documenting
+the essence, not by transcribing the implementation.
+
+**The "in the caller's favor" qualifier is the falsifiable boundary.**
+If a doc claims "this function returns the square of its argument" and
+the implementation returns the cube, the gap is *against* the caller —
+the doc is wrong, not abstract. If a doc claims "this function returns
+a value derived from its argument" and the implementation returns the
+square, the gap is *in the caller's favor* — the doc promises less than
+the code delivers, which is the legitimate use of Mathlib's rule. The
+test is: a caller who reads the doc and writes code against it must
+find that the code works at least as well as the doc promises.
+
+### Failure modes (reject the ADR or rewrite the docstring if you see these)
+
+| Failure mode | What it looks like | Fix |
+|---|---|---|
+| **Doc-claims-more-than-code-delivers** | Doc says "all perception windows are bounded"; code allows unbounded windows under specific conditions | Tighten the doc to the actual bound; do not loosen the code to match the over-promise |
+| **Doc-as-implementation-transcript** | Docstring reads like a literal description of the C code ("...calls `malloc`, then `memset`, then `px_relation_bind`...") | Rewrite as essence: "Allocates and initializes a relation between two closures" |
+| **Doc-misses-an-implementation-promise** | Code guarantees a side effect (e.g., idempotent on re-call) that the doc never mentions | Add the promise to the doc; this is not "lying slightly," it's an undocumented invariant |
+| **Misapplied-to-utility-code** | A `malloc` wrapper docstring claims essence-level abstraction | Utility code obeys Rule of Three (ADR-0011 counterexample 1); Mathlib's rule applies to abstractions only |
+
+### Self-check
+
+After writing any abstraction-affecting doc, ask:
+
+1. Does this describe what the abstraction *means* (essence) or what the code *does* (implementation)? Aim for the former.
+2. If the doc and code disagree, is the disagreement in the caller's favor (code does more than doc promises)? If yes — acceptable. If no — fix.
+3. Is the docstring's claim verifiable by a caller writing code against the documented surface? If a caller could not falsify the doc by writing code, the doc is too vague.
+
+---
+
 ## Common failure modes (reject the PR if you see these)
 
 | Failure mode | What it looks like | Fix |
