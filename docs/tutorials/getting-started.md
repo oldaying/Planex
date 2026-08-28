@@ -173,7 +173,7 @@ No manual re-render. No state machine. No callback registration. The app loop ha
 
 ## 5. Next steps
 
-- [Why four abstractions?](../concepts/why-four-abstractions.md) — understand the design philosophy
+- [Why four abstractions?](../concepts/canonical/why-four-abstractions.md) — understand the design philosophy
 - [API Reference](../reference/api.md) — every function documented
 - [How-to: create a button](../how-to/create-a-button.md) — common patterns
 - [How-to: use derived estimates](../how-to/derived-estimates.md) — auto-tracking state

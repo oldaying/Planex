@@ -243,6 +243,6 @@ Five cross-cutting patterns recur across all surveyed projects:
 
 ### Internal Planex references
 
-- `docs/decisions/ADR-0010-v4-design-rationale-not-essence-discovery.md` — the decision that motivated this survey
-- `docs/concepts/versioning.md` — Planex's three-system rule book (Task 12 output)
+- `docs/decisions/accepted/ADR-0010-v4-design-rationale-not-essence-discovery.md` — the decision that motivated this survey
+- `docs/concepts/state/versioning.md` — Planex's three-system rule book (Task 12 output)
 - `docs/changelog.md` — `[Unreleased]` section documenting the v4 / ADR-0010 / versioning work

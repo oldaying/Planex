@@ -112,6 +112,40 @@ If you cannot name at least one real alternative, this is not a decision — it'
 - What: ...
 - Why rejected: ...
 
+## CAVEATS
+
+What this decision does NOT cover. Warnings/gotchas the reader should know about THIS decision.
+
+This section is **distinct from "Alternatives Considered"** (rejected paths)
+and from **"Consequences"** (expected downstream effects). CAVEATS is the
+"this is what the decision does not promise" list. Examples:
+
+- "This decision reorganizes the abstractions but does NOT promise that
+  no further reorganization will happen — see `leak-budgets.md` for the
+  retire mechanism."
+- "The v4 essence rederivation is one design proposal; it does NOT
+  close the falsifiability gap on whether 8 abstractions are
+  indispensable. See ADR-0012 Q3."
+
+Every Accepted ADR should have at least one caveat. A decision with
+zero caveats is suspect; it usually means the author has not thought
+hard enough about what the decision does not promise. If you genuinely
+cannot name a caveat, write "None identified" and explain why.
+
+- Caveat 1: ...
+- Caveat 2: ...
+
+## HISTORY
+
+State transitions for this ADR. One line per transition; nothing else.
+This section is the per-ADR analogue of the project-level `changelog.md`
+and is the falsifiable record of when the ADR's status changed.
+
+- YYYY-MM-DD: Proposed
+- YYYY-MM-DD: Accepted
+- YYYY-MM-DD: Superseded by ADR-MMMM (if applicable)
+- YYYY-MM-DD: Deprecated (if applicable)
+
 ## References
 
 - Code: `path/to/relevant/file.c`

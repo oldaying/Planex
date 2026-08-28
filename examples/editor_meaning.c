@@ -2,7 +2,7 @@
  * editor_meaning.c — Meaning-formation school prototype
  *
  * Prototype for the phenomenological school documented in
- * docs/concepts/alternative-perspectives.md.
+ * docs/concepts/background/alternative-perspectives.md.
  *
  * What this prototype demonstrates:
  *

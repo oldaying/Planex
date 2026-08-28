@@ -10,7 +10,7 @@ Demos are categorized into three tiers:
 - **Tier 2 — Prototype demos**: not in build, use pre-ADR-0005 API, kept as research reference
 - **Tier 3 — Smoke tests**: built and run, validate API surface
 
-See [roadmap-matrix.md](../concepts/roadmap-matrix.md) for the matrix view.
+See [roadmap-matrix.md](../docs/concepts/state/roadmap-matrix.md) for the matrix view.
 
 ---
 
@@ -142,7 +142,7 @@ Validated on Linux/gcc + Windows/MSVC (real Win32 window).
 
 Demonstrates the four phenomenological abstractions (Context, Visibility, Trace, Affordance) built on top of Planex's existing Relation+Estimate+Closure.
 
-- Validates that the phenomenological school (per [alternative-perspectives.md](../concepts/alternative-perspectives.md)) is implementable on Planex's core
+- Validates that the phenomenological school (per [alternative-perspectives.md](../docs/concepts/background/alternative-perspectives.md)) is implementable on Planex's core
 - Planex does NOT adopt this school — the prototype is research demonstration
 
 ---
@@ -176,9 +176,9 @@ These 22 demos were deleted in commit c24bbcab57. The 3 remaining demos in build
 
 ## See also
 
-- [ADR-0005](../decisions/ADR-0005-promote-perception-to-fourth-abstraction.md) — why Perception was promoted
+- [ADR-0005](../docs/decisions/accepted/ADR-0005-promote-perception-to-fourth-abstraction.md) — why Perception was promoted
 - [Why Four Abstractions](../concepts/why-three-abstractions.md) — manifesto (will be renamed to why-four-abstractions.md)
-- [Roadmap Matrix](../concepts/roadmap-matrix.md) — abstraction×maturity tracking
-- [UI Essence Layers](../concepts/ui-essence-layers.md) — the 6-layer essence model
-- [Path C Lineage](../concepts/path-C-lineage.md) — Planex's place in 60-year Path C history
+- [Roadmap Matrix](../docs/concepts/state/roadmap-matrix.md) — abstraction×maturity tracking
+- [UI Essence Layers](../docs/concepts/background/ui-essence-layers.md) — the 6-layer essence model
+- [Path C Lineage](../docs/concepts/background/path-C-lineage.md) — Planex's place in 60-year Path C history
 - [PLATFORMS.md](../PLATFORMS.md) — backend support matrix (replaces old backend-variant demos)

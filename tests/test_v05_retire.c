@@ -2,7 +2,7 @@
  * test_v05_retire.c — v0.5 L2 leak retire verification
  *
  * Validates that the 7 L2 leaks retired in v0.5 (4 Estimate + 3
- * Perception) are actually closed. See docs/concepts/leak-budgets.md
+ * Perception) are actually closed. See docs/concepts/canonical/leak-budgets.md
  * §2 (Estimate) and §4 (Perception) for the leak definitions and
  * retire targets.
  *
@@ -349,7 +349,7 @@ int main(void) {
     printf("Planex v0.5 L2 leak retire verification\n");
     printf("=========================================\n");
     printf("Validates that 7 L2 leaks retired in v0.5 are closed.\n");
-    printf("Per docs/concepts/leak-budgets.md §2 (Estimate) + §4 (Perception).\n\n");
+    printf("Per docs/concepts/canonical/leak-budgets.md §2 (Estimate) + §4 (Perception).\n\n");
 
     printf("[A] Estimate const-correctness (retires §2 leaks #3, #8, #10)\n");
     TEST(a1_value_is_const);

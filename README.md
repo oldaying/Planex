@@ -2,7 +2,7 @@
 
 > **Plane + X** — what if a UI library's core abstractions were Relation + Estimate + Closure + Perception, directly mapping UI essence's four axes?
 >
-> Per [ADR-0005](docs/decisions/ADR-0005-promote-perception-to-fourth-abstraction.md): Perception was promoted to a 4th first-class abstraction. Closure restructured from 7 stages to 5 stages (execution side). See [UI Essence Layers](docs/concepts/ui-essence-layers.md) for the four-axis essence model.
+> Per [ADR-0005](docs/decisions/accepted/ADR-0005-promote-perception-to-fourth-abstraction.md): Perception was promoted to a 4th first-class abstraction. Closure restructured from 7 stages to 5 stages (execution side). See [UI Essence Layers](docs/concepts/background/ui-essence-layers.md) for the four-axis essence model.
 
 [![CI](https://github.com/oldaying/Planex/actions/workflows/ci.yml/badge.svg)](https://github.com/oldaying/Planex/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -28,7 +28,7 @@ That's it. Zero external dependencies. All three demos run stdout-only — no wi
 
 ## What is Planex?
 
-Planex is a UI library built on **four abstractions**, each mapping directly to an axis of UI essence (see [ui-essence-layers.md](docs/concepts/ui-essence-layers.md)):
+Planex is a UI library built on **four abstractions**, each mapping directly to an axis of UI essence (see [ui-essence-layers.md](docs/concepts/background/ui-essence-layers.md)):
 
 1. **Estimate** — state space (state with time + uncertainty)
 2. **Relation** — state-state relationships (queryable graph, not a tree)
@@ -76,13 +76,13 @@ See [examples/counter_4abs.c](examples/counter_4abs.c) for the canonical hello w
 
 | Section | What it covers |
 |---|---|
-| [UI Essence Layers](docs/concepts/ui-essence-layers.md) | Six-layer nested structure of UI essence; Planex implements layers 1-3 |
-| [Path C Lineage](docs/concepts/path-C-lineage.md) | Planex's place in 60-year Path C history (Sketchpad → Eve → Planex) |
-| [Why Four Abstractions](docs/concepts/why-four-abstractions.md) | Manifesto — why 4 abstractions map to 4 essence axes  |
-| [Alternative Perspectives](docs/concepts/alternative-perspectives.md) | Four academic schools; Planex adopts Cognitive + Mathematical/Linguistic |
-| [Roadmap Matrix](docs/concepts/roadmap-matrix.md) | Per-abstraction maturity matrix — tracks what's done vs. what's missing |
-| [Non-Goals](docs/concepts/non-goals.md) | What Planex deliberately does NOT aim to do |
-| [Limitations & Known Gaps](docs/concepts/limitations.md) | Where the README's claims exceed current implementation |
+| [UI Essence Layers](docs/concepts/background/ui-essence-layers.md) | Six-layer nested structure of UI essence; Planex implements layers 1-3 |
+| [Path C Lineage](docs/concepts/background/path-C-lineage.md) | Planex's place in 60-year Path C history (Sketchpad → Eve → Planex) |
+| [Why Four Abstractions](docs/concepts/canonical/why-four-abstractions.md) | Manifesto — why 4 abstractions map to 4 essence axes  |
+| [Alternative Perspectives](docs/concepts/background/alternative-perspectives.md) | Four academic schools; Planex adopts Cognitive + Mathematical/Linguistic |
+| [Roadmap Matrix](docs/concepts/state/roadmap-matrix.md) | Per-abstraction maturity matrix — tracks what's done vs. what's missing |
+| [Non-Goals](docs/concepts/canonical/non-goals.md) | What Planex deliberately does NOT aim to do |
+| [Limitations & Known Gaps](docs/concepts/state/limitations.md) | Where the README's claims exceed current implementation |
 | [Decision Records (ADR)](docs/decisions/README.md) | Architecturally significant decisions, with context and alternatives |
 
 ---
@@ -121,7 +121,7 @@ The flat stage list has been replaced by a **per-abstraction maturity matrix** �
 
 **Per ADR-0005 Phase 1:** Perception is now a 4th abstraction (API + registry implemented). Phase 2 will add runtime perception-driven rendering (replacing `on_render` callback).
 
-➡️ **Full matrix with explanations, demo mapping, and next-priority decisions:** [docs/concepts/roadmap-matrix.md](docs/concepts/roadmap-matrix.md)
+➡️ **Full matrix with explanations, demo mapping, and next-priority decisions:** [docs/concepts/roadmap-matrix.md](docs/concepts/state/roadmap-matrix.md)
 
 ---
 
