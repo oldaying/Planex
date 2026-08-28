@@ -868,7 +868,7 @@ explicit adoption into `TEMPLATE-GUIDE.md` or `CONTRIBUTING.md` deferred.
 | TC39 Stage 2.7 named ADR state | (original Wave 4) | Deferred per Part VIII |
 | Rust RFC FCP 10-day window | (original Part VIII) | Single-maintainer, no audience |
 | arc42 numbered-section addressing | (original Part VIII) | Framing layer, additive |
-| `check_links.sh`, `check_terms.sh`, `find_orphans.sh`, `check_adr_lifecycle.sh` (CI tooling) | 11 | Incremental |
+| ~~`check_links.sh`, `check_terms.sh`, `find_orphans.sh`, `check_adr_lifecycle.sh` (CI tooling)~~ | ~~11~~ | **Landed in commit (T5).** See `docs/README.md` § "CI tooling — doc-organization contract enforcers". Six gates now compose with `check_doc_sections.sh` + `gen_adr_index.sh` to form the Part VI acceptance contract. |
 
 ### Additional References (Part IX sources)
 

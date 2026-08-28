@@ -56,6 +56,31 @@ When writing or revising an ADR, four files work together (Principle 13 of [`doc
 
 The ADR lifecycle, applicability, freshness, and review contract are all in these four artifacts; no separate governance document is needed.
 
+### CI tooling — doc-organization contract enforcers
+
+The doc-organization proposal (see [`doc-organization.md`](doc-organization.md) Part VI) commits six falsifiability gates. Each is a single command in `scripts/`; each fails the build on drift. Together they form the doc-layer equivalent of `leak-budgets.md`'s quantitative L1/L2 audit.
+
+| Command | What it enforces | Failure mode caught |
+|---------|------------------|---------------------|
+| [`scripts/check_doc_sections.sh`](../scripts/check_doc_sections.sh) | Every ADR has all 9 mandatory sections (Status / Context / Decision / Consequences / Alternatives Considered / CAVEATS / Known issues / HISTORY / References). | Mathlib docBlame-style mandatory-section drift (Principle 11). |
+| [`scripts/gen_adr_index.sh`](../scripts/gen_adr_index.sh) | `docs/decisions/README.md` matches the script's auto-generated output. | Hand-maintained index drifting from the actual ADR set (Principle 8). |
+| [`scripts/check_adr_lifecycle.sh`](../scripts/check_adr_lifecycle.sh) | Each ADR file lives in the lifecycle directory matching its declared Status. | An ADR moved between directories without updating its Status field (Principle 1). |
+| [`scripts/check_links.sh`](../scripts/check_links.sh) | Every internal markdown link resolves to an existing file. | Wave 1 link-rewrite drift — wrong path depth after a doc was moved between subdirectories. |
+| [`scripts/find_orphans.sh`](../scripts/find_orphans.sh) | Every doc is linked from at least one other doc (allowlist aside for `staging/`, `changelog.md`, and entry-point `README`s). | A doc that lands in `staging/` and is never graduated (Principle 5). |
+| [`scripts/check_terms.sh`](../scripts/check_terms.sh) | Each glossary term used in `docs/concepts/canonical/` is linked to its glossary anchor at least once. Pass `--scope=all` for doc-wide coverage. | A canonical doc mentions a Planex abstraction without linking to its definition (Principle 3, Wave 4.1 scope). |
+
+Run all six locally before pushing doc edits:
+
+```
+for s in scripts/check_doc_sections.sh scripts/gen_adr_index.sh \
+         scripts/check_adr_lifecycle.sh scripts/check_links.sh \
+         scripts/find_orphans.sh scripts/check_terms.sh; do
+    "$s" --check || exit 1
+done
+```
+
+The companion [`scripts/fix_doc_link_depths.py`](../scripts/fix_doc_link_depths.py) is a one-shot repair tool — it scans for broken internal links and tries inserting one more `../` to fix the depth. Run it when `check_links.sh` reports drift after a reorganization wave.
+
 ### Breaking-change migration
 
 Beyond the per-version changelog and per-symbol deprecation registry, Planex maintains a curated breaking-migration guide at the repo root:

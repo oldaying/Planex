@@ -6,7 +6,7 @@
 >
 > This document **does not patch docs**. It questions whether the existing 5 abstractions (Estimate / Closure / Perception / Relation / px_loop) are the right set after re-deriving UI essence from first principles — and proposes concrete API-level refactoring paths.
 >
-> Reads: [essence-derivation-v2.md](essence-derivation-v2.md), [why-four-abstractions.md](../canonical/why-four-abstractions.md), [ui-essence-layers.md](../background/ui-essence-layers.md), [ADR-0007](../../decisions/accepted/ADR-0007-essence-derivation-v2-revision.md), [ADR-0008](../../decisions/accepted/ADR-0008-feedback-as-fifth-essence-category.md), [planex.h](../../include/planex/planex.h), and the four research reports (`/home/z/my-project/research/{history,academic,cross,systems,critical}/`).
+> Reads: [essence-derivation-v2.md](essence-derivation-v2.md), [why-four-abstractions.md](../canonical/why-four-abstractions.md), [ui-essence-layers.md](../background/ui-essence-layers.md), [ADR-0007](../../decisions/accepted/ADR-0007-essence-derivation-v2-revision.md), [ADR-0008](../../decisions/accepted/ADR-0008-feedback-as-fifth-essence-category.md), [planex.h](../../../include/planex/planex.h), and the four research reports (`/home/z/my-project/research/{history,academic,cross,systems,critical}/`).
 
 ---
 

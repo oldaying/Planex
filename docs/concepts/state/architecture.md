@@ -159,7 +159,7 @@ The most mature backend. Features:
 Uses GDI for blitting (BitBlt), IMM32 for IME. Tested on Windows 10.
 
 **Size:** ~14.6 KB  
-**Status:** ✅ Working (per [PLATFORMS.md](../../PLATFORMS.md))
+**Status:** ✅ Working (per [PLATFORMS.md](../../../PLATFORMS.md))
 
 ### `src/cocoa.c` — Cocoa backend (macOS)
 
@@ -270,4 +270,4 @@ The CMake build system handles this automatically. If you're adding a new module
 - [Limitations](limitations.md) — known gaps
 - [ADR index](../../decisions/README.md) — architecturally significant decisions
 - [API Reference](../../reference/api.md) — function-level docs
-- [PLATFORMS.md](../../PLATFORMS.md) — per-backend feature matrix
+- [PLATFORMS.md](../../../PLATFORMS.md) — per-backend feature matrix

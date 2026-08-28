@@ -107,7 +107,7 @@ This fix was necessary for Phase 2 to not break the loop's audit semantics.
 
 ## Verification
 
-The retire is verified by [`tests/test_v05_retire.c`](../../tests/test_v05_retire.c) (new file, 12 tests, all passing):
+The retire is verified by [`tests/test_v05_retire.c`](../../../tests/test_v05_retire.c) (new file, 12 tests, all passing):
 
 - `test_a1_value_is_const` — verifies `px_estimate_value` is a pure query during animation.
 - `test_a2_is_animating_is_const` — verifies `px_estimate_is_animating` doesn't finalize as a side effect.

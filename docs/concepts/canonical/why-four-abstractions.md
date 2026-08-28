@@ -40,7 +40,7 @@ This is the **strongest possible essence-driven claim**: Planex implements every
 
 ## The 5 implemented essence categories
 
-### 1. Estimate — State
+### 1. [Estimate](../../reference/glossary.md#estimate) — State
 
 State with time and uncertainty. Not a discrete snapshot.
 
@@ -57,7 +57,7 @@ Estimate subsumes both. Formally, it's inspired by:
 
 **Status**: ✅ Implemented. The `Estimate` API (`px_estimate_new`, `px_estimate_set`, `px_estimate_animate`, `px_estimate_confidence`) covers time + uncertainty.
 
-### 2. Closure — Communication (human→machine intent)
+### 2. [Closure](../../reference/glossary.md#closure) — Communication (human→machine intent)
 
 A 5-stage interaction unit, covering Don Norman's stages 1-4 + 7 (execution side).
 
@@ -83,7 +83,7 @@ Closure makes intent a **typed value** (one of `ASSERT` / `REQUEST` / `PROMISE` 
 
 **Status**: ✅ Implemented. The `Closure` API (`px_closure_new`, `px_closure_trigger`, `px_closure_evaluated`, `px_closure_replay`, etc.) covers all 5 stages + replay.
 
-### 3. Perception — Presentation (machine→human denotation)
+### 3. [Perception](../../reference/glossary.md#perception) — Presentation (machine→human denotation)
 
 A pure function denoting state. Multiple perceptions can coexist for the same Estimates.
 
@@ -113,7 +113,7 @@ This is inspired by:
 
 A queryable graph, not a tree.
 
-**v2 correction**: Earlier, Relation was framed as "structural" under a "UI is a network" premise. v2 found this was wrong — relational ontology is essence, not structural. UI cannot be defined without actor + situation (per Heidegger, Gibson, Dourish, Hutchins, Alexander). Planex's `Relation` is one engineering instantiation of this essence category; others (constraint systems, process networks, semilattices) are valid but not chosen.
+**v2 correction**: Earlier, [Relation](../../reference/glossary.md#relation) was framed as "structural" under a "UI is a network" premise. v2 found this was wrong — relational ontology is essence, not structural. UI cannot be defined without actor + situation (per Heidegger, Gibson, Dourish, Hutchins, Alexander). Planex's `Relation` is one engineering instantiation of this essence category; others (constraint systems, process networks, semilattices) are valid but not chosen.
 
 **Why not a component tree (like React's element tree)?**
 
@@ -128,7 +128,7 @@ Trees force all of these into parent-child, losing semantic precision. Relations
 
 This is inspired by:
 - Sketchpad (Sutherland 1963) — constraint graph
-- Christopher Alexander's "A City is Not a Tree" (1965) — semilattice vs tree
+- Christopher Alexander's "A City is Not a Tree" (1965) — [semilattice](../../reference/glossary.md#semilattice) vs tree
 - Hutchins's Distributed Cognition — UI as relational system
 - π-calculus / CSP — channels (relations) as primitive
 
@@ -268,9 +268,9 @@ Planex **is**:
 - [Path C Lineage](../background/path-C-lineage.md) — 60-year history of constraint-graph UI attempts
 - [Limitations](../state/limitations.md) — including the deferred essence candidates
 - [Roadmap Matrix](../state/roadmap-matrix.md) — maturity tracking per abstraction
-- [examples/counter_4abs.c](../../examples/counter_4abs.c) — canonical 4-abstraction hello world
-- [examples/integration_4abs.c](../../examples/integration_4abs.c) — all 4 abstractions + all features in one demo
-- [tests/test_feedback.c](../../tests/test_feedback.c) — 13 tests for the v0.4 Feedback API
+- [examples/counter_4abs.c](../../../examples/counter_4abs.c) — canonical 4-abstraction hello world
+- [examples/integration_4abs.c](../../../examples/integration_4abs.c) — all 4 abstractions + all features in one demo
+- [tests/test_feedback.c](../../../tests/test_feedback.c) — 13 tests for the v0.4 Feedback API
 
 ---
 
@@ -339,7 +339,7 @@ The fix is not to add 5 new abstractions. The fix is to **make the claim honest*
 
 ## The 4 implemented essence categories
 
-### 1. Estimate — State
+### 1. [Estimate](../../reference/glossary.md#estimate) — State
 
 State with time and uncertainty. Not a discrete snapshot.
 
@@ -356,7 +356,7 @@ Estimate subsumes both. Formally, it's inspired by:
 
 **Status**: ✅ Implemented. The `Estimate` API (`px_estimate_new`, `px_estimate_set`, `px_estimate_animate`, `px_estimate_confidence`) covers time + uncertainty.
 
-### 2. Closure — Communication (human→machine intent)
+### 2. [Closure](../../reference/glossary.md#closure) — Communication (human→machine intent)
 
 A 5-stage interaction unit, covering Don Norman's stages 1-4 + 7 (execution side).
 
@@ -382,7 +382,7 @@ Closure makes intent a **typed value** (one of `ASSERT` / `REQUEST` / `PROMISE` 
 
 **Status**: ✅ Implemented. The `Closure` API (`px_closure_new`, `px_closure_trigger`, `px_closure_evaluated`, `px_closure_replay`, etc.) covers all 5 stages + replay.
 
-### 3. Perception — Presentation (machine→human denotation)
+### 3. [Perception](../../reference/glossary.md#perception) — Presentation (machine→human denotation)
 
 A pure function denoting state. Multiple perceptions can coexist for the same Estimates.
 
@@ -412,7 +412,7 @@ This is inspired by:
 
 A queryable graph, not a tree.
 
-**v2 correction**: Earlier, Relation was framed as "structural" under a "UI is a network" premise. v2 found this was wrong — relational ontology is essence, not structural. UI cannot be defined without actor + situation (per Heidegger, Gibson, Dourish, Hutchins, Alexander). Planex's `Relation` is one engineering instantiation of this essence category; others (constraint systems, process networks, semilattices) are valid but not chosen.
+**v2 correction**: Earlier, [Relation](../../reference/glossary.md#relation) was framed as "structural" under a "UI is a network" premise. v2 found this was wrong — relational ontology is essence, not structural. UI cannot be defined without actor + situation (per Heidegger, Gibson, Dourish, Hutchins, Alexander). Planex's `Relation` is one engineering instantiation of this essence category; others (constraint systems, process networks, semilattices) are valid but not chosen.
 
 **Why not a component tree (like React's element tree)?**
 
@@ -427,7 +427,7 @@ Trees force all of these into parent-child, losing semantic precision. Relations
 
 This is inspired by:
 - Sketchpad (Sutherland 1963) — constraint graph
-- Christopher Alexander's "A City is Not a Tree" (1965) — semilattice vs tree
+- Christopher Alexander's "A City is Not a Tree" (1965) — [semilattice](../../reference/glossary.md#semilattice) vs tree
 - Hutchins's Distributed Cognition — UI as relational system
 - π-calculus / CSP — channels (relations) as primitive
 
@@ -554,8 +554,8 @@ Planex **is**:
 - [Path C Lineage](../background/path-C-lineage.md) — 60-year history of constraint-graph UI attempts
 - [Limitations](../state/limitations.md) — including the deferred essence candidates
 - [Roadmap Matrix](../state/roadmap-matrix.md) — maturity tracking per abstraction
-- [examples/counter_4abs.c](../../examples/counter_4abs.c) — canonical 4-abstraction hello world
-- [examples/integration_4abs.c](../../examples/integration_4abs.c) — all 4 abstractions + all features in one demo
+- [examples/counter_4abs.c](../../../examples/counter_4abs.c) — canonical 4-abstraction hello world
+- [examples/integration_4abs.c](../../../examples/integration_4abs.c) — all 4 abstractions + all features in one demo
 
 ---
 

@@ -404,7 +404,7 @@ The decision here is narrowly scoped: Perception is a first-class abstraction. A
 - Related docs:
   - [ui-essence-layers.md](../../concepts/background/ui-essence-layers.md) — Layer 2-3 (cognitive + semantic), this decision completes these layers
   - [path-C-lineage.md](../../concepts/background/path-C-lineage.md) — honest acknowledgment of Planex's position
-  - [why-three-abstractions.md](../concepts/why-three-abstractions.md) — current manifesto, will be renamed to `why-four-abstractions.md`
+  - [why-four-abstractions.md](../../concepts/canonical/why-four-abstractions.md) — current manifesto, renamed from `why-three-abstractions.md` by this ADR's Wave 1 reorganization
   - [roadmap-matrix.md](../../concepts/state/roadmap-matrix.md) — Perception row currently entirely red
   - [limitations.md L1](../../concepts/state/limitations.md) — current Perception gap, will be marked resolved
   - [continuous-intent-speculation.md](../../concepts/speculation/continuous-intent-speculation.md) — orthogonal to this ADR; (b) doesn't address Layer 5

@@ -266,28 +266,28 @@ Per [ADR-0007](../../decisions/accepted/ADR-0007-essence-derivation-v2-revision.
 UI's essence includes the **embodiment relation** — meaning emerges through engaged interaction, not pre-encoded by designers. UI is not an independent artefact but an extension of embodied action.
 
 - **Why deferred**: requires giving up "UI as independent artefact" premise, which is foundational to Planex's current API (Estimates, Closures, Perceptions all exist independently of actor)
-- **Source**: [research/reports/05-phenomenology.md](../../../research/reports/05-phenomenology.md) §5 (Dourish)
+- **Source**: research/reports/05-phenomenology.md §5 (Dourish)
 
 ### D2. Situatedness (Suchman, 1987)
 
 Action is situated — plans are post-hoc rationalizations, not action generators. UI cannot preset user flows.
 
 - **Why deferred**: contradicts use-case-driven design, which Planex's Closure (typed intent) implicitly assumes
-- **Source**: [research/reports/05-phenomenology.md](../../../research/reports/05-phenomenology.md) §3 (Suchman)
+- **Source**: research/reports/05-phenomenology.md §3 (Suchman)
 
 ### D3. Affordance-as-relation (Gibson, original 1979)
 
 Affordance is a relation between world and actor, not a property. UI's essence includes "what actions the actor can take" — which requires actor presence in the API.
 
 - **Why deferred**: Planex's Relation is between things (Estimates, Closures); adding actor-to-thing relations would be a major API revision
-- **Source**: [research/reports/05-phenomenology.md](../../../research/reports/05-phenomenology.md) §7 (Gibson)
+- **Source**: research/reports/05-phenomenology.md §7 (Gibson)
 
 ### D4. Breakdown (Heidegger-Winograd/Flores, 1986)
 
 UI's essence includes the moment of breakdown — when the tool becomes present-at-hand. This is when the user notices the UI itself (an error, a confusion, a surprise).
 
 - **Why deferred**: requires a notion of "normal flow" vs "interrupted flow" that Planex's current abstractions don't express
-- **Source**: [research/reports/05-phenomenology.md](../../../research/reports/05-phenomenology.md) §1 (Heidegger), §2 (Winograd/Flores)
+- **Source**: research/reports/05-phenomenology.md §1 (Heidegger), §2 (Winograd/Flores)
 
 ### Why these are deferred, not dismissed
 

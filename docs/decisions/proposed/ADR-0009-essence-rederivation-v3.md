@@ -506,21 +506,21 @@ The decision here is narrowly scoped: implement the v3 Path B prototype API surf
   tests — Breakdown provides a new anti-pattern: "Planex can
   detect semantic breakdown + record recovery; React/Solid cannot
   model breakdown at all")
-- New files: [src/actor.c](../../src/actor.c),
-  [src/breakdown.c](../../src/breakdown.c)
-- Augmented files: [src/relation.c](../../src/relation.c),
-  [src/closure.c](../../src/closure.c),
-  [src/perception.c](../../src/perception.c),
-  [src/feedback.c](../../src/feedback.c),
-  [include/planex/planex.h](../../include/planex/planex.h)
+- New files: [src/actor.c](../../../src/actor.c),
+  [src/breakdown.c](../../../src/breakdown.c)
+- Augmented files: [src/relation.c](../../../src/relation.c),
+  [src/closure.c](../../../src/closure.c),
+  [src/perception.c](../../../src/perception.c),
+  [src/feedback.c](../../../src/feedback.c),
+  [include/planex/planex.h](../../../include/planex/planex.h)
 - New examples:
-  [examples/v3_prototype_actor.c](../../examples/v3_prototype_actor.c),
-  [examples/v3_prototype_perlocution.c](../../examples/v3_prototype_perlocution.c),
-  [examples/v3_prototype_interpretant.c](../../examples/v3_prototype_interpretant.c),
-  [examples/v3_prototype_breakdown.c](../../examples/v3_prototype_breakdown.c)
-- New test: [tests/test_v3_prototype.c](../../tests/test_v3_prototype.c)
+  [examples/v3_prototype_actor.c](../../../examples/v3_prototype_actor.c),
+  [examples/v3_prototype_perlocution.c](../../../examples/v3_prototype_perlocution.c),
+  [examples/v3_prototype_interpretant.c](../../../examples/v3_prototype_interpretant.c),
+  [examples/v3_prototype_breakdown.c](../../../examples/v3_prototype_breakdown.c)
+- New test: [tests/test_v3_prototype.c](../../../tests/test_v3_prototype.c)
   (60/60 pass)
-- [CMakeLists.txt](../../CMakeLists.txt) — updated to compile
+- [CMakeLists.txt](../../../CMakeLists.txt) — updated to compile
   actor.c / breakdown.c + 4 new examples + 1 new test
 
 ## See also

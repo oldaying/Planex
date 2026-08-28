@@ -2,7 +2,7 @@
 
 > **Status:** Quantitative companion to [`limitations.md`](../state/limitations.md) (which is qualitative). Date: 2026-08-28; **v0.5 update: 2026-08-28 (same day, retire landing).**
 >
-> **Applies to:** v0.5 shipping abstractions only (Relation / Estimate / Closure / Perception / `px_loop`). v4 proposals (Interpretant / Perlocution / Breakdown) are out of scope here — their leak budgets will be measured when they ship.
+> **Applies to:** v0.5 shipping abstractions only ([Relation](../../reference/glossary.md#relation) / [Estimate](../../reference/glossary.md#estimate) / [Closure](../../reference/glossary.md#closure) / [Perception](../../reference/glossary.md#perception) / `px_loop`). v4 proposals (Interpretant / Perlocution / Breakdown) are out of scope here — their leak budgets will be measured when they ship.
 >
 > **v0.5 milestone (2026-08-28):** the 7 leaks targeted in the v0.5 retire plan have been **retired** — 4 in Estimate (3 not-const queries + `derived_recompute` cycle) and 3 in Perception (Phase 2 auto-invocation makes the manual invoke ops diagnostic, no longer "exists only because incomplete"). Aggregate shipping L2: **9 → 2 = 3.8%** (was 17%, target ≤8% — **MET with margin**). See the "v0.5 retire summary" section below for details.
 >

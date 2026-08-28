@@ -32,7 +32,7 @@ A speculation doc is **not** an ADR — it's the design exploration that *preced
 
 If you're proposing a new abstraction, a new API, a new mechanism, or a new policy — and you want to explore the design space before committing — put the exploration here. Then open an ADR that references this doc and decides whether to accept, reject, or defer.
 
-If the proposal is too small to warrant an ADR (e.g. a one-line API change), don't put a speculation doc — put it in an issue or in [`../staging/`](../staging/) until it's ready.
+If the proposal is too small to warrant an ADR (e.g. a one-line API change), don't put a speculation doc — put it in an issue or in [`../staging/`](../../staging/) until it's ready.
 
 ## Planned content
 

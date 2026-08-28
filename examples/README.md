@@ -177,7 +177,7 @@ These 22 demos were deleted in commit c24bbcab57. The 3 remaining demos in build
 ## See also
 
 - [ADR-0005](../docs/decisions/accepted/ADR-0005-promote-perception-to-fourth-abstraction.md) — why Perception was promoted
-- [Why Four Abstractions](../concepts/why-three-abstractions.md) — manifesto (will be renamed to why-four-abstractions.md)
+- [Why Four Abstractions](../docs/concepts/canonical/why-four-abstractions.md) — manifesto (renamed from why-three-abstractions.md)
 - [Roadmap Matrix](../docs/concepts/state/roadmap-matrix.md) — abstraction×maturity tracking
 - [UI Essence Layers](../docs/concepts/background/ui-essence-layers.md) — the 6-layer essence model
 - [Path C Lineage](../docs/concepts/background/path-C-lineage.md) — Planex's place in 60-year Path C history

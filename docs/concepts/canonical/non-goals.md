@@ -38,7 +38,7 @@ DOM is a layout model, not a rendering target. Planex renders directly to pixel 
 
 ## NG-4: Backward compatibility before v1.0
 
-Planex is pre-1.0. The API **will break** between minor versions as the abstractions are refined (see ADR-0001 on Perception, ADR-0002 on Relation necessity).
+Planex is pre-1.0. The API **will break** between minor versions as the abstractions are refined (see ADR-0001 on [Perception](../../reference/glossary.md#perception), ADR-0002 on [Relation](../../reference/glossary.md#relation) necessity).
 
 Do not build production systems against Planex v0.x. The library is for:
 - Researchers studying UI abstractions
@@ -102,7 +102,7 @@ Planex's `px_estimate_animate()` provides linear interpolation between values. I
 - Choreography / sequencing primitives
 - SVG path animation
 
-These can be built on top of Estimate. They are not in core.
+These can be built on top of [Estimate](../../reference/glossary.md#estimate). They are not in core.
 
 ---
 
@@ -127,4 +127,4 @@ If you're considering a contribution, ask:
 3. **Is it a new backend?** Yes, please — but only if it doesn't compromise abstraction questions.
 4. **Is it AI / mobile / styling / networking / animation?** Out of scope. Fork the project, don't pull-request.
 
-See [CONTRIBUTING.md](../../CONTRIBUTING.md) for the practical process.
+See [CONTRIBUTING.md](../../../CONTRIBUTING.md) for the practical process.

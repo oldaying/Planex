@@ -15,7 +15,7 @@ A "canonical" doc:
 |-----|----------------|
 | [`abstraction-form.md`](abstraction-form.md) | Planex's form is "abstraction-as-typed-value" (not encapsulation). Conditional thesis: 8 abstractions are optimal *if* three prerequisites hold (Ontological Stability / Orthogonal Separability / Falsifiability). |
 | [`why-four-abstractions.md`](why-four-abstractions.md) | The 5 shipping + 3 v4-proposed abstractions are the right set, grounded in 6 academic traditions (Peirce / Winograd-Flores / Searle / Friston / Elliott / Alexander). |
-| [`leak-budgets.md`](leak-budgets.md | A quantitative L1/L2 leak audit is the falsifiability mechanism for the abstraction layer. The retire curve is committed; failures are CI-blockable. |
+| [`leak-budgets.md`](leak-budgets.md) | A quantitative L1/L2 leak audit is the falsifiability mechanism for the abstraction layer. The retire curve is committed; failures are CI-blockable. |
 | [`non-goals.md`](non-goals.md) | Planex explicitly rejects: general-purpose UI library, component library, AI integration, mobile, web/DOM, GPU, styling, i18n, animation engine, multi-window, IPC, networking. (NG-1 through NG-12.) |
 
 ## Relationship to other directories

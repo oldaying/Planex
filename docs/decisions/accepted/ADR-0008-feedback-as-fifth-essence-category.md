@@ -216,9 +216,9 @@ The decision here is narrowly scoped: add `px_loop` as the Feedback abstraction,
 - [essence-derivation-v2.md](../../concepts/history/essence-derivation-v2.md) — the derivation that identified Feedback as essence
 - [why-four-abstractions.md](../../concepts/canonical/why-four-abstractions.md) — canonical manifesto, updated for v0.4
 - [limitations.md](../../concepts/state/limitations.md) — L13 (Feedback gap) marked as resolved
-- [tests/test_feedback.c](../../tests/test_feedback.c) — 13 tests validating the Feedback API
-- [src/feedback.c](../../src/feedback.c) — implementation
-- [research/reports/00-summary.md](../../../research/reports/00-summary.md) — research reports that grounded v2
+- [tests/test_feedback.c](../../../tests/test_feedback.c) — 13 tests validating the Feedback API
+- [src/feedback.c](../../../src/feedback.c) — implementation
+- research/reports/00-summary.md — research reports that grounded v2
 
 ## See also
 
