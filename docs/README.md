@@ -81,7 +81,7 @@ for s in scripts/check_doc_sections.sh scripts/gen_adr_index.sh \
 done
 ```
 
-The companion [`scripts/fix_doc_link_depths.py`](../scripts/fix_doc_link_depths.py) is a one-shot repair tool — it scans for broken internal links and tries inserting one more `../` to fix the depth. Run it when `check_links.sh` reports drift after a reorganization wave.
+If `check_links.sh` reports broken internal-link depth after a reorganization wave, fix the depths by hand: open the file, find the broken link, and insert one more `../` segment until the link resolves. The previous one-shot `fix_doc_link_depths.py` helper has been removed — it had done its one-time job (repaired 34 broken depths in commit `de2b669` during Wave 4.2) and was no longer needed; keeping it around was just language-distribution noise.
 
 ### Breaking-change migration
 
