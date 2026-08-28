@@ -254,6 +254,14 @@ add_library(planex_v4_lib STATIC
 )
 target_include_directories(planex_v4_lib PUBLIC v4/include)
 
+# Link math library — v4/src/estimate.c:157 uses pow() for cubic ease-out.
+# Without this, test_v4_orthogonality fails to link on Linux/GCC with
+# "undefined reference to `pow'" (libm is not auto-linked outside MSVC).
+# Mirrors the planex_lib m-link above (lines 126-128).
+if(NOT WIN32)
+    target_link_libraries(planex_v4_lib PUBLIC m)
+endif()
+
 add_executable(test_v4_orthogonality tests/test_v4_orthogonality.c)
 target_link_libraries(test_v4_orthogonality planex_v4_lib)
 add_test(NAME v4_orthogonality_tests COMMAND test_v4_orthogonality)
