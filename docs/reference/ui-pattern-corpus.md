@@ -44,7 +44,7 @@ Each row in the per-category tables below has these columns:
 
 ## Category A: Discrete State Manipulation (P1–P12)
 
-Planex's design center. All 12 patterns are ✅ — discrete state is what the 4 abstractions (Relation + Estimate + Closure + Perception) were designed for. Most patterns are `CLAIM_ONLY` because the implementation is a few lines of `px_estimate_set` + `px_closure_trigger` + a pure-function perception; demos that exercise multiple abstractions together are in `examples/`.
+Planex's design center. All 12 patterns are ✅ — discrete state is what the 5 abstractions (Relation + Estimate + Closure + Perception + px_loop) were designed for; the first 4 carry the discrete-state load directly, `px_loop` provides the feedback loop the others run inside. Most patterns are `CLAIM_ONLY` because the implementation is a few lines of `px_estimate_set` + `px_closure_trigger` + a pure-function perception; demos that exercise multiple abstractions together are in `examples/`.
 
 | ID | Pattern | Verdict | Grounding | Notes |
 |----|---------|---------|-----------|-------|
@@ -205,7 +205,7 @@ Extension is a gap (Layer 6 — medium). Planex is a library, not a platform; pl
 | P65 | User scripting | ❌ cannot | NONGOAL NG-5 | Layer 6 (medium) — not in scope |
 | P66 | Theme system | ⚠️ forced | NONGOAL NG-8 | Styling/theming is explicitly out of scope |
 | P67 | Internationalization | ⚠️ forced | NONGOAL NG-9 | i18n is explicitly out of scope |
-| P68 | Custom widgets | ✅ clean | EXAMPLE integration_4abs.c | This is the thesis — widgets emerge from the 4 abstractions |
+| P68 | Custom widgets | ✅ clean | EXAMPLE integration_4abs.c | This is the thesis — widgets emerge from the 5 abstractions |
 
 **Category verdict: 1/5 ✅, 2/5 ⚠️, 2/5 ❌.**
 

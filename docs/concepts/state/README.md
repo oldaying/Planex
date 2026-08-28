@@ -15,7 +15,7 @@ A "state" doc:
 |-----|---------------------|
 | [`architecture.md`](architecture.md) | The shipping code layout: `src/`, `include/`, `examples/`, `tests/`; the relationship between abstractions; backend structure (font, fb, x11, win32, cocoa, etc.). |
 | [`limitations.md`](limitations.md) | L1 through L14 — known limitations, single-maintainer bus factor (L10), Perception Phase 2 not yet enforced, leak budget gap on L1 leaks, etc. |
-| [`ui-pattern-coverage.md`](ui-pattern-coverage.md) | 68 UI patterns × 4 abstractions coverage matrix. The completeness-test corpus that `abstraction-form.md` Prerequisite 3c names as an open gap. |
+| [`ui-pattern-coverage.md`](ui-pattern-coverage.md) | v0.4 snapshot: 68 UI patterns × 4 abstractions coverage matrix. The v0.5 canonical replacement is [`../../reference/ui-pattern-corpus.md`](../../reference/ui-pattern-corpus.md) (5 abstractions + CI-enforced via `make check-completeness`); this v0.4 doc is retained for history of the analysis. |
 | [`roadmap-matrix.md`](roadmap-matrix.md) | Cross-tab of abstractions × verification dimensions (tradition citation, orthogonality test, leak budget, example count). |
 | [`versioning.md`](versioning.md) | Planex's three-system versioning rule book (semantic version, abstraction epoch, leak budget epoch). |
 | [`v0.4-roadmap.md`](v0.4-roadmap.md) | The v0.4 minor-version roadmap. Items here describe planned work; commitment is via ADR. |

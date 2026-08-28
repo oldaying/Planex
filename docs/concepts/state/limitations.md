@@ -1,6 +1,6 @@
 # Limitations and Known Gaps
 
-> **Applies to**: v0.5. What Planex claims vs. what Planex actually delivers. This document exists to keep the README's "4 abstractions" tagline honest by surfacing the gaps that the tagline hides.
+> **Applies to**: v0.5. What Planex claims vs. what Planex actually delivers. This document exists to keep the README's "5 abstractions" tagline honest by surfacing the gaps that the tagline hides.
 
 Research-grade projects gain credibility by being explicit about their limitations. seL4 lists which security properties are proven and which aren't. Lean lists which axioms are consistent and which are open. Planex must do the same.
 
@@ -48,7 +48,7 @@ Originally (v0.1.0), Planex claimed "4 abstractions" but Perception was a no-op 
 
 The Relation abstraction exists and works (auto-dependency tracking, declarative `DEPENDS_ON`, `BESIDE`, `BELOW` relations). But every existing demo could plausibly be re-implemented with Solid.js's Signal + dependency graph, which is the strongest competing approach.
 
-If Solid can do everything Relation can, **Relation is not necessary** — it's syntactic sugar. This would weaken the "4 abstractions" claim to "2 abstractions + convenience layer".
+If Solid can do everything Relation can, **Relation is not necessary** — it's syntactic sugar. This would weaken the "5 abstractions" claim to "2 abstractions + convenience layer".
 
 **Reality:** No anti-pattern test exists yet that demonstrates a capability Relation has and Solid lacks. The strongest candidate is **undo-via-graph** (snapshot only Estimates reachable from the Intent's Relation subgraph), which Solid cannot do because it tracks dependencies per-effect, not as a globally queryable graph. But this test has not been implemented.
 
@@ -72,7 +72,7 @@ For each of the three claimed abstractions, Planex should be able to point to on
 
 **Implication:** Without anti-pattern tests, Planex looks like preference, not necessity. Skeptics can dismiss it as "just another way of doing UI."
 
-**Decision:** This is the third red column in the roadmap matrix. The matrix's "Anti-pattern test" column is 🔴 for all four abstractions.
+**Decision:** This is the third red column in the roadmap matrix. The matrix's "Anti-pattern test" column is 🔴 for all five abstractions.
 
 **Status in roadmap matrix:** Anti-pattern test column is entirely 🔴.
 
@@ -214,7 +214,7 @@ Planex's Closure uses five discrete Intent kinds (`PX_INTENT_ASSERT/REQUEST/PROM
 
 **Severity:** High — affects 15/68 common UI patterns
 
-Per `ui-pattern-coverage.md` Category D: **0/15 continuous/transient interaction patterns are cleanly expressible** with the current 4 abstractions.
+Per `ui-pattern-coverage.md` Category D: **0/15 continuous/transient interaction patterns are cleanly expressible** with the current 5 abstractions (the 4 original + `px_loop` from v0.4; `px_loop` adds closed-loop coupling but not continuous interaction primitives — see ADR-0006 for the deferral).
 
 Affected patterns include:
 - Hover highlight (forced into Estimate — semantically wrong)

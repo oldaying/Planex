@@ -4,7 +4,7 @@
 
 ### Q: Why C? Why not Rust/Zig/C++?
 
-C has zero runtime, zero hidden abstractions, and compiles everywhere. The 4 abstractions (Relation + Estimate + Closure + Perception) are about **design philosophy**, not language features. C forces us to be explicit — no hidden constructors, no RAII, no trait bounds. If the abstractions work in C, they work anywhere.
+C has zero runtime, zero hidden abstractions, and compiles everywhere. The 5 abstractions (Relation + Estimate + Closure + Perception + px_loop) are about **design philosophy**, not language features. C forces us to be explicit — no hidden constructors, no RAII, no trait bounds. If the abstractions work in C, they work anywhere.
 
 ---
 
@@ -85,7 +85,7 @@ clay is a **layout library** — it computes where elements should go, but doesn
 
 ### Q: Is Planex production-ready?
 
-No. It's an experiment exploring whether 4 abstractions (Relation + Estimate + Closure + Perception) can express all UI patterns. The counter_4abs and multi_perception demos prove they can for basic cases. More testing and real-world use is needed before production.
+No. It's an experiment exploring whether 5 abstractions (Relation + Estimate + Closure + Perception + px_loop) can express all UI patterns. The counter_4abs and multi_perception demos prove they can for basic cases; the 68-pattern completeness corpus (`make check-completeness`) is the systematic falsifier. More testing and real-world use is needed before production.
 
 ---
 

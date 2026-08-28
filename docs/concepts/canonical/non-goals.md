@@ -1,6 +1,6 @@
 # Non-Goals
 
-> **Applies to**: v0.4 (and likely all future v0.x / v1.x). Things Planex deliberately does **not** aim to do. Documented here so they can be referenced when community pressure pushes the project to add them.
+> **Applies to**: v0.5 (and likely all future v0.x / v1.x). Things Planex deliberately does **not** aim to do. Documented here so they can be referenced when community pressure pushes the project to add them.
 
 Non-goals are not weaknesses. They are the **negative space** that defines what Planex is. A project without non-goals is a project without identity — it eventually tries to be everything and ends up being nothing. (See: Eve, Subtext, and other research projects that died from scope creep.)
 
@@ -51,7 +51,7 @@ This will change at v1.0, which will not happen until the matrix in `roadmap-mat
 
 ## NG-5: Component library / widget set
 
-Planex does not ship a "components" directory with `Button`, `Input`, `Select`, `Modal`, etc. The thesis is that widgets **emerge** from the four abstractions — see `docs/concepts/canonical/why-four-abstractions.md`.
+Planex does not ship a "components" directory with `Button`, `Input`, `Select`, `Modal`, etc. The thesis is that widgets **emerge** from the five abstractions — see `docs/concepts/canonical/why-four-abstractions.md` (filename is historical; content covers all 5 since v0.4).
 
 The `examples/` directory contains reference implementations of common widgets. These are demos, not a shipped component library. Copy them into your project if you want; they're MIT.
 
@@ -122,8 +122,8 @@ Planex assumes one process, one main window. Multi-window applications are suppo
 
 If you're considering a contribution, ask:
 
-1. **Does it touch the four abstractions?** If yes, it probably belongs in core — but write an ADR first.
-2. **Is it a new widget?** Add it to `examples/`, not core. Document how it emerges from the four abstractions.
+1. **Does it touch the five abstractions?** If yes, it probably belongs in core — but write an ADR first.
+2. **Is it a new widget?** Add it to `examples/`, not core. Document how it emerges from the five abstractions.
 3. **Is it a new backend?** Yes, please — but only if it doesn't compromise abstraction questions.
 4. **Is it AI / mobile / styling / networking / animation?** Out of scope. Fork the project, don't pull-request.
 

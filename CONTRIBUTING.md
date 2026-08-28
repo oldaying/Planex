@@ -1,4 +1,4 @@
-# CONTRIBUTING.md — Updated for v0.3 (4-abstraction era)
+# CONTRIBUTING.md — Updated for v0.5 (5-abstraction era; Feedback + leak-budget retire + essence-justified admission)
 
 > This document records the rules learned from this session's mistakes.
 > Each rule has a "LESSON" — a concrete failure that caused it.
@@ -83,22 +83,29 @@
 
 ## 5. Documentation sync rule
 
-**LESSON**: Multiple docs still said "3 abstractions" after ADR-0005 promoted Perception to 4th. README was updated but non-goals.md, limitations.md, and roadmap-matrix.md were not.
+**LESSON**: Multiple docs still said "3 abstractions" after ADR-0005 promoted Perception to 4th. README was updated but non-goals.md, limitations.md, and roadmap-matrix.md were not. The same pattern repeated in v0.4 when ADR-0008 added `px_loop` as the 5th abstraction (Feedback) — multiple docs kept saying "4 abstractions" long after the 5th shipped. This rule now also covers the v0.5 leak-budget retire (ADR-0013) and the Validated lifecycle stage + essence-justified admission enforcement (ADR-0014).
 
 **Rule**: When making a decision that changes the project's claims:
 1. Update README.md (the front door)
-2. Update the manifesto (why-four-abstractions.md)
+2. Update the manifesto (why-four-abstractions.md — filename is historical, content is current)
 3. Update limitations.md (if a limitation is resolved or added)
 4. Update non-goals.md (if scope changes)
 5. Update roadmap-matrix.md (if matrix cells change)
 6. Update changelog.md (always)
 7. Update glossary.md (if terminology changes)
-8. grep for old terminology: `grep -rn "three abstractions" docs/ README.md`
+8. grep for old terminology across ALL versioned docs:
+   ```
+   grep -rn "three abstractions\|4 abstractions\|four abstractions" docs/ README.md examples/README.md
+   grep -rn 'Relation + Estimate + Closure + Perception' docs/ README.md examples/README.md
+   ```
+   The second grep catches the missing-`px_loop` form of the stale reference. Both must return zero hits on v0.5-current docs (ADR/changelog/research files are historical snapshots and are exempt).
+9. If the change adds or retires an abstraction, also run `make BACKEND=headless check-completeness` — the 68-pattern corpus will catch any coverage-table drift.
 
 **Checklist before commit**:
 - [ ] All docs updated?
-- [ ] grep found no stale references?
+- [ ] grep found no stale references in v0.5-current docs?
 - [ ] changelog.md has an entry?
+- [ ] `make check-completeness` passes (if abstraction set changed)?
 
 ---
 
@@ -162,6 +169,44 @@ If the answer to Q1 is "none" — this is engineering, not essence. Fine, but do
 
 ---
 
+## 10. Leak-budget retire verification rule
+
+**LESSON**: ADR-0013 (v0.5 leak-budget retire) made a falsifiable claim in `leak-budgets.md` — that the aggregate L2 leak rate would drop from 17% to ≤8% by v0.5. The claim was verified end-to-end by `tests/test_v05_retire.c` and recorded in the ADR. Without the explicit "claim → verification" pair, the leak budget would be just another unenforced target.
+
+**Rule**: When retiring a leak or making any quantitative claim in `leak-budgets.md` / `abstraction-form.md` / `compression-metric.md`:
+1. Write the falsifiable claim in the canonical doc first (target number + threshold + deadline version).
+2. Write a test in `tests/test_v05_retire.c` (or analogous) that asserts the post-retire number is below threshold.
+3. Reference both the claim and the verification in the ADR's `## Consequences` section.
+4. `make check-compression` must run clean post-retire.
+
+**Checklist**:
+- [ ] Claim written in canonical doc with threshold + version?
+- [ ] Test in `tests/test_v*_retire.c` asserts the post-retire number?
+- [ ] ADR references both the claim and the verification?
+- [ ] `make check-compression` passes?
+
+---
+
+## 11. Essence-justified admission rule
+
+**LESSON**: ADR-0011 documented the Rule-of-Three exemption for essence-justified abstractions, but the three admission criteria (tradition cite + real alternatives + negative consequences) were not enforced — they lived only in the ADR text. ADR-0014 closed the gap by adding `scripts/check_essence_admission.sh` + a synthetic violation case (`tests/synthetic_adr_0015.md`) as a falsifiability demonstration.
+
+**Rule**: When proposing an essence-justified abstraction in an ADR:
+1. Include a `## Essence Check` section.
+2. In that section (or `## Context`), cite at least one tradition source — a paper, book, URL, figurehead surname, or tradition name. General vibes like "this is obviously right" are rejected.
+3. In `## Alternatives Considered`, include at least one `### Alternative` sub-heading with ≥ 80 chars of substantive body (not a one-line strawman like "Do nothing").
+4. In `## Consequences`, include a `### Negative` sub-section with ≥ 40 chars of substantive body.
+5. Run `make check-essence` locally before opening the PR — CI Gate 10 will reject otherwise.
+
+**Checklist**:
+- [ ] `## Essence Check` section present?
+- [ ] Tradition source cited (URL / figurehead / tradition name)?
+- [ ] `### Alternative` sub-heading with substantive body?
+- [ ] `### Negative` sub-section with substantive body?
+- [ ] `make check-essence` passes (including the synthetic case fires correctly)?
+
+---
+
 ## Summary
 
 | Rule | Lesson source | One-liner |
@@ -170,8 +215,10 @@ If the answer to Q1 is "none" — this is engineering, not essence. Fine, but do
 | 2. API sweep | test_core.c missed | grep ALL call sites when changing signatures |
 | 3. const | px_estimate_value had side effects | Check function body before adding const |
 | 4. Demo design | hover_drag proved nothing new | Ask "what question does this demo answer?" |
-| 5. Doc sync | "3 abstractions" stale in multiple docs | grep for old terminology |
+| 5. Doc sync | "3 abstractions" stale in v0.3, "4 abstractions" stale in v0.4→v0.5 | grep for old terminology (both forms + missing-`px_loop` form) |
 | 6. Commit msg | Non-ASCII caused Python errors | ASCII only in commit messages |
 | 7. Platform test | Win32 missing mouse-up/move | Check ALL backends for new events |
 | 8. Paper first | Text editor demo would prove nothing | Analyze before coding |
 | 9. Essence check | hover_drag framed wrong | Ask "which essence axis?" before starting |
+| 10. Retire verify | ADR-0013 leak-budget claim needed end-to-end verification | Pair canonical claim with `tests/test_v*_retire.c` + ADR reference |
+| 11. Essence admission | ADR-0011 criteria documented but not enforced | `make check-essence` + `tests/synthetic_adr_0015.md` falsifiability demo |

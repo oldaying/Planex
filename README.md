@@ -1,8 +1,8 @@
 # Planex
 
-> **Plane + X** — what if a UI library's core abstractions were Relation + Estimate + Closure + Perception, directly mapping UI essence's four axes?
+> **Plane + X** — what if a UI library's core abstractions were Relation + Estimate + Closure + Perception + px_loop, directly mapping UI essence's five axes?
 >
-> Per [ADR-0005](docs/decisions/accepted/ADR-0005-promote-perception-to-fourth-abstraction.md): Perception was promoted to a 4th first-class abstraction. Closure restructured from 7 stages to 5 stages (execution side). See [UI Essence Layers](docs/concepts/background/ui-essence-layers.md) for the four-axis essence model.
+> Per [ADR-0005](docs/decisions/accepted/ADR-0005-promote-perception-to-fourth-abstraction.md): Perception was promoted to a 4th first-class abstraction. Closure restructured from 7 stages to 5 stages (execution side). Per [ADR-0008](docs/decisions/accepted/ADR-0008-feedback-as-fifth-essence-category.md): `px_loop` was added as the 5th abstraction for the Feedback essence category (v0.4). See [UI Essence Layers](docs/concepts/background/ui-essence-layers.md) for the layered essence model.
 
 [![CI](https://github.com/oldaying/Planex/actions/workflows/ci.yml/badge.svg)](https://github.com/oldaying/Planex/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -28,14 +28,15 @@ That's it. Zero external dependencies. All three demos run stdout-only — no wi
 
 ## What is Planex?
 
-Planex is a UI library built on **four abstractions**, each mapping directly to an axis of UI essence (see [ui-essence-layers.md](docs/concepts/background/ui-essence-layers.md)):
+Planex is a UI library built on **five abstractions** (v0.4+; the 5th, `px_loop`, was added by [ADR-0008](docs/decisions/accepted/ADR-0008-feedback-as-fifth-essence-category.md) for the Feedback essence category). Each maps directly to an axis of UI essence (see [ui-essence-layers.md](docs/concepts/background/ui-essence-layers.md)):
 
 1. **Estimate** — state space (state with time + uncertainty)
 2. **Relation** — state-state relationships (queryable graph, not a tree)
 3. **Closure** — intent space, execution side (5 stages: Goal → Intent → Action → Execution → Evaluation)
 4. **Perception** — machine → user direction (pure function denoting state — pixels, a11y, log, etc.)
+5. **px_loop** — feedback / closed-loop coupling (lifecycle + audit + interruption + replay; added in v0.4 by ADR-0008)
 
-Every widget emerges from these four. No pre-defined component types. No inheritance. No callbacks.
+Every widget emerges from these five. No pre-defined component types. No inheritance. No callbacks.
 
 ```c
 #include "planex/planex.h"
@@ -78,7 +79,7 @@ See [examples/counter_4abs.c](examples/counter_4abs.c) for the canonical hello w
 |---|---|
 | [UI Essence Layers](docs/concepts/background/ui-essence-layers.md) | Six-layer nested structure of UI essence; Planex implements layers 1-3 |
 | [Path C Lineage](docs/concepts/background/path-C-lineage.md) | Planex's place in 60-year Path C history (Sketchpad → Eve → Planex) |
-| [Why Four Abstractions](docs/concepts/canonical/why-four-abstractions.md) | Manifesto — why 4 abstractions map to 4 essence axes  |
+| [Why Four Abstractions](docs/concepts/canonical/why-four-abstractions.md) | Manifesto — why the abstractions map to essence axes (filename is historical; content covers all 5 since v0.4) |
 | [Alternative Perspectives](docs/concepts/background/alternative-perspectives.md) | Four academic schools; Planex adopts Cognitive + Mathematical/Linguistic |
 | [Roadmap Matrix](docs/concepts/state/roadmap-matrix.md) | Per-abstraction maturity matrix — tracks what's done vs. what's missing |
 | [Non-Goals](docs/concepts/canonical/non-goals.md) | What Planex deliberately does NOT aim to do |

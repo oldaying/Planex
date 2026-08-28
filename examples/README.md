@@ -2,11 +2,11 @@
 
 > What each demo proves, organized by which abstraction's which capability it demonstrates.
 
-Post-ADR-0005 redesign (commit c24bbcab57): the previous 25 3-abstraction-era demos were removed. The catalog now reflects only demos using the new 4-abstraction API (Relation + Estimate + Closure + Perception).
+Post-ADR-0005 redesign (commit c24bbcab57): the previous 25 3-abstraction-era demos were removed. Post-ADR-0008 (v0.4): the catalog reflects the 5-abstraction API (Relation + Estimate + Closure + Perception + px_loop); demos that exercise `px_loop` are tagged with the Feedback badge in their tier-1 entry.
 
 Demos are categorized into three tiers:
 
-- **Tier 1 — Canonical demos**: built and run, validate the 4-abstraction API
+- **Tier 1 — Canonical demos**: built and run, validate the 5-abstraction API
 - **Tier 2 — Prototype demos**: not in build, use pre-ADR-0005 API, kept as research reference
 - **Tier 3 — Smoke tests**: built and run, validate API surface
 
@@ -14,13 +14,13 @@ See [roadmap-matrix.md](../docs/concepts/state/roadmap-matrix.md) for the matrix
 
 ---
 
-## Tier 1 — Canonical demos (in build, use new 4-abstraction API)
+## Tier 1 — Canonical demos (in build, use the v0.4+ 5-abstraction API)
 
 ### Counter 4-Abs (`counter_4abs.c`)
 
 **The canonical hello world of Planex post-ADR-0005.**
 
-Validates that all four abstractions work together:
+Validates that all five abstractions work together (4 from ADR-0005 + `px_loop` from ADR-0008; this demo focuses on the first 4):
 
 - **Estimate**: `count` state with value + confidence
 - **Closure**: `inc` and `dec` actions (5-stage, **no perception parameter** — new API)
