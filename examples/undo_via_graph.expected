@@ -1,0 +1,45 @@
+Planex undo_via_graph — Relation necessity proof (ADR-0002)
+================================================================
+Validates: undo-via-graph uses Relation to scope snapshots.
+
+Setup:
+  count = 0, unrelated = 999
+  inc TRIGGERS count (bound)
+  dec TRIGGERS count (bound)
+  unrelated: NO Closure triggers it
+  undo enabled: true
+
+[test 1] trigger inc 3 times — count goes 0->3, unrelated stays 999 ... PASS
+        count=3, unrelated=999, undo_count=3
+[test 2] px_undo() — count goes 3->2 ... PASS
+        count=2, restored=1, undo_count=2
+[test 3] undo twice more — count 2->1->0 ... PASS
+        count=0, undo_count=0
+[test 4] undo with empty stack returns 0 ... PASS (returned 0)
+[test 5] trigger dec (count 0->-1), undo restores to 0 ... PASS
+[test 6] disable undo, trigger doesn't snapshot ... PASS (count=2, undo_count=0)
+[test 7] re-enable, inc then dec, undo reverses dec only ... PASS
+
+[final] unrelated Estimate value across all operations: 999
+       (expected 999.0 — never touched by undo) ✓
+
+=== undo_via_graph proof complete ===
+
+What this proves (ADR-0002):
+  1. px_undo_record uses Relation graph to find affected Estimates
+  2. Only Estimates reachable via TRIGGERS are snapshotted
+  3. Unrelated Estimates are NEVER touched by undo
+  4. Undo stack works (push, pop, count, clear)
+  5. Undo can be enabled/disabled globally
+
+Why Solid.js cannot do this:
+  Solid tracks dependencies PER-EFFECT. Each effect knows its
+  sources, but there is no global query 'which effects depend
+  on this signal?'. To do undo-via-graph in Solid, you must:
+    (a) Snapshot everything (Redux-style, expensive), OR
+    (b) Maintain a separate dependency index (= rebuilding Relation)
+
+Planex's Relation is a globally queryable graph. Undo-via-graph
+is a natural consequence. Relation is NECESSARY, not just convenient.
+
+This closes ADR-0002: Relation's necessity is PROVEN.

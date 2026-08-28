@@ -1,0 +1,50 @@
+Planex antipattern_perception — why Perception is necessary
+==============================================================
+Shows: render function cannot express multiple denotations
+
+[anti-pattern 1] Multiple denotations of same state
+  React: 1 render fn — must branch on mode OR maintain parallel trees
+  Planex: 4 independent Perception functions, same Estimate
+  Registered 4 perceptions for same Estimate
+  PASS — multiple denotations coexist as first-class
+
+[anti-pattern 2] Pure-function rendering (testable)
+  React: render uses hooks, needs react-test-renderer to test
+  Planex: Perception is pure fn, callable directly in test
+  Direct call results:
+    visual: Count: 42
+    a11y:   Counter value is 42
+    json:   {"count": 42, "confidence": 1.00}
+    log:    [LOG] count=42
+  PASS — each perception is a pure function, no test renderer
+
+[anti-pattern 3] Independent lifecycle of each denotation
+  React: parallel trees are coupled to render fn, hard to remove
+  Planex: each Perception is independent, can be removed at runtime
+  After freeing a11y perception: count=3 (was 4)
+  After invoke_all: visual=2, a11y=1 (unchanged), json=2, log=2
+  PASS — independent lifecycle, removing one doesn't affect others
+
+[anti-pattern 4] Selective invocation
+  React: state change re-runs entire render, no selective update
+  Planex: invoke_for_estimate runs only matching perceptions
+  px_perceptions_for_estimate(count) returned 3 (expected 3)
+  px_perceptions_for_estimate(other_est) returned 1 (expected 1)
+  PASS — selective invocation works via Relation-like dependency tracking
+
+=== Summary ===
+Mainstream render (React/SwiftUI) requires FOUR patches:
+  1. Mode branching or parallel trees for multiple denotations
+  2. react-test-renderer for testing render output
+  3. Conditional code throughout for independent lifecycle
+  4. Re-render entire tree on state change (no selective update)
+
+Planex Perception subsumes all four as first-class:
+  1. Multiple Perception functions, same Estimate
+  2. Pure function, callable directly in unit test
+  3. Each Perception independent, removable at runtime
+  4. invoke_for_estimate runs only matching perceptions
+
+Perception is NECESSARY: render + patches is a strict subset.
+
+=== Perception anti-pattern test complete ===

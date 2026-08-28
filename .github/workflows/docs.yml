@@ -100,3 +100,33 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y make build-essential
       - name: Build and run completeness corpus test (68 patterns x 4 invariants)
         run: make BACKEND=headless check-completeness
+
+  compression-metric:
+    # The 8th gate: Planex Compression Metric (PCM) v0.1.
+    # Closes the last engineering-mechanism gap in abstraction-form.md
+    # Prerequisite 3. Pure shell + awk; needs no compiler, but runs in
+    # its own job for clean CI signal isolation.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install awk
+        run: sudo apt-get update && sudo apt-get install -y gawk
+      - name: Run compression metric (AEL per example + aggregate LLE)
+        run: make check-compression
+
+  examples-regression:
+    # The 9th gate: Wave 4.3 from doc-organization.md (Principle 7).
+    # Each examples/X.c paired with examples/X.expected; CI runs each
+    # example, diffs stdout+stderr against expected, fails on drift.
+    # Timestamps and addresses are normalized before diffing so
+    # non-deterministic output (px_now_ms() in log perceptions) does
+    # not false-positive. Closes the "examples can drift silently" gap.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build deps
+        run: sudo apt-get update && sudo apt-get install -y make build-essential libfreetype6-dev libfontconfig1-dev
+      - name: Build examples (headless)
+        run: make BACKEND=headless examples
+      - name: Run examples-as-regression-tests (diff against .expected)
+        run: make BACKEND=headless check-examples

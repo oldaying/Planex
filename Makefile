@@ -124,7 +124,7 @@ TEST_V05_SRC   = $(TST_DIR)/test_v05_retire.c
 TEST_COMP      = $(BUILD)/test_completeness
 TEST_COMP_SRC  = $(TST_DIR)/test_completeness.c
 
-.PHONY: all clean test test_ortho test_feedback test_v05 check-completeness examples backends-info
+.PHONY: all clean test test_ortho test_feedback test_v05 check-completeness check-compression check-examples examples backends-info
 
 all: examples test
 
@@ -234,6 +234,53 @@ run-checkbox_x11: $(BUILD)/checkbox_x11 ; ./$(BUILD)/checkbox_x11
 run-form_x11: $(BUILD)/form_x11 ; ./$(BUILD)/form_x11
 run-perf_x11: $(BUILD)/perf_x11 ; ./$(BUILD)/perf_x11
 run-resize_x11: $(BUILD)/resize_x11 ; ./$(BUILD)/resize_x11
+
+# ============================================================
+# Compression metric - Planex Compression Metric (PCM) v0.1
+# Implements docs/concepts/state/compression-metric.md.
+# Two sub-metrics:
+#   AEL = code_LOC / distinct_px_calls per example
+#   LLE = abstraction_layer_LOC / application_layer_LOC aggregate
+# Catastrophic thresholds: AEL > 25.0 (non-exempt) OR LLE < 0.3.
+# WARN thresholds: AEL > 10.0 OR LLE < 1.0 (tracked, not CI-blocked).
+# Run: make check-compression
+# ============================================================
+
+check-compression:
+	./scripts/compression_metric.sh --check
+
+# ============================================================
+# Examples-as-regression-tests (Wave 4.3 from doc-organization.md)
+# Each examples/X.c paired with examples/X.expected (seeded from
+# current output). CI runs each example, diffs stdout+stderr against
+# the expected file, fails on drift. Forces deliberate updates.
+# Timestamps (t=<digits>) and addresses (0x<digits>) are normalized
+# before diffing so non-deterministic output is comparable.
+# Run: make check-examples
+# ============================================================
+
+check-examples: examples
+	@for ex in $(EXAMPLES_NO_X11); do \
+	    if [ -f examples/$$ex.expected ]; then \
+	        ./build/$$ex > /tmp/_px_actual_$$ 2>&1; \
+	        sed -E 's/t=[0-9]+/t=TS/g; s/0x[0-9a-fA-F]+/0xADDR/g' examples/$$ex.expected > /tmp/_px_exp_$$; \
+	        sed -E 's/t=[0-9]+/t=TS/g; s/0x[0-9a-fA-F]+/0xADDR/g' /tmp/_px_actual_$$ > /tmp/_px_act_norm_$$; \
+	        if diff -q /tmp/_px_exp_$$ /tmp/_px_act_norm_$$ > /dev/null; then \
+	            echo "[PASS] $$ex"; \
+	        else \
+	            echo "[FAIL] $$ex: output drift detected"; \
+	            echo "--- expected (first 20 lines, normalized) ---"; \
+	            head -20 /tmp/_px_exp_$$; \
+	            echo "--- actual (first 20 lines, normalized) ---"; \
+	            head -20 /tmp/_px_act_norm_$$; \
+	            rm -f /tmp/_px_actual_$$ /tmp/_px_exp_$$ /tmp/_px_act_norm_$$; \
+	            exit 1; \
+	        fi; \
+	        rm -f /tmp/_px_actual_$$ /tmp/_px_exp_$$ /tmp/_px_act_norm_$$; \
+	    else \
+	        echo "[SKIP] $$ex: no .expected file"; \
+	    fi; \
+	done
 
 clean:
 	rm -rf $(BUILD)

@@ -1,0 +1,79 @@
+Planex editor_meaning — phenomenological school prototype
+==========================================================
+Demonstrates: Context / Trace / Affordance / Visibility
+Built on top of Planex's existing Relation+Estimate+Closure.
+Source: alternative-perspectives.md (school 3, not adopted)
+
+
+--- Session start ---
+
+[Step 0] initial state
+  [Visibility] context: debugging init bug | focus: line under inspection | current: 0
+  [Affordance] recomputing for state=0:
+    [✓] advance to next line
+    [ ] go back a line
+    [✓] mark bug as fixed at this line
+
+[Step 1] user action: advance
+  [Visibility] context: debugging init bug | focus: line under inspection | current: 1
+    trajectory: 1
+  [Affordance] recomputing for state=1:
+    [✓] advance to next line
+    [✓] go back a line
+    [✓] mark bug as fixed at this line
+
+[Step 2] user action: advance
+  [Visibility] context: debugging init bug | focus: line under inspection | current: 2
+    trajectory: 1 → 2
+
+[Step 3] user action: advance
+  [Visibility] context: debugging init bug | focus: line under inspection | current: 3
+    trajectory: 1 → 2 → 3
+
+[Step 4] user wants to inspect an earlier line
+  (in cognitive school: would need a separate 'undo' button)
+  (in phenomenological school: just navigate the Trace)
+  [Trace] jumped to step 1: advance to next line (state → 2)
+  [Visibility] context: debugging init bug | focus: line under inspection | current: 2
+    trajectory: 1 → 2 → 3
+  [Affordance] recomputing for state=2:
+    [✓] advance to next line
+    [✓] go back a line
+    [✓] mark bug as fixed at this line
+
+[Step 5] full cognitive history:
+  [Trace] cognitive history (3 steps, now at 1):
+       0. [REQUEST] advance to next line (state: 0 → 1)
+    ▶  1. [REQUEST] advance to next line (state: 1 → 2) ⟲
+       2. [REQUEST] advance to next line (state: 2 → 3)
+
+[Step 6] user marks bug as fixed
+  [Context] switched to: verifying fix (focus: line under verification)
+  [Visibility] context: verifying fix | focus: line under verification | current: 2
+    trajectory: 1 → 2 → 3 → 2
+  [Affordance] recomputing for state=2:
+    [✓] advance to next line
+    [✓] go back a line
+    [ ] mark bug as fixed at this line
+
+[Observation] after fix_bug:
+  - Context switched from 'debugging' to 'verifying'
+  - 'mark bug as fixed' is no longer available (avail_only_if_unfixed)
+  - This is dynamic Affordance, not a disabled button
+
+=== Prototype complete ===
+
+What we observed:
+  1. Context switched when user's activity changed (debugging → verifying)
+  2. Trace recorded every step with intent kind + state before/after
+  3. Affordance recomputed dynamically as state/context changed
+  4. 'Undo' happened by Trace navigation — no separate undo system
+  5. Visibility showed trajectory, not just current value
+
+What this means:
+  The phenomenological school is implementable on top of Planex's
+  existing abstractions, without modifying the core. But the resulting
+  UI feels different — it's about *meaning formation*, not *state transfer*.
+
+Planex does NOT adopt this school (see alternative-perspectives.md).
+This prototype is research demonstration, not a commitment.

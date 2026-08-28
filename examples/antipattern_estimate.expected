@@ -1,0 +1,38 @@
+Planex antipattern_estimate — why Estimate is necessary
+=========================================================
+Shows: useState/signal cannot cleanly express time + uncertainty
+
+[anti-pattern 1] Animation — time as first-class dimension
+  React: useState(0) + useEffect + setTimeout + manual lerp = ~20 LOC glue
+  Planex: px_estimate_animate(e, target, ms) — Estimate IS time-varying
+  Sampled values: t=0 -> 0.00, t=250 -> 43.75, t=500 -> 75.00, t=1000 -> 100.00
+  PASS — monotonic, endpoints exact
+
+[anti-pattern 2] Uncertainty — confidence as first-class field
+  React: useState(42) + separate useState(confidence) — manual pair
+  Planex: px_estimate_new(value, confidence) — single concept
+  Confidence changes independently: value=42, conf=0.8 -> 0.95
+  PASS — confidence is first-class
+
+[anti-pattern 3] Auto-derived state — no manual dep list
+  React: useMemo(() => a + b, [a, b]) — manual dep list
+  Planex: px_derived_new(sum, srcs, 2) — Relation tracks deps
+  Initial: a=10 + b=20 = total=30
+  After a=50: total=70 (auto-updated, no manual list)
+  After b=100: total=150 (auto-updated again)
+  PASS — derived auto-tracks sources via Relation
+
+=== Summary ===
+Mainstream state (useState/signal) requires THREE patches:
+  1. useEffect + setTimeout for animation
+  2. separate state for confidence
+  3. useMemo + manual dep list for derived
+
+Planex Estimate subsumes all three as first-class:
+  1. px_estimate_animate (time is in the abstraction)
+  2. px_estimate_new(value, confidence) (uncertainty is field)
+  3. px_derived_new (Relation tracks deps automatically)
+
+Estimate is NECESSARY: useState + patches is a strict subset.
+
+=== Estimate anti-pattern test complete ===

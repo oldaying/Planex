@@ -16,6 +16,7 @@ ADR numbering (ADR-0001 onward) is permanent; the directory only encodes the cur
 | # | Title | Status |
 |---|-------|--------|
 | ADR-0009 | [Essence re-derivation v3 + Path B prototype (Proposed)](proposed/ADR-0009-essence-rederivation-v3.md) | proposed |
+| ADR-0014 | [Add a Validated lifecycle stage between Proposed and Accepted (TC39 Stage 2.7 analog + essence-justified enforcement)](proposed/ADR-0014-validated-stage-and-essence-justified-enforcement.md) | proposed |
 | ADR-0002 | [Relation's necessity is not yet proven](accepted/ADR-0002-relation-necessity-pending-undo.md) | accepted |
 | ADR-0003 | [No AI integration in Planex core](accepted/ADR-0003-no-ai-integration.md) | accepted |
 | ADR-0004 | [Implementation language is C17, not Rust / Zig / C++](accepted/ADR-0004-use-c-not-rust-zig-cpp.md) | accepted |

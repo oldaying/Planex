@@ -1,0 +1,34 @@
+Planex counter_4abs — minimal 4-abstraction demo
+================================================
+Validates: Relation + Estimate + Closure + Perception
+
+Setup:
+  Estimate: count = 0
+  Closures: inc, dec (5-stage, no perception param)
+  Relations: inc TRIGGERS count, dec TRIGGERS count
+  Perceptions: 2 registered
+
+Interaction: trigger inc 3 times, dec once
+
+Denotations after interactions:
+  [text perception]    Counter: 2
+  [a11y perception]    Counter value is 2
+
+Validation:
+  Final count: 2 (expected: 2)
+  Perceptions registered: 2 (expected: 2)
+  Closure inc last evaluated: true
+
+=== Demo complete ===
+
+What this demo shows:
+  1. Estimate (count) — state with value + confidence
+  2. Closure (inc, dec) — 5-stage execution, no perception param
+  3. Relation (TRIGGERS) — inc/dec causally trigger count
+  4. Perception (text, a11y) — pure functions denoting count
+
+Key post-ADR-0005 patterns:
+  - Closure signature is 5-arg (no perception parameter)
+  - Render is NOT a Closure (was PX_INTENT_EXPRESS before)
+  - Multiple perceptions coexist for the same Estimate
+  - Perceptions are pure functions (testable, cacheable)

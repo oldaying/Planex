@@ -1,0 +1,40 @@
+Planex counter_denotative — (c) route prototype
+================================================
+Validates: render is a pure function of Estimate.
+Source: ADR-0001 candidate path (c)
+
+Phase 1: Unit tests for the pure render function
+-------------------------------------------------
+  [test] count=0 renders background + surface ... PASS
+  [test] count=-5 changes status bar to DANGER color ... PASS
+  [test] same Estimate value → same pixels (purity) ... PASS
+  [test] a11y denotation matches visual value ... PASS
+
+Phase 2: Simulated interactions
+-------------------------------------------------
+  initial state:
+[denotative] count=0 confidence=1.00
+  after +1:
+[denotative] count=1 confidence=1.00
+  after +1, +1 (now should be 3):
+[denotative] count=3 confidence=1.00
+  after -1 (now should be 2):
+[denotative] count=2 confidence=1.00
+
+Phase 3: Save visual denotation (BMP)
+-------------------------------------------------
+  Saved: counter_denotative.bmp (256x96)
+  Current count: 2
+
+Phase 4: Accessibility denotation
+-------------------------------------------------
+  Screen reader would announce: "Counter value is 2"
+
+=== Prototype complete ===
+What we proved:
+  1. Render is a pure function of Estimate — no callback needed.
+  2. Multiple denotations (pixels, a11y text, log) coexist.
+  3. Render is unit-testable without an app loop.
+  4. The Closure abstraction is unchanged — still used for inc/dec.
+
+Next step: write ADR-0005 deciding whether to roll this out.

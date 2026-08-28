@@ -1,0 +1,24 @@
+Planex perception_smoke — Phase 1 API validation
+================================================
+
+[test 1] px_perception_count() == 0 initially ... PASS
+[test 2] px_closure_new without perception parameter ... PASS
+[test 3] Closure triggers and updates Estimate ... PASS (count = 1)
+[test 4] px_perception_new registers in registry ... PASS
+[test 5] px_perception_name returns correct name ... PASS
+[test 6] Multiple perceptions coexist ... PASS (count = 2)
+[test 7] px_perceptions_for_estimate returns 2 matches ... PASS (count=2)
+[test 8] px_perception_free removes from registry ... PASS (count = 1)
+[test 9] After cleanup, count back to 0 ... PASS
+
+=== All Phase 1 API tests PASS ===
+
+What this validates:
+  1. px_closure_new signature changed (no perception param)
+  2. Closure still triggers correctly
+  3. Perception registry works (add/remove/count)
+  4. Multiple perceptions coexist
+  5. Phase 1 stub for px_perceptions_for_estimate works
+
+Next: Phase 2 will implement actual perception driving
+(replace on_render callback with perception invocation).

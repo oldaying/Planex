@@ -1,0 +1,62 @@
+Planex calculator_denotative — (c) route validation
+===================================================
+Validates: render is a pure function of multiple Estimates.
+Complexity: multi-state UI (calculator state machine)
+Source: extends counter_denotative to higher complexity
+
+Phase 1: Unit tests for the pure render function
+-------------------------------------------------
+  [test] initial state renders "= 0" in display ... PASS
+  [test] error state (div by zero) changes display ... PASS
+  [test] same calculator state → same pixels (purity) ... PASS
+  [test] a11y denotation matches calculator state ... PASS
+
+Phase 2: Simulated interactions — compute 2 + 3 = ?
+-------------------------------------------------
+  [press 2] display = 2
+  [press +] stored = 2, op = +
+  [press 3] display = 3
+  [press =] result = 5
+
+Phase 3: Save visual denotation (BMP)
+-------------------------------------------------
+  Saved: calculator_denotative.bmp (256x224)
+  Display value: 5 (expected: 5)
+
+Phase 4: Accessibility denotation
+-------------------------------------------------
+  Screen reader: "Calculator shows 5. Computed. Press C to clear or digit to start new."
+
+Phase 5: Chained calculation — 4 * 5 + 2 = ?
+-------------------------------------------------
+  [press 4] display = 4
+  [press *] stored = 4
+  [press 5] display = 5
+  [press +] stored = 20 (after chained compute)
+  [press 2] display = 2
+  [press =] result = 22 (expected: 22)
+
+Phase 6: Division by zero
+-------------------------------------------------
+  5 / 0 = display value -999999 (sentinel for ERROR)
+  Screen reader: "Calculator shows ERROR. Press C to clear."
+  Saved: calculator_denotative_error.bmp
+
+=== Prototype complete ===
+
+What we validated:
+  1. (c) route works for multi-state UI (calculator)
+  2. Pure render takes 4 Estimates as input — no callbacks
+  3. 16 buttons map cleanly to 16 Closures, each with own Intent
+  4. State machine (entering op1 → operator → op2 → equals)
+     is expressible via Estimate transitions, not separate abstraction
+  5. Render is unit-testable without an app loop or window
+  6. Multiple denotations (pixels + a11y text) coexist
+  7. Chained calculation (4*5+2=22) works via Relation graph
+  8. Error state (division by zero) expressible without exceptions
+
+Conclusion:
+  (c) route scales beyond counter's single-state UI.
+  It handles calculator's multi-state state machine cleanly.
+  Next step: ADR-0005 can consider (c) route for moderate-complexity UIs.
+  Remaining open question: does it scale to todo_app's list + input + filter?

@@ -1,0 +1,36 @@
+Planex perception_phase2 — Phase 2 runtime validation
+======================================================
+Validates: px_perceptions_for_estimate + invoke_all + invoke_for_estimate
+
+Setup:
+  3 perceptions (a, b, c) depend on est1
+  1 perception  (d)     depends on est2
+  Total registered: 4
+
+[test 1] px_perceptions_for_estimate(est1) returns 3 ... PASS (count=3)
+[test 2] px_perceptions_for_estimate(est2) returns 1 ... PASS (count=1)
+[test 3] px_perception_invoke_all() runs all 4 ... PASS (invoked=4, all counters == 1)
+[test 4] px_perception_invoke_for_estimate(est1) runs 3 ... PASS (invoked=3, est2's perception stayed at 1)
+[test 5] px_perception_invoke_for_estimate(est2) runs 1 ... PASS (invoked=1, est1's perceptions unchanged)
+[test 6] invoke_for_estimate on unknown estimate runs 0 ... PASS (invoked=0)
+[test 7] after free, invoke_all runs 3 (was 4) ... PASS (invoked=3, counter_a unchanged at 2)
+
+Final call counts:
+  perceive_a (freed mid-way): 2
+  perceive_b:                  3
+  perceive_c:                  3
+  perceive_d:                  3
+
+=== Phase 2 validation complete ===
+
+What this proves:
+  1. px_perceptions_for_estimate() returns correct matching set
+  2. px_perception_invoke_all() runs every registered perception
+  3. px_perception_invoke_for_estimate() runs only matching ones
+  4. Isolation: invoking for est1 doesn't touch est2's perceptions
+  5. Freeing a perception removes it from the invoke set
+
+Phase 2 status: runtime can drive perceptions selectively.
+Next step: integrate into px_app_run so perceptions drive rendering
+(replacing the on_render callback). That requires API change to
+px_app_desc — will be done in a separate commit.

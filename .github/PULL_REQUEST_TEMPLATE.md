@@ -59,8 +59,10 @@ the author; the author confirms the surface area below. -->
 - [ ] `scripts/find_orphans.sh --check` passes (no unreferenced docs)?
 - [ ] `scripts/check_terms.sh --check` passes (glossary term saturation)?
 - [ ] `make BACKEND=headless check-completeness` passes (68-pattern corpus invariants)?
+- [ ] `make check-compression` passes (no catastrophic AEL drift, LLE > 0.3)?
+- [ ] If examples/ touched: `make BACKEND=headless check-examples` passes (no .expected drift)?
 
-<!-- These 7 gates also run as .github/workflows/docs.yml on push and
+<!-- These 9 gates also run as .github/workflows/docs.yml on push and
 PR. Checking them locally avoids round-trips; the CI gate is the
 authoritative record. -->
 

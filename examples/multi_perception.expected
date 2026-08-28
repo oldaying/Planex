@@ -1,0 +1,55 @@
+Planex multi_perception — multiple denotations of same state
+================================================================
+Validates: same Estimates -> multiple Perception functions
+
+Setup:
+  Estimate count = 0
+  Estimate doubled (derived) = 0
+  Closure inc registered
+
+Registered 4 perceptions of the same state:
+  - visual_text (visual rendering)
+  - a11y_text (screen reader text)
+  - json_snapshot (testing / serialization)
+  - log_line (debugging)
+
+Interaction: trigger inc 5 times
+
+After interactions, the FOUR denotations of state (count=5, doubled=10):
+
+  [visual]      Count: 5   (doubled: 10)
+  [a11y]        Counter is at 5. Doubled value is 10.
+  [json]        {"count": 5, "doubled": 10, "confidence": 1.00}
+  [log]         [LOG] t=14573219 count=5 doubled=10
+
+Independence test: free the a11y perception, others unaffected:
+  Perception count: 3 (was 4, now 3)
+  visual: Count: 5   (doubled: 10)
+  json:   {"count": 5, "doubled": 10, "confidence": 1.00}
+  log:    [LOG] t=14573219 count=5 doubled=10
+
+Validation:
+  Final count = 5 (expected 5) ✓
+  Final doubled = 10 (expected 10) ✓
+  Perceptions remaining = 3 (expected 3) ✓
+
+=== Demo complete ===
+
+What this demonstrates:
+  1. FOUR perceptions coexist for the same Estimates
+     - visual (screen pixels in a real app)
+     - a11y (screen reader text)
+     - json (testing / serialization / undo snapshots)
+     - log (debugging)
+  2. Each perception is independent — removing one doesn't affect others
+  3. Each perception is a pure function (same input -> same output)
+  4. Different perceptions can produce different output types
+
+Why this matters:
+  Mainstream UI libraries (React, SwiftUI, Flutter) have ONE render
+  path — you'd have to special-case each denotation inside a single
+  render function, or maintain parallel trees (DOM + a11y tree + ...).
+  Planex's Perception abstraction makes multiple denotations first-class.
+
+This is the strongest argument for Perception as a 4th abstraction.
+Without it, multi-denotation UI is awkward. With it, it's natural.

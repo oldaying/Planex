@@ -1,0 +1,54 @@
+Planex antipattern_closure — why Closure is necessary
+=========================================================
+Shows: onClick/handler cannot express intent + goal + eval + lifecycle
+
+[anti-pattern 1] Intent as a value, not a callback
+  React: onClick={fn} — intent buried in callback, transient
+  Planex: px_closure_last_intent() returns typed value, persistent
+  After trigger: kind=REQUEST, payload=42 (serializable)
+  PASS — intent is a value, can be serialized/replayed
+
+[anti-pattern 2] Goal as a recorded field
+  React: goal implicit in function name, lost on error
+  Planex: goal is a field, used in error messages
+  After dec to -1: feedback = "evaluation failed: goal "decrement counter" not achieved"
+  PASS — goal recorded, used in error feedback
+
+[anti-pattern 3] Auto-evaluation
+  React: onClick fn returns void, no built-in success/failure
+  Planex: eval fn returns bool, runtime auto-sets status
+  After inc (eval succeeds): status=DONE, evaluated=true
+  PASS — evaluation is automatic, status is auto-set
+
+[anti-pattern 4] Async lifecycle (promise/declare/fail)
+  React: 3 state vars (isLoading, error, data) for async
+  Planex: closure has promise/declare/fail built-in
+  After promise: status=RUNNING, feedback="Fetching user data..."
+  After declare: status=DONE, feedback="User data loaded"
+  After fail:    status=FAILED, feedback="Network error"
+  PASS — async lifecycle is first-class
+
+[anti-pattern 5] Speech-act typed Intent
+  React: onClick is just a function, no semantic type
+  Planex: 5 typed kinds (ASSERT/REQUEST/PROMISE/DECLARE/EXPRESS)
+  All 5 kinds preserved: ASSERT, REQUEST, PROMISE, DECLARE, EXPRESS
+  PASS — Intent has semantic type (Winograd/Flores speech acts)
+
+=== Summary ===
+Mainstream event (onClick/handler) requires FIVE patches:
+  1. Manual logging layer for intent serialization
+  2. Manual goal tracking for error messages
+  3. try/catch + status state for evaluation
+  4. 3 state vars for async lifecycle
+  5. Convention-only semantic typing of intents
+
+Planex Closure subsumes all five as first-class:
+  1. px_closure_last_intent() returns typed value
+  2. Goal is a field, used in auto-feedback
+  3. eval fn returns bool, runtime auto-sets status
+  4. promise/declare/fail built-in async lifecycle
+  5. 5 typed Intent kinds (Winograd/Flores)
+
+Closure is NECESSARY: onClick + patches is a strict subset.
+
+=== Closure anti-pattern test complete ===

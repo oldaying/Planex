@@ -13,6 +13,7 @@ A "canonical" doc:
 
 | Doc | Claim it makes |
 |-----|----------------|
+| [`intent.md`](intent.md) | The one-page orientation sheet (vision, 3 pillars, core loop, non-goals, 3 prerequisites, 7 CI gates, reading order). Read this first; everything else in `canonical/` defends it at length. |
 | [`abstraction-form.md`](abstraction-form.md) | Planex's form is "abstraction-as-typed-value" (not encapsulation). Conditional thesis: 8 abstractions are optimal *if* three prerequisites hold (Ontological Stability / Orthogonal Separability / Falsifiability). |
 | [`why-four-abstractions.md`](why-four-abstractions.md) | The 5 shipping + 3 v4-proposed abstractions are the right set, grounded in 6 academic traditions (Peirce / Winograd-Flores / Searle / Friston / Elliott / Alexander). |
 | [`leak-budgets.md`](leak-budgets.md) | A quantitative L1/L2 leak audit is the falsifiability mechanism for the abstraction layer. The retire curve is committed; failures are CI-blockable. |
