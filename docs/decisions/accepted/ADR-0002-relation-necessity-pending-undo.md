@@ -75,15 +75,22 @@ The decision here is narrowly scoped: acknowledge the gap, name the test. All do
 
 ## Known issues
 
-- **Issue**: Relation's necessity remains unproven as of v0.5. The undo-via-graph test named in this ADR has not been implemented; demos still use Relation as declarative sugar over what could be Solid-style signals.
-- **Why accepted**: implementing undo-via-graph correctly requires the v0.4+ `px_loop` API (added by ADR-0008) and the v3 Path B 3-place Relation (proposed by ADR-0009). Until those landed, undo-via-graph would have been built on unstable substrate. v0.5's leak-budget retire (ADR-0013) was the higher-priority falsifiability work.
-- **Tracking**: deferred to v1.0 cycle. The roadmap matrix (`docs/concepts/state/roadmap-matrix.md`) Relation row, Proof-of-concept column remains 🔴. A future ADR (placeholder: ADR-0014) will specify the undo-via-graph API and the Solid.js comparison test.
-- **Mitigation**: callers who suspect Relation is sugar-over-signals can read this ADR + the roadmap matrix; the gap is on the record. No user is misled into thinking Relation is proven-necessary.
+- ~~**Issue**: Relation's necessity remains unproven as of v0.5. The undo-via-graph test named in this ADR has not been implemented; demos still use Relation as declarative sugar over what could be Solid-style signals.~~ **RESOLVED in v0.5.** `examples/undo_via_graph.c` (7 tests, CI runs it on Linux + Windows) is the undo-via-graph proof named in this ADR. The example's header explicitly states *"This closes ADR-0002: Relation's necessity is proven."* See the `## Resolution` section below.
+- ~~**Issue**: Without undo-via-graph, Planex's anti-pattern claim against Solid.js ("Solid tracks dependencies per-effect; Planex tracks them as a globally queryable graph") is asserted but not demonstrated. Skeptics can fairly ask "show me the code where Solid can't do X".~~ **RESOLVED in v0.5** (same example). `examples/undo_via_graph.c` includes a Solid.js comparison narrative in its stdout output (captured in `examples/undo_via_graph.expected`); the demonstration is no longer missing.
 
-- **Issue**: Without undo-via-graph, Planex's anti-pattern claim against Solid.js ("Solid tracks dependencies per-effect; Planex tracks them as a globally queryable graph") is asserted but not demonstrated. Skeptics can fairly ask "show me the code where Solid can't do X".
-- **Why accepted**: the demonstration requires a non-trivial Solid.js reference implementation (~500-1000 LOC) plus a Planex undo-via-graph implementation (~200 LOC). This is roughly 2 weeks of focused work and is gated on ADR-0009 + ADR-0013 landing first.
-- **Tracking**: deferred; the demonstration is a natural follow-up to ADR-0014.
-- **Mitigation**: the conceptual argument is documented in this ADR's Context and Alternatives sections; skeptics can engage with the argument until the demonstration lands.
+## Resolution
+
+**Resolved on 2026-08-28** by the landing of [`examples/undo_via_graph.c`](../../../examples/undo_via_graph.c) — a 7-test example that:
+
+1. Binds a `Closure` to a `Relation` graph via `px_closure_bind_graph(inc, graph)`.
+2. Enables undo via `px_undo_set_enabled(true)`.
+3. Triggers `Closure` multiple times — each trigger auto-snapshots only the `Estimate`s reachable via `TRIGGERS` from that `Closure`.
+4. Asserts via 7 tests that unrelated `Estimate`s stay untouched (the final test verifies `unrelated` stays at 999 across all operations).
+5. Includes a Solid.js comparison narrative in stdout (captured in `examples/undo_via_graph.expected` and asserted by Gate 10 `make check-examples`).
+
+CI runs the example on both `linux-cmake` (`./build/undo_via_graph`) and `windows` (`.\build\Release\undo_via_graph.exe`); a regression that removes the proof breaks the build.
+
+This ADR remains `Accepted` (not `Superseded`) because the diagnosis it recorded ("Relation's necessity is unproven") was correct at the time, the named test (undo-via-graph) was the correct test, and the resolution (the test landed and proved the claim) is the project working as designed. The ADR is the historical record of the diagnosis + the named test + the eventual resolution.
 
 ## HISTORY
 
@@ -91,6 +98,7 @@ The decision here is narrowly scoped: acknowledge the gap, name the test. All do
 - 2026-08-24: Accepted
 - 2026-08-27: Open question (undo-via-graph implementation) confirmed still-open at v0.4 cycle close; no supersession, no deprecation
 - 2026-08-28: Confirmed still-open at v0.5 leak-budget retire (ADR-0013); explicitly deferred to v1.0 cycle
+- **2026-08-28: RESOLVED.** `examples/undo_via_graph.c` (7 tests, CI runs on Linux + Windows) is the undo-via-graph proof this ADR named. Relation's necessity is proven. See `## Resolution` above.
 
 ## References
 

@@ -3,10 +3,10 @@ name: Docs
 # Doc-organization contract enforcers (6 gates from doc-organization.md
 # Part VI + 1 completeness gate landed in commit f7fc630 + 2 more gates
 # landed in commit 98295cc + 1 essence-admission gate landed in T7 +
-# 1 stale-abstraction-count gate landed in T8).
-# These run alongside .github/workflows/ci.yml (the code build). The two
-# workflows are independent: a green Docs check does NOT imply the code
-# builds.
+# 1 stale-abstraction-count gate landed in T8 + 1 stale-capability-claim
+# gate landed in T10). These run alongside .github/workflows/ci.yml (the
+# code build). The two workflows are independent: a green Docs check
+# does NOT imply the code builds.
 #
 # Closed deferrals (see doc-organization.md Part IX deferral table):
 #   - "Wire check_doc_sections.sh into CI" (Principle 11)
@@ -14,11 +14,13 @@ name: Docs
 #     .github/PULL_REQUEST_TEMPLATE.md (a separate file, not a CI gate;
 #     the rubric is human-applied at PR review time, not CI-scored).
 #
-# The 11 gates are: 7 shell scripts (check_doc_sections, check_adr_lifecycle,
-# gen_adr_index, check_links, find_orphans, check_terms, check_stale_abstraction_count)
-# + 4 make targets (check-completeness, check-compression, check-examples,
-# check-essence). All 11 are wired across 5 jobs. Each gate is its own step
-# so the GitHub UI shows which contract broke.
+# The 12 gates are: 8 shell scripts (check_doc_sections,
+# check_adr_lifecycle, gen_adr_index, check_links, find_orphans,
+# check_terms, check_stale_abstraction_count,
+# check_limitations_freshness) + 4 make targets
+# (check-completeness, check-compression, check-examples,
+# check-essence). All 12 are wired across 5 jobs. Each gate is its own
+# step so the GitHub UI shows which contract broke.
 
 on:
   push:
@@ -111,9 +113,41 @@ jobs:
       - name: check_stale_abstraction_count (no stale 4-abstraction refs)
         run: scripts/check_stale_abstraction_count.sh --check
 
+      # ------------------------------------------------------------------
+      # Gate 8: No stale capability-claims in v0.5-current docs.
+      # Closes the gap surfaced when limitations.md L2 (undo-via-graph
+      # "has not been implemented") + L3 ("No anti-pattern tests for any
+      # abstraction") + L4 ("no px_undo() API exists") were all found
+      # stale in the post-v0.5 audit -- the implementations had landed
+      # in examples/ or src/ but the limitations entries had not been
+      # updated. This script makes the freshness check self-enforcing.
+      #
+      # Two detection patterns (each paired with a reality-check that
+      # verifies whether the claimed-missing capability actually exists):
+      #   1. undo-via-graph + "has not been implemented" / "not yet
+      #      implemented" -> if examples/undo_via_graph.c exists, stale.
+      #   2. "No anti-pattern tests" / "anti-pattern test column entirely
+      #      red" -> if examples/antipattern_*.c glob matches, stale.
+      #   1b. "no px_undo() API exists" -> if src/undo.c + planex.h
+      #       declare it, stale.
+      #
+      # Historical files (ADRs, changelog, research, v0.4 snapshots,
+      # why-four-abstractions.md) are exempt; intentional historical
+      # quotations (e.g., "previously red" past-tense) can be marked
+      # inline with <!-- fresh-allow: reason -->.
+      #
+      # Closes the gap surfaced by commit c39f91f (docs(ci): wire
+      # test_v05_retire into 4 ci.yml jobs + renumber docs.yml Gate 8->7
+      # + sync intent.md (10->11 gates)) -- that commit fixed the
+      # stale capability-claims by hand; this script makes the
+      # freshness check self-enforcing instead of human-run-on-demand.
+      # ------------------------------------------------------------------
+      - name: check_limitations_freshness (no stale capability-claims)
+        run: scripts/check_limitations_freshness.sh --check
+
   completeness-corpus:
     # Separate job from doc-org-contract because it needs the C toolchain
-    # to build tests/test_completeness.c. The 7 doc-org gates above are
+    # to build tests/test_completeness.c. The 8 doc-org gates above are
     # pure shell; this one compiles and runs a C test binary.
     runs-on: ubuntu-latest
     steps:
@@ -121,15 +155,15 @@ jobs:
       - name: Install build deps
         run: sudo apt-get update && sudo apt-get install -y make build-essential
       # ------------------------------------------------------------------
-      # Gate 8: 68-pattern UI corpus invariants hold (75 checks: count
+      # Gate 9: 68-pattern UI corpus invariants hold (75 checks: count
       # + verdict distribution + grounding). Runs in its own job because
-      # it needs the C toolchain; the 7 shell gates above are pure shell.
+      # it needs the C toolchain; the 8 shell gates above are pure shell.
       # ------------------------------------------------------------------
       - name: Build and run completeness corpus test (68 patterns x 4 invariants)
         run: make BACKEND=headless check-completeness
 
   compression-metric:
-    # The 9th gate: Planex Compression Metric (PCM) v0.1.
+    # The 10th gate: Planex Compression Metric (PCM) v0.1.
     # Closes the last engineering-mechanism gap in abstraction-form.md
     # Prerequisite 3. Pure shell + awk; needs no compiler, but runs in
     # its own job for clean CI signal isolation.
@@ -142,7 +176,7 @@ jobs:
         run: make check-compression
 
   examples-regression:
-    # The 10th gate: Wave 4.3 from doc-organization.md (Principle 7).
+    # The 11th gate: Wave 4.3 from doc-organization.md (Principle 7).
     # Each examples/X.c paired with examples/X.expected; CI runs each
     # example, diffs stdout+stderr against expected, fails on drift.
     # Timestamps and addresses are normalized before diffing so
@@ -159,7 +193,7 @@ jobs:
         run: make BACKEND=headless check-examples
 
   essence-admission:
-    # The 11th gate: ADR-0014's essence-justified admission enforcement.
+    # The 12th gate: ADR-0014's essence-justified admission enforcement.
     # Runs scripts/check_essence_admission.sh in two modes:
     #   --check     -> scans docs/decisions/{proposed,validated}/ for
     #                  ADRs with `## Essence Check` sections; verifies

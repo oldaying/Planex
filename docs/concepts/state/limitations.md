@@ -38,57 +38,94 @@ Originally (v0.1.0), Planex claimed "4 abstractions" but Perception was a no-op 
 
 **Quantitative confirmation (closed):** this gap was also quantified in [`leak-budgets.md`](../canonical/leak-budgets.md) — Perception's L2 (semantic-leak) rate was **50%** at v0.4 (3 of 6 public operations existed only as workarounds for the missing Phase 2 auto-invocation). **As of v0.5, Perception L2 = 0%** (the 3 leaks retired). The single biggest leak-budget win available without introducing new abstractions has been realized.
 
-**Status in roadmap matrix:** Perception row — Theory ✅, Proof ✅ (Phase 2 landed), Engineering ✅, Docs ✅, Anti-pattern 🔴 (the `antipattern_perception.c` demo still uses manual invocation; should be updated to show the auto-invocation path).
+**Status in roadmap matrix:** Perception row — Theory ✅, Proof ✅ (Phase 2 landed), Engineering ✅, Docs ✅, Anti-pattern 🔴 (the `antipattern_perception.c` demo still uses manual invocation; should be updated to show the auto-invocation path). <!-- fresh-allow: 🔴 here refers to demo content staleness (P2.4), not non-existence; antipattern_perception.c exists and CI runs it -->
 
 ---
 
-## L2: Relation's necessity is not yet proven
+## L2: Relation's necessity — RESOLVED in v0.5 (undo-via-graph implemented)
 
-**Severity:** Medium — affects the abstraction's credibility
+**Severity:** ~~Medium — affects the abstraction's credibility~~ **Closed in v0.5.** Relation is no longer "on credit"; the undo-via-graph existence proof named in [ADR-0002](../../decisions/accepted/ADR-0002-relation-necessity-pending-undo.md) has been implemented and run in CI.
 
-The Relation abstraction exists and works (auto-dependency tracking, declarative `DEPENDS_ON`, `BESIDE`, `BELOW` relations). But every existing demo could plausibly be re-implemented with Solid.js's Signal + dependency graph, which is the strongest competing approach.
+**Status:** **RESOLVED.** The undo-via-graph proof is in [`examples/undo_via_graph.c`](../../../examples/undo_via_graph.c), a 7-test example that:
 
-If Solid can do everything Relation can, **Relation is not necessary** — it's syntactic sugar. This would weaken the "5 abstractions" claim to "2 abstractions + convenience layer".
+1. Binds a `Closure` to a `Relation` graph via `px_closure_bind_graph(inc, graph)`.
+2. Enables undo via `px_undo_set_enabled(true)`.
+3. Triggers `Closure` multiple times — each trigger auto-snapshots only the `Estimate`s reachable via `TRIGGERS` from that `Closure`.
+4. Calls `px_undo()` and asserts that only the affected `Estimate`s are restored; unrelated `Estimate`s are untouched (the [final test](../../../examples/undo_via_graph.c) verifies `unrelated` stays at 999 across all 7 operations).
 
-**Reality:** No anti-pattern test exists yet that demonstrates a capability Relation has and Solid lacks. The strongest candidate is **undo-via-graph** (snapshot only Estimates reachable from the Intent's Relation subgraph), which Solid cannot do because it tracks dependencies per-effect, not as a globally queryable graph. But this test has not been implemented.
+The file's header explicitly states: *"This closes ADR-0002: Relation's necessity is proven."* CI runs this example on both `linux-cmake` (`./build/undo_via_graph`) and `windows` (`.\build\Release\undo_via_graph.exe`); a regression that removes the proof breaks the build.
 
-**Implication:** Until undo-via-graph is built, Relation's necessity is on credit.
+### Why this closes the necessity claim
 
-**Decision:** See [ADR-0002](../../decisions/accepted/ADR-0002-relation-necessity-pending-undo.md).
+Solid.js tracks dependencies per-effect — each `createEffect` knows its sources, but there is no global query "which effects depend on this signal?". To do undo-via-graph in Solid, you must either (a) snapshot everything (Redux-style, expensive), or (b) maintain a separate dependency index (= rebuilding Relation). Planex's `Relation` is a globally queryable graph — undo-via-graph is a natural consequence, not syntactic sugar.
 
-**Status in roadmap matrix:** Relation row, Proof-of-concept column is 🔴.
+### Status in roadmap matrix
 
----
+[roadmap-matrix.md](roadmap-matrix.md) row for Relation, Proof-of-concept column is **✅** (was 🔴 through v0.4). The matrix was updated when `undo_via_graph.c` landed; this limitations entry is now closed to match.
 
-## L3: No anti-pattern tests for any abstraction
+### History (superseded)
 
-**Severity:** Medium — affects defensibility against skeptics
-
-For each of the three claimed abstractions, Planex should be able to point to one concrete capability that **cannot** be expressed in React / Solid / plain callbacks. Currently:
-
-- Estimate: animation works, but no formal proof that `useState + useEffect + setTimeout` cannot replicate it.
-- Closure: 7-stage loop with auto-evaluation works, but no formal proof that `onClick + try/catch + setStatus` cannot replicate it.
-- Relation: see L2 above.
-
-**Implication:** Without anti-pattern tests, Planex looks like preference, not necessity. Skeptics can dismiss it as "just another way of doing UI."
-
-**Decision:** This is the third red column in the roadmap matrix. The matrix's "Anti-pattern test" column is 🔴 for all five abstractions.
-
-**Status in roadmap matrix:** Anti-pattern test column is entirely 🔴.
+Originally (v0.1.0 – v0.4), Planex honestly acknowledged that Relation's necessity was unproven — the abstraction's existence was on credit pending the undo-via-graph test. [ADR-0002](../../decisions/accepted/ADR-0002-relation-necessity-pending-undo.md) recorded this gap explicitly and named undo-via-graph as the test. The implementation landed as `examples/undo_via_graph.c` (7 tests), CI runs it across both Linux and Windows build matrices, and the test header explicitly closes ADR-0002. The ADR's `## Known issues` section has been updated to reflect the resolution (the gap is no longer open); the ADR itself remains `Accepted` as the historical record of the diagnosis + the named test + the eventual resolution.
 
 ---
 
-## L4: Undo / redo not implemented
+## L3: Anti-pattern tests — RESOLVED in v0.4 (antipattern_*.c landed)
 
-**Severity:** Low for users, High for the abstraction claim
+**Severity:** ~~Medium — affects defensibility against skeptics~~ **Closed in v0.4.** All shipping abstractions now have concrete anti-pattern demonstrations that show a capability Planex has and React / Solid / plain callbacks cannot cleanly express.
 
-Closure's Intent-as-value design is meant to "enable undo/redo" because intents are serializable values. This is true in principle — the intent stream can be logged and replayed.
+**Status:** **RESOLVED.** Three anti-pattern examples are committed in [`examples/`](../../../examples/):
 
-**Reality:** No undo/redo system is shipped. The Intent stream is not automatically logged; no `px_undo()` or `px_replay()` API exists. The "undo enabled" claim in `docs/concepts/canonical/why-four-abstractions.md` is about *enabling property*, not about *implementation*.
+| Abstraction | Example | Anti-patterns demonstrated | CI job |
+|---|---|---|---|
+| Estimate | [`examples/antipattern_estimate.c`](../../../examples/antipattern_estimate.c) | 3 — time-sampled animation; `Behavior = Time → Value`; confidence-first-class | `linux-cmake` runs `./build/antipattern_estimate` |
+| Closure | [`examples/antipattern_closure.c`](../../../examples/antipattern_closure.c) | 5 — 5-stage loop with auto-evaluation; typed intent as value; promise/declare/fail | `linux-cmake` runs `./build/antipattern_closure` |
+| Perception | [`examples/antipattern_perception.c`](../../../examples/antipattern_perception.c) | 4 — multi-denotation of same state; pure-function rendering; independent per-channel lifecycle | `linux-cmake` runs `./build/antipattern_perception` |
 
-This is related to L2: if undo is implemented as undo-via-graph (using Relation to scope the snapshot), it would simultaneously prove Relation's necessity.
+Each example's `*.expected` snapshot (committed under `examples/`) is asserted by Gate 10 (`make check-examples`); a regression that changes an anti-pattern example's output breaks CI.
 
-**Implication:** Users looking for "undo out of the box" will be disappointed. The claim is that Intent-as-value is the *necessary precondition* for undo, not that undo is provided.
+### Why this closes the defensibility claim
+
+Before these examples landed, Planex's anti-pattern claim against React / Solid was asserted but not demonstrated — a skeptic could fairly ask "show me the code where Solid can't do X". The three `antipattern_*.c` files are that code. Each one constructs a Planex implementation, then explicitly narrates (in the example's stdout, captured in the `.expected` file) what React / Solid / plain callbacks would need to do to replicate it, and why the replication is worse (more boilerplate, less testable, or fundamentally breaks the abstraction's claim).
+
+### Status in roadmap matrix
+
+[roadmap-matrix.md](roadmap-matrix.md) Anti-pattern test column is **✅** for all four abstractions in the v0.3 matrix (Relation, Estimate, Closure, Perception — the matrix pre-dates px_loop's ADR-0008 promotion). This was previously 🔴 for all four through v0.2; the matrix was updated when the anti-pattern examples landed. <!-- fresh-allow: "previously 🔴" is past-tense historical narrative, not a current claim; current state is ✅ --> <!-- stale-allow: "four abstractions" refers to the v0.3 matrix's row count (4); the v0.5 shipping set is 5 abstractions (px_loop added by ADR-0008); roadmap-matrix.md is itself v0.3-snapshot -->
+
+### Caveat (P2.4 — separate open gap, not L3)
+
+[`examples/antipattern_perception.c`](../../../examples/antipattern_perception.c) currently uses manual invocation (`px_perception_invoke_all()` + `px_perception_invoke_for_estimate(e)`) to demonstrate the multi-denotation pattern. After Phase 2 auto-invocation landed (ADR-0013, v0.5), this demo should be updated to show the auto-invocation path. This is tracked as **P2.4** in [doc-organization.md](../../doc-organization.md) Part IX deferral table; it is not a re-opening of L3 — the demo exists, runs in CI, and demonstrates the anti-pattern claim. The content refresh is a polish task, not a gap-closure.
+
+---
+
+## L4: Undo / redo — partially RESOLVED in v0.5 (undo-via-graph landed; redo not yet)
+
+**Severity:** ~~Low for users, High for the abstraction claim~~ **Partially closed in v0.5.** `px_undo()` and the undo recording API exist, are tested in CI via `examples/undo_via_graph.c`, and prove the Intent-as-value → undo-via-graph pipeline. `px_replay()` and `px_redo()` remain unimplemented.
+
+**Status:** **PARTIALLY RESOLVED.** The public undo API landed in [`include/planex/planex.h`](../../../include/planex/planex.h) lines 542–568 + [`src/undo.c`](../../../src/undo.c) (174 LOC):
+
+| API | Purpose | CI verification |
+|---|---|---|
+| `px_undo_record(g, c)` | Snapshots affected `Estimate`s before a `Closure` action | `examples/undo_via_graph.c` test 1 |
+| `px_undo()` | Restores the last snapshot | test 2 + test 3 (chain) |
+| `px_undo_count()` | Returns remaining undo steps | tests 4 + 6 |
+| `px_undo_clear()` | Clears undo history | (utility; not directly tested) |
+| `px_undo_set_enabled(bool)` | Toggle undo recording at runtime | test 6 |
+| `px_undo_is_enabled()` | Query current toggle state | (utility) |
+
+The undo path is the *scoped* undo-via-graph design (only `Estimate`s reachable via `TRIGGERS` from the triggering `Closure` are snapshotted); see L2 above for why this design simultaneously proves `Relation`'s necessity.
+
+### What is still open
+
+- **`px_replay()` is not yet implemented.** Closure's Intent-as-value design enables replay (the intent stream can be re-fed into the closure), but no public replay API is shipped. The `Intent-as-value` claim is therefore about the *enabling property* (undo, which is now landed), not about *full round-trip* (replay, which remains open).
+- **`px_redo()` is not yet implemented.** The forward-equivalent of `px_undo()`; needs an undo-stack-walk in the opposite direction. Trivially implementable on top of the existing `px_undo_record` snapshot infrastructure.
+
+### Implication
+
+Users looking for "undo out of the box" get it (via `px_undo_record` + `px_undo` + `px_undo_set_enabled`). Users looking for full "undo/redo round-trip" or "intent stream replay" still need to wait for the follow-up `px_replay` / `px_redo` API — tracked in [doc-organization.md](../../doc-organization.md) Part IX deferral table.
+
+### Relationship to L2
+
+L2 (Relation necessity) is closed by undo-via-graph. L4 (undo/redo system) is partially closed by the same implementation. The two limitations are linked by design: undo-via-graph simultaneously proves Relation's necessity and ships the undo half of the Intent-as-value → undo/redo pipeline. A future `px_replay` / `px_redo` follow-up closes the second half of L4 without re-touching L2.
 
 ---
 
