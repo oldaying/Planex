@@ -121,8 +121,10 @@ TEST_FEEDBACK  = $(BUILD)/test_feedback
 TEST_FEEDBACK_SRC = $(TST_DIR)/test_feedback.c
 TEST_V05       = $(BUILD)/test_v05_retire
 TEST_V05_SRC   = $(TST_DIR)/test_v05_retire.c
+TEST_COMP      = $(BUILD)/test_completeness
+TEST_COMP_SRC  = $(TST_DIR)/test_completeness.c
 
-.PHONY: all clean test test_ortho test_feedback test_v05 examples backends-info
+.PHONY: all clean test test_ortho test_feedback test_v05 check-completeness examples backends-info
 
 all: examples test
 
@@ -183,6 +185,20 @@ test_v05: $(TEST_V05)
 
 $(TEST_V05): $(TEST_V05_SRC) $(CORE_OBJS) | $(BUILD)
 	$(CC) $(CFLAGS) -I$(INC_DIR) $(TEST_V05_SRC) $(CORE_OBJS) -o $@ $(LDFLAGS)
+
+# ============================================================
+# Completeness check — closed-corpus falsifiability test
+# Verifies the 68-pattern UI Pattern Corpus
+# (docs/reference/ui-pattern-corpus.md) is consistent with the
+# implementation examples, limitations, and non-goals.
+# Run: make check-completeness
+# ============================================================
+
+check-completeness: $(TEST_COMP)
+	./$(TEST_COMP)
+
+$(TEST_COMP): $(TEST_COMP_SRC) $(CORE_OBJS) | $(BUILD)
+	$(CC) $(CFLAGS) -I$(INC_DIR) $(TEST_COMP_SRC) $(CORE_OBJS) -o $@ $(LDFLAGS)
 
 # ============================================================
 # Backend info

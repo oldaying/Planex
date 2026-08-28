@@ -87,7 +87,7 @@ These patterns involve state that is temporary, continuous, or contextual — no
 | 37 | Knob / rotary control | ❌ rotation is continuous gesture | ❌ no gesture | — | ❌ | ❌ | same as swipe |
 | 38 | Scroll position | ⚠️ can be Estimate but updates per-frame | — | — | ⚠️ needs scroll | ⚠️ | high-frequency, transient |
 
-**Summary: 0/15 ✅, 11 ⚠️, 4 ❌.** This is the boundary zone. All transient/continuous interactions are FORCED — they can be hacked into Estimate but it's semantically wrong.
+**Summary: 0/15 ✅, 12 ⚠️, 3 ❌.** This is the boundary zone. All transient/continuous interactions are FORCED — they can be hacked into Estimate but it's semantically wrong.
 
 ---
 
@@ -162,7 +162,7 @@ These patterns involve state that is temporary, continuous, or contextual — no
 | 67 | Internationalization | ⚠️ locale as Estimate | — | — | ⚠️ localized Perception | ⚠️ | i18n is config, not state |
 | 68 | Custom widgets | ✅ emerge from 4 abs | ✅ | ✅ | ✅ | ✅ | this is the thesis |
 
-**Summary: 1/5 ✅, 3 ⚠️, 1 ❌.** Extension/programmability is a gap (Layer 6).
+**Summary: 1/5 ✅, 2 ⚠️, 2 ❌.** Extension/programmability is a gap (Layer 6).
 
 ---
 
@@ -173,12 +173,12 @@ These patterns involve state that is temporary, continuous, or contextual — no
 | A: Discrete state | 12 | 0 | 0 | 12 |
 | B: Animation & time | 6 | 0 | 0 | 6 |
 | C: Undo & history | 1 | 2 | 2 | 5 |
-| D: Continuous/transient interaction | 0 | 11 | 4 | 15 |
+| D: Continuous/transient interaction | 0 | 12 | 3 | 15 |
 | E: Layout & spatial | 2 | 4 | 0 | 6 |
 | F: Async & external data | 4 | 4 | 0 | 8 |
 | G: Multi-window | 2 | 2 | 1 | 5 |
 | H: Accessibility | 3 | 3 | 0 | 6 |
-| I: Extension | 1 | 3 | 1 | 5 |
+| I: Extension | 1 | 2 | 2 | 5 |
 | **Total** | **31** | **29** | **8** | **68** |
 
 ---
@@ -240,6 +240,8 @@ Based on this matrix, the most revealing demo would be **hover + drag reorder** 
 
 - [continuous-intent-speculation.md](../speculation/continuous-intent-speculation.md) — the theoretical root of Category D's gap
 - [Limitations L11](limitations.md) — multi-frame interaction not abstracted
+- [Limitations L12](limitations.md) — continuous interaction processes not abstracted (this matrix confirmed it)
+- [UI Pattern Corpus](../../reference/ui-pattern-corpus.md) — the closed, versioned corpus distilled from this matrix; `tests/test_completeness.c` enforces its invariants in CI
 - [ADR-0002](../../decisions/accepted/ADR-0002-relation-necessity-pending-undo.md) — undo works (Category C pattern 19)
 - [ADR-0005](../../decisions/accepted/ADR-0005-promote-perception-to-fourth-abstraction.md) — Perception handles Category H
 - [v0.4 Roadmap](v0.4-roadmap.md) — should be updated with these findings
