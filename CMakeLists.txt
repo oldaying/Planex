@@ -209,6 +209,18 @@ add_executable(test_feedback tests/test_feedback.c)
 target_link_libraries(test_feedback planex_lib)
 add_test(NAME feedback_tests COMMAND test_feedback)
 
+# v0.5 leak-budget retire test suite — validates that the 7 L2 leaks
+# retired in v0.5 (4 Estimate + 3 Perception) are actually closed.
+# Per ADR-0013 (v0.5 leak-budget retire) + canonical/leak-budgets.md
+# §2 (Estimate) + §4 (Perception). Without this test in CI, the
+# ADR-0013 falsifiability contract is silent — the test existed in
+# the Makefile as `make test_v05` but no CI job invoked it, so a
+# regression that re-introduced an L2 leak would not break the build.
+# Wired into all 4 ci.yml jobs in the same commit.
+add_executable(test_v05_retire tests/test_v05_retire.c)
+target_link_libraries(test_v05_retire planex_lib)
+add_test(NAME v05_retire_tests COMMAND test_v05_retire)
+
 # v3 prototype test suite — validates that the 4 new essence
 # categories (Interpretant, Perlocution, Breakdown, 3-place Relation)
 # are expressible in Planex's C17 zero-dependency API surface, and

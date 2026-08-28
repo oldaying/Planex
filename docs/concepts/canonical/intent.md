@@ -142,9 +142,9 @@ A future audit that finds one of these prerequisites broken flips Planex's form 
 
 ---
 
-## The CI contract (10 gates)
+## The CI contract (11 gates)
 
-The doc-organization contract is enforced by 10 CI gates. If any one fails, the PR cannot merge. The gates are listed in `.github/workflows/docs.yml`.
+The doc-organization contract is enforced by 11 CI gates. If any one fails, the PR cannot merge. The gates are listed in `.github/workflows/docs.yml`.
 
 | Gate | What it falsifies |
 |---|---|
@@ -154,12 +154,13 @@ The doc-organization contract is enforced by 10 CI gates. If any one fails, the 
 | 4. `check_links.sh` | Every internal markdown link resolves (no silent dead links) |
 | 5. `find_orphans.sh` | No unreferenced doc files (no orphan drift) |
 | 6. `check_terms.sh` | Every glossary term used in `canonical/` is linked to `glossary.md` (Lean module docstring rule) |
-| 7. `make check-completeness` | 68-pattern UI corpus invariants hold (75 checks: count + verdict distribution + grounding) |
-| 8. `make check-compression` | Planex Compression Metric v0.1: no example AEL > 25.0 (catastrophic) and aggregate LLE > 0.3 |
-| 9. `make check-examples` | Every `examples/X.expected` matches the actual output of `examples/X.c` (timestamps normalized) — closes Wave 4.3 |
-| 10. `make check-essence` | Every ADR with `## Essence Check` section passes ADR-0011's three-criterion admission gate (tradition-cite + real alternatives + negative consequences); the synthetic case `tests/synthetic_adr_0015.md` correctly triggers the lint — closes ADR-0014's `Validated` stage |
+| 7. `check_stale_abstraction_count.sh` | No stale 4-abstraction references in v0.5-current docs (closes the gap surfaced by commit aa752e7; makes CONTRIBUTING.md rule 5's manual grep self-enforcing) |
+| 8. `make check-completeness` | 68-pattern UI corpus invariants hold (75 checks: count + verdict distribution + grounding) |
+| 9. `make check-compression` | Planex Compression Metric v0.1: no example AEL > 25.0 (catastrophic) and aggregate LLE > 0.3 |
+| 10. `make check-examples` | Every `examples/X.expected` matches the actual output of `examples/X.c` (timestamps normalized) — closes Wave 4.3 |
+| 11. `make check-essence` | Every ADR with `## Essence Check` section passes ADR-0011's three-criterion admission gate (tradition-cite + real alternatives + negative consequences); the synthetic case `tests/synthetic_adr_0015.md` correctly triggers the lint — closes ADR-0014's `Validated` stage |
 
-Plus the 4 code gates in `.github/workflows/ci.yml`: build (Linux + Windows), test (test_core + test_ortho + test_feedback + test_v05_retire + test_completeness), and `-Werror` strict-warnings.
+Plus the 4 code jobs in `.github/workflows/ci.yml`: 3 build jobs (`linux-cmake`, `linux-make`, `windows`) running `test_core` + `test_orthogonality` + `test_feedback` + `test_v05_retire`, plus a `strict-warnings` job re-running the same test suite under `-Werror`. The `test_completeness` corpus runs in `docs.yml` Gate 8 (not in `ci.yml`) because the 68-pattern corpus is a doc-org concern, not a code-build concern. `test_v3_prototype` and `test_v4_orthogonality` are CMake-built but **not** CI-enforced — they pressure-test v3/v4 proposal-stage designs that are not yet promoted to shipping (per ADR-0009 Proposed + ADR-0012 accepted-but-not-promoted); running them locally requires `cc -std=c17 -I v4/include tests/test_v4_orthogonality.c v4/src/*.c -lm`.
 
 ---
 

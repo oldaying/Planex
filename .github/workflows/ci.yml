@@ -20,6 +20,7 @@ jobs:
           ./build/test_core
           ./build/test_orthogonality
           ./build/test_feedback
+          ./build/test_v05_retire
           ./build/perception_smoke
           ./build/perception_phase2
           ./build/undo_via_graph
@@ -41,6 +42,8 @@ jobs:
         run: make test_ortho
       - name: Run feedback tests (v0.4)
         run: make test_feedback
+      - name: Run v0.5 leak-budget retire tests (ADR-0013)
+        run: make test_v05
 
   windows:
     runs-on: windows-latest
@@ -53,6 +56,7 @@ jobs:
           .\build\Release\test_core.exe
           .\build\Release\test_orthogonality.exe
           .\build\Release\test_feedback.exe
+          .\build\Release\test_v05_retire.exe
           .\build\Release\perception_smoke.exe
           .\build\Release\perception_phase2.exe
           .\build\Release\undo_via_graph.exe
@@ -71,4 +75,6 @@ jobs:
         run: make test_ortho
       - name: Run feedback tests (v0.4)
         run: make test_feedback
+      - name: Run v0.5 leak-budget retire tests (ADR-0013)
+        run: make test_v05
 

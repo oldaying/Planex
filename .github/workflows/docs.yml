@@ -97,7 +97,7 @@ jobs:
         run: scripts/check_terms.sh --check
 
       # ------------------------------------------------------------------
-      # Gate 8: No stale 4-abstraction references in v0.5-current docs.
+      # Gate 7: No stale 4-abstraction references in v0.5-current docs.
       # Closes the gap surfaced in commit aa752e7 (docs(spec): refresh
       # stale 4-abstraction references) by making CONTRIBUTING.md rule
       # 5's manual grep self-enforcing. Post-ADR-0008 (v0.4, added
@@ -113,13 +113,18 @@ jobs:
 
   completeness-corpus:
     # Separate job from doc-org-contract because it needs the C toolchain
-    # to build tests/test_completeness.c. The 6 doc-org gates above are
+    # to build tests/test_completeness.c. The 7 doc-org gates above are
     # pure shell; this one compiles and runs a C test binary.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install build deps
         run: sudo apt-get update && sudo apt-get install -y make build-essential
+      # ------------------------------------------------------------------
+      # Gate 8: 68-pattern UI corpus invariants hold (75 checks: count
+      # + verdict distribution + grounding). Runs in its own job because
+      # it needs the C toolchain; the 7 shell gates above are pure shell.
+      # ------------------------------------------------------------------
       - name: Build and run completeness corpus test (68 patterns x 4 invariants)
         run: make BACKEND=headless check-completeness
 
