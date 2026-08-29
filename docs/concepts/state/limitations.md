@@ -247,9 +247,9 @@ Planex's Closure uses five discrete Intent kinds (`PX_INTENT_ASSERT/REQUEST/PROM
 
 ---
 
-## L12: Continuous interaction processes not abstracted (confirmed by pattern analysis)
+## L12: Continuous interaction processes — prototype landed in v0.6 (canonical promotion pending)
 
-**Severity:** High — affects 15/68 common UI patterns
+**Severity:** ~~High — affects 15/68 common UI patterns~~ **Partially closed in v0.6 (prototype).** The [ADR-0006](../../decisions/accepted/ADR-0006-continuous-interaction-deferred.md) evidence protocol completed: `hover_drag_4abs.c` measured the Estimate hack ("INTOLERABLE for complex gesture/touch UIs"), and [ADR-0016 (proposed)](../../decisions/proposed/ADR-0016-interaction-prototype-option-b.md) landed the Option-B prototype: `px_interaction` (process: begin → sample* → commit|cancel, inert hot path, transitions-only bridges to Closure/Estimate) + `px_region`/`px_afford_at` (intent compilation as an AFFORDS graph query) + `PX_EV_WHEEL` on all three real backends. Category D is NOT re-scored here — that is the promotion ADR's job; the canonical abstraction count remains 5.
 
 Per `ui-pattern-coverage.md` Category D: **0/15 continuous/transient interaction patterns are cleanly expressible** with the current 5 abstractions (the 4 original + `px_loop` from v0.4; `px_loop` adds closed-loop coupling but not continuous interaction primitives — see ADR-0006 for the deferral).
 
@@ -266,9 +266,11 @@ Affected patterns include:
 
 This validates `continuous-intent-speculation.md`: intent is modeled as discrete events, but real interaction is continuous.
 
-**Decision:** See [ADR-0006](../../decisions/accepted/ADR-0006-continuous-interaction-deferred.md). v0.x does NOT implement a 5th abstraction. A hover+drag demo (`hover_drag_4abs.c`) will be written to measure how painful the Estimate hack is — that demo's experience will determine whether a 5th abstraction is needed.
+**Status:** **PARTIALLY RESOLVED (prototype).** `px_interaction` exists in [`src/interaction.c`](../../../src/interaction.c) with 27 CI assertions ([`tests/test_v06_interaction.c`](../../../tests/test_v06_interaction.c)), including the inertness invariant (samples fire no observers and no perceptions). The boundary-closing demo [`examples/hover_drag_interaction.c`](../../../examples/hover_drag_interaction.c) implements the same list-reorder scenario as `hover_drag_4abs.c` with 5 of 7 HACKs retired and 2 estimate-writes total (vs O(events)). What remains open: multi-touch/pointer routing (NG-6 stands), the intent gradient (Option C, speculative), Category D re-scoring, and canonical promotion (separate ADR passing the ADR-0011 admission bar).
 
-**Status in roadmap matrix:** Not tracked (would be a 5th row if added).
+**Decision:** See [ADR-0006](../../decisions/accepted/ADR-0006-continuous-interaction-deferred.md) for the v0.x deferral and [ADR-0016](../../decisions/proposed/ADR-0016-interaction-prototype-option-b.md) for the v0.6 prototype.
+
+**Status in roadmap matrix:** Not tracked (would be a 6th row if promoted).
 
 ---
 

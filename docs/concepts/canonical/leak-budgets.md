@@ -119,7 +119,7 @@ Leaks are categorized into two tiers because not all leaks are equally damaging 
 |---|---|---|---|---|
 | 1 | `px_closure_new(goal, intent, action, eval, user)` | ✓ | — | `void* user` for callback data |
 | 2 | `px_closure_free(c)` | — | — | destructor |
-| 3 | `px_closure_bind_graph(c, g)` | — | ✓ | ordering dependency: must be called before `trigger` if relations are needed; the type system does not enforce this |
+| 3 | `px_closure_bind_graph(c, g)` | — | ✓ | ordering dependency: must be called before `trigger` if relations are needed; the type system does not enforce this. **v0.6 mitigation**: the runtime now warns once on stderr when undo is enabled and no graph is bound — the omission is loud, not silent (the ordering dependency itself remains; full retire still requires the constructor split) |
 | 4 | `px_closure_trigger(c, payload, size)` | ✓ | — | `void* payload` with size — type erasure; user must ensure payload matches what `action` expects |
 | 5 | `px_closure_replay(c, intent)` | — | — | matches name |
 | 6 | `px_closure_last_intent(c)` | — | — | pure query (const) |
@@ -193,15 +193,17 @@ Wait — there are 11 operations, not 9. Let me recount: from the section output
 | 7 | `px_loop_is_paused(loop)` | — | — | pure query (const) |
 | 8 | `px_loop_audit_count(loop)` | — | — | pure query (const) |
 | 9 | `px_loop_audit_get(loop, idx, ...)` | — | — | pure query (const) |
-| 10 | `px_loop_replay(loop, n)` | — | ✓ | **known v0.4 limitation per [`limitations.md`](../state/limitations.md) L13: `px_loop` uses `px_perception_invoke_all()` (invokes all registered perceptions, not just the loop's)** — loop scope is not enforced; replay may invoke perceptions outside the loop's intended scope |
+| 10 | `px_loop_replay(loop, n)` | — | — | **scope leak retired in v0.6**: replay now invokes ONLY the loop's bound perception (was `invoke_all` — see v0.6 retire summary §3) |
 | 11 | `px_loop_audit_clear(loop)` | — | — | mutator, matches name |
+| 12 | `px_loop_set_budget(loop, ms)` | — | — | v0.6: mutator, matches name (feedback-budget declaration) |
+| 13 | `px_loop_budget(loop)` | — | — | v0.6: pure query (const) |
 
-**Leak count:** L1 = 1, L2 = 1. **Total** = 2 / 11 = 18%. **L2** = 1 / 11 = 9%.
+**Leak count (v0.6):** L1 = 1, L2 = **0** (was 1). **Total** = 1 / 13 = 8%. **L2** = **0%** (was 9%).
 
-**Verification scenario for the L2 leak:**
-- `px_loop_replay` scope: create two loops L1 and L2 with disjoint perceptions; trigger L1; replay L1; assert that L2's perceptions were also invoked (the leak). The fix is to add `px_perception_invoke(p)` (single-perception scoped invocation) and use it inside `px_loop_replay` instead of `px_perception_invoke_all`.
+**Verification scenario for the L2 leak (historical, retired v0.6):**
+- `px_loop_replay` scope: create two loops L1 and L2 with disjoint perceptions; trigger L1; replay L1; assert that L2's perceptions were also invoked (the leak). **Retired in v0.6**: replay and view-only step now use `px_perception_invoke_single(loop->perception)` — verified by the v0.6 audit suite (see v0.6 retire summary §3).
 
-**Honest assessment:** L2 = 9% is the second-best among the 5 abstractions. `px_loop` is the newest (v0.4) and its denotational claim (audit + replay) is mostly preserved. Retire target for `px_loop` L2: 0 / 11 by v0.5 — add scoped perception invocation and remove the `invoke_all` dependency from `px_loop_replay`.
+**Honest assessment (v0.6):** L2 = 0% (was 9% at v0.5). The scope leak retired ahead of the original v1.0 target because the fix fell out of the v0.6 scope work; the audit suite grew two budget dimensions (`iteration_ms` / `budget_exceeded` per entry) in the same pass, which is why the operation count rose to 13. The remaining L1 (void* payload on `step`) is intrinsic to C.
 
 ---
 
@@ -309,6 +311,39 @@ Per [`abstraction-form.md`](abstraction-form.md) Prerequisite 2 (orthogonal sepa
 - The remaining abstractions (Closure, `px_loop`) are within the tolerable range and have retire targets at v0.6 / v1.0.
 
 External reviewers can no longer point to Estimate or Perception as "too leaky to be an abstraction." The two remaining L2 leaks are scoped, documented, and scheduled.
+
+---
+
+## v0.6 retire summary (2026-08-29)
+
+### 1. `px_loop` — replay/view-only scope L2 retired
+
+Both scope leaks (replay's `invoke_all` and view-only step's `invoke_all`) are retired: `px_loop_step_view_only` and `px_loop_replay`'s view-only branch now invoke ONLY the loop's bound perception via `px_perception_invoke_single`, with cache invalidation scoped to that perception. Multi-loop apps no longer cross-fire. Aggregate: `px_loop` L2 = 1/11 → **0/13** (two budget ops added). Verification: `tests/test_v06_interaction.c` section J + the unchanged 13/13 `test_feedback` suite (scope change is behavior-compatible for single-perception loops).
+
+### 2. Perception — representamen cache leak retired (opt-in)
+
+`px_perception_set_free_fn(p, fn)` registers the denotation destructor; cache overwrites, turn-boundary clears, and `px_perception_free` now reclaim old values through it. The documented v0.5 comment ("the previous value is leaked — we don't know how to free it") is retired for perceptions that declare their denotation type. Default (no free_fn) keeps v0.5 behavior. Verification: `test_v06_interaction.c` h1 (5 fires → 5 frees, counted).
+
+### 3. Closure — `bind_graph` ordering leak made LOUD (half-retired)
+
+The ordering dependency itself remains (L2 stays 1/12 pending the constructor split), but the failure mode changed from silent to one-shot stderr warning on first trigger when undo is enabled and no graph is bound. Norman's visibility principle applied to the developer. Full retire (compile-time enforcement via `closure_new_with_graph`) is unchanged as the v0.7 target.
+
+### 4. Estimate — confidence gains a framework-side consumer
+
+`px_estimate_predict` / `px_estimate_surprise` implement the predict → observe → update loop: a pending prediction decays confidence by normalized error on the resolving `px_estimate_set`. This retires the "confidence is decorative" audit finding (no framework logic consumed it). Verification: `test_v06_interaction.c` section G (4 tests).
+
+### 5. Aggregate (v0.6)
+
+| Abstraction | Total ops | L1 | L2 | L2 leak % |
+|---|---|---|---|---|
+| Relation | 7 | 5 | 0 | **0%** |
+| Estimate (+advance/predict/surprise) | 20 | 4 | **0** | **0%** |
+| Closure | 12 | 6 | 1 | **8%** (loud since v0.6; constructor split pending) |
+| Perception (+set_free_fn) | 7 | 1 | **0** | **0%** |
+| `px_loop` (+budget ops) | 13 | 1 | **0** | **0%** (was 9%) |
+| **Total (v0.6)** | **59** | **17** | **1** | **1.7%** (was 3.8%) |
+
+Aggregate L2 = 1/59 = **1.7%**. The single remaining L2 (Closure `bind_graph` ordering) is loud at runtime and scheduled for the constructor-split retire.
 
 ---
 
