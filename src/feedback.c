@@ -42,6 +42,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Internal perception-cache helpers (perception.c). Declared here at
+ * file scope so step/view_only/replay all share one declaration. */
+extern void px__perception_clear_cache(px_perception*);
+extern void px__perception_clear_all_caches(void);
+
 #define PX_LOOP_AUDIT_CAPACITY 1024
 
 struct px_loop {
@@ -50,6 +55,13 @@ struct px_loop {
 
     /* Pause state. When paused, step() is a no-op. */
     bool           paused;
+
+    /* v0.6: feedback budget (A4 "instantly visible" made measurable).
+     * 0 = no budget declared. When > 0, each audit entry records the
+     * iteration's wall-clock duration and whether it exceeded the
+     * budget — the audit answer to "feedback happened, but was it
+     * timely?". See px_loop_set_budget(). */
+    double         budget_ms;
 
     /* v3 prototype: pending breakdown transition for the next step.
      * Set by px_loop_mark_breakdown(). px_loop_step reads and clears
@@ -102,7 +114,8 @@ static void audit_push(px_loop* loop,
                         bool perception_invoked,
                         bool interpretant_constructed,
                         int  perlocution_kind,
-                        int  breakdown_transition) {
+                        int  breakdown_transition,
+                        double iteration_start_ms) {
     px_loop_audit_entry* e = &loop->audit[loop->audit_head];
     e->closure_triggered       = closure_triggered;
     e->perception_invoked      = perception_invoked;
@@ -111,8 +124,40 @@ static void audit_push(px_loop* loop,
     e->breakdown_transition    = breakdown_transition;
     e->timestamp_ms            = px_now_ms();
 
+    /* v0.6: feedback-budget dimensions. iteration_ms is the wall-clock
+     * duration of this step; budget_exceeded is true when a budget was
+     * declared and the iteration ran past it. This gives the "instantly
+     * visible" half of the feedback axiom a measurable contract — the
+     * audit now answers "was the feedback timely?", not just "did it
+     * happen?". */
+    e->iteration_ms    = e->timestamp_ms - iteration_start_ms;
+    e->budget_ms       = loop->budget_ms;
+    e->budget_exceeded = (loop->budget_ms > 0.0)
+                          && (e->iteration_ms > loop->budget_ms);
+
     loop->audit_head = (loop->audit_head + 1) % PX_LOOP_AUDIT_CAPACITY;
     loop->audit_count++;
+}
+
+/* v0.6: declare this loop's feedback budget in milliseconds.
+ *
+ * The feedback axiom (Shneiderman 1983 "immediate visual feedback";
+ * Card/Moran/Newell's ~100ms perception thresholds) has an *instantly*
+ * dimension that v0.5 could not express: the audit recorded THAT a
+ * perception fired, but not WHEN relative to the trigger, and nothing
+ * bounded the iteration. With a budget declared, every audit entry
+ * carries iteration_ms / budget_ms / budget_exceeded — a loop that
+ * consistently exceeds its budget is detectable, queryable evidence
+ * (long-running dashboards can assert "no entry in the last hour
+ * exceeded 16ms"). budget_ms <= 0 disables the check (default). */
+void px_loop_set_budget(px_loop* loop, double budget_ms) {
+    if (!loop) return;
+    if (budget_ms < 0) budget_ms = 0;
+    loop->budget_ms = budget_ms;
+}
+
+double px_loop_budget(const px_loop* loop) {
+    return loop ? loop->budget_ms : 0.0;
 }
 
 /* Read the i-th most recent entry (0 = newest, 1 = previous, etc.)
@@ -160,12 +205,13 @@ int px_loop_step(px_loop* loop, void* trigger_payload, size_t trigger_size) {
     if (!loop) return 0;
     if (loop->paused) return 0;
 
+    double t0 = px_now_ms();
+
     /* v0.5: clear bound perception's representamen cache at turn start.
      * This ensures invoke_single below either returns the freshly-cached
      * result (if auto-invocation fired during closure_trigger) or fires
      * explicitly (if no estimate_set happened). Without this, the cache
      * from a previous turn would be returned, double-firing or stale. */
-    extern void px__perception_clear_cache(px_perception*);
     px__perception_clear_cache(loop->perception);
 
     bool closure_triggered      = false;
@@ -218,10 +264,11 @@ int px_loop_step(px_loop* loop, void* trigger_payload, size_t trigger_size) {
         }
     }
 
-    /* 3. Record this iteration with all v3 semantic dimensions. */
+    /* 3. Record this iteration with all v3 semantic dimensions + the
+     * v0.6 feedback-budget dimensions. */
     audit_push(loop, closure_triggered, perception_invoked,
                interpretant_constructed, perlocution_kind,
-               breakdown_transition);
+               breakdown_transition, t0);
 
     return perception_invoked ? 1 : 0;
 }
@@ -230,14 +277,22 @@ int px_loop_step_view_only(px_loop* loop) {
     if (!loop) return 0;
     if (loop->paused) return 0;
 
-    /* v0.5: clear all perception caches at turn start. View-only step
-     * has no closure_trigger (no auto-invocation), so caches are stale
-     * from the previous turn. invoke_all below will refill them. */
-    extern void px__perception_clear_all_caches(void);
-    px__perception_clear_all_caches();
+    double t0 = px_now_ms();
 
-    /* Invoke perception without triggering closure. */
-    int invoked = px_perception_invoke_all();
+    /* v0.6 scope retirement (leak-budgets.md px_loop §L2): view-only
+     * step now invokes ONLY this loop's bound perception, not every
+     * registered perception in the process. Previously this called
+     * px_perception_invoke_all() — a loop coupled to perceptions it
+     * never declared (multiple loops sharing an estimate would
+     * cross-fire). Applications that genuinely want all perceptions
+     * refreshed can still call px_perception_invoke_all() directly;
+     * the loop's scope is now closed like px_loop_step's. */
+    px__perception_clear_cache(loop->perception);
+    bool perception_invoked = false;
+    if (loop->perception) {
+        px_perception_invoke_single(loop->perception);
+        perception_invoked = true;
+    }
 
     /* v3: still record perlocution + breakdown fields (no closure
      * triggered, so perlocution_kind = whatever closure currently
@@ -246,9 +301,9 @@ int px_loop_step_view_only(px_loop* loop) {
     int breakdown_transition = loop->pending_breakdown_transition;
     loop->pending_breakdown_transition = 0;
 
-    audit_push(loop, false, invoked > 0, false, perlocution_kind,
-               breakdown_transition);
-    return invoked > 0 ? 1 : 0;
+    audit_push(loop, false, perception_invoked, false, perlocution_kind,
+               breakdown_transition, t0);
+    return perception_invoked ? 1 : 0;
 }
 
 /* ============================================================
@@ -322,13 +377,11 @@ int px_loop_replay(px_loop* loop, int n) {
      * Perception is always invoked (it reads current state).
      * We do NOT push new audit entries during replay (would pollute
      * the log with replay artifacts). */
-    extern void px__perception_clear_all_caches(void);
     int replayed = 0;
     for (int i = 0; i < n; i++) {
-        /* v0.5: clear all perception caches at the start of each
-         * replay iteration. This ensures invoke_single (if called
-         * elsewhere) sees a clean cache. */
-        px__perception_clear_all_caches();
+        /* v0.6: clear the bound perception's cache at the start of each
+         * replay iteration (scoped, matching step semantics). */
+        px__perception_clear_cache(loop->perception);
 
         if (entries[i].closure_triggered) {
             /* Re-trigger with NULL payload — this re-runs the action
@@ -348,8 +401,12 @@ int px_loop_replay(px_loop* loop, int n) {
              * the perception in the same turn. */
         } else {
             /* View-only iteration — no closure trigger, no auto-invoke.
-             * Fire perceptions explicitly via invoke_all. */
-            px_perception_invoke_all();
+             * v0.6 scope retirement: fire ONLY this loop's bound
+             * perception (previously invoke_all — the same cross-loop
+             * leak as view_only step, retired together). */
+            if (loop->perception) {
+                px_perception_invoke_single(loop->perception);
+            }
         }
         replayed++;
     }

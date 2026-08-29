@@ -1,0 +1,53 @@
+Planex hover_drag_interaction — boundary-CLOSING demo (v0.6 prototype)
+======================================================================
+Validates: hover+drag+cancel+tap with px_interaction + affordances.
+Counterpart of hover_drag_4abs.c (ADR-0006 evidence → ADR-0016).
+
+[1] hover sweep (40 mouse moves)...
+    status after sweep: hover: item Elderberry
+    estimate writes during sweep: 0
+    observer fires during sweep:  0 (old demo: ~80)
+
+[2] drag slot 1 to slot 4 (60 samples)...
+    committed: slot1=4 slot4=1 (reordered)
+    hook fired 2 times for 62 events (old demo: 0 hooks,
+    3 Estimates × 62 writes instead)
+
+[3] drag slot 0 toward slot 3, then ESC (cancel)...
+    cancelled (reason="esc pressed"), slot0=0 (unchanged)
+
+[4] quick tap on slot 2 (2 samples, 6px)...
+    displacement: 6px → classified as TAP (<4px would be
+    noise); velocity 0.20 px/ms
+
+[5] gesture derivation from trajectory measures...
+    swipe: displacement=540 path=540 velocity=7.5 px/ms
+    → derivable (old demo verdict: "Gesture: NOT POSSIBLE")
+
+Final state:
+  mouse moves fed:    130
+  estimate writes:    2 (exactly 2 — one reorder commit)
+  observer fires:     0 (order[0] never changed: 0; +2 init)
+  item order:         Apple Elderberry Cherry Date Banana 
+  afford_at(slot 3):  found (drag process)
+
+=== Boundary-closing demo complete ===
+
+HACK RETIREMENT (vs hover_drag_4abs.c):
+  HACK 1 (mouse as Estimate, 60fps churn):   RETIRED — samples are inert
+  HACK 2 (hover as Estimate):                RETIRED — pure region query
+  HACK 3 (drag state as 3 Estimates):        RETIRED — one process object
+  HACK 4 (begin-drag as REQUEST):            RETIRED — begin is a phase
+  HACK 5 (mouse move as EXPRESS intent):     RETIRED — sample ≠ act
+  HACK 6 (hover read per frame):             KEPT (by design — perception
+                                             reads the stream as input)
+  HACK 7 (poll for mouse-up):                N/A headless; real backends
+                                             deliver PX_EV_MOUSE_UP/WHEEL
+
+Verdict for ADR-0016:
+  - The 5 of 7 hacks that forced PROCESS into STATE are gone.
+  - The estimate-write count for the whole session is 2 (one
+    reorder), versus ~O(events) in the old demo.
+  - Cancel is a first-class outcome; gesture is derivable.
+  - Prototype status: evidence, not promotion. The 5 canonical
+    abstractions are untouched.

@@ -153,6 +153,18 @@ static LRESULT CALLBACK planex_wndproc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
                 w->has_queued = true;
             }
             return 0;
+        case WM_MOUSEWHEEL:
+            /* v0.6: scroll wheel. WHEEL_DELTA per detent; positive wParam
+             * = wheel rotated forward (toward user) = scroll up. */
+            if (w) {
+                w->queued_event.kind = PX_EV_WHEEL;
+                w->queued_event.x = (int)(short)LOWORD(lp);
+                w->queued_event.y = (int)(short)HIWORD(lp);
+                w->queued_event.wheel_dy =
+                    -((int)(short)HIWORD(wp)) / 120;  /* WHEEL_DELTA */
+                w->has_queued = true;
+            }
+            return 0;
         case WM_KEYDOWN:
             /* WM_KEYDOWN gives virtual key codes (VK_*), not ASCII.
              * Don't set key_char here — let WM_CHAR handle printable chars.

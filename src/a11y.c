@@ -31,6 +31,15 @@ struct px_a11y {
     char           value[128];
     unsigned       state;
     bool           verbose;   /* log to stderr when true */
+
+    /* v0.6: bounded announcement ring — the queryable half of the
+     * channel. Every px_a11y_announce / px_a11y_focus appends here
+     * (focused role/name context + message) whether or not verbose
+     * logging is on. Tests assert on this; future platform bridges
+     * drain it. */
+    char           announcements[PX_A11Y_ANNOUNCE_CAPACITY][160];
+    int            ann_head;   /* next write index */
+    int            ann_count;  /* retained count (<= capacity) */
 };
 
 static const char* const k_role_names[] = {
@@ -58,6 +67,8 @@ px_a11y* px_a11y_new(px_window* w) {
     a->verbose = true;  /* log during development; can be disabled later */
     a->name[0]  = 0;
     a->value[0] = 0;
+    a->ann_head = 0;
+    a->ann_count = 0;
     return a;
 }
 
@@ -119,6 +130,58 @@ void px_a11y_set_state(px_a11y* a, unsigned state) {
 }
 
 /* ============================================================
+ * v0.6: Query side (assertable a11y channel)
+ * ============================================================ */
+
+px_a11y_role px_a11y_get_role(const px_a11y* a) {
+    return a ? a->role : PX_A11Y_ROLE_NONE;
+}
+
+const char* px_a11y_get_name(const px_a11y* a) {
+    return a ? a->name : NULL;
+}
+
+const char* px_a11y_get_value(const px_a11y* a) {
+    return a ? a->value : NULL;
+}
+
+unsigned px_a11y_get_state(const px_a11y* a) {
+    return a ? a->state : 0;
+}
+
+void px_a11y_set_verbose(px_a11y* a, bool verbose) {
+    if (a) a->verbose = verbose;
+}
+
+bool px_a11y_is_verbose(const px_a11y* a) {
+    return a ? a->verbose : false;
+}
+
+/* Append to the announcement ring (always — the query side must not
+ * depend on the logging switch). */
+static void ann_push(px_a11y* a, const char* message) {
+    if (!a || !message) return;
+    char* slot = a->announcements[a->ann_head];
+    strncpy(slot, message, sizeof(a->announcements[0]) - 1);
+    slot[sizeof(a->announcements[0]) - 1] = 0;
+    a->ann_head = (a->ann_head + 1) % PX_A11Y_ANNOUNCE_CAPACITY;
+    if (a->ann_count < PX_A11Y_ANNOUNCE_CAPACITY) a->ann_count++;
+}
+
+int px_a11y_announcement_count(const px_a11y* a) {
+    return a ? a->ann_count : 0;
+}
+
+const char* px_a11y_announcement(const px_a11y* a, int i) {
+    if (!a || i < 0 || i >= a->ann_count) return NULL;
+    /* i = 0 is the oldest retained entry. When the ring has wrapped,
+     * ann_head points at the oldest; before wrapping, index 0 is. */
+    int start = (a->ann_count >= PX_A11Y_ANNOUNCE_CAPACITY)
+                  ? a->ann_head : 0;
+    return a->announcements[(start + i) % PX_A11Y_ANNOUNCE_CAPACITY];
+}
+
+/* ============================================================
  * Actions
  * ============================================================ */
 
@@ -127,6 +190,7 @@ void px_a11y_announce(px_a11y* a, const char* message) {
     if (a->verbose) {
         fprintf(stderr, "[a11y] announce: \"%s\"\n", message);
     }
+    ann_push(a, message);
 
     /* ============================================================
      * Platform-specific announce implementations
@@ -158,6 +222,12 @@ void px_a11y_focus(px_a11y* a) {
         fprintf(stderr, "[a11y] focus: role=%s name=\"%s\"\n",
                 px_a11y_role_str(a->role), a->name);
     }
+    /* v0.6: focus is also an announcement-grade event on the query
+     * side — tests can assert focus moved without parsing stderr. */
+    char buf[160];
+    snprintf(buf, sizeof(buf), "focus: role=%s name=\"%s\"",
+             px_a11y_role_str(a->role), a->name);
+    ann_push(a, buf);
 
     /* Platform-specific focus implementations would go here,
      * similar to px_a11y_announce above. */

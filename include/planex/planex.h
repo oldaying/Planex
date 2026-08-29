@@ -232,6 +232,26 @@ bool         px_estimate_is_animating(const px_estimate* e);
  * is called on every px_estimate_set(). */
 void         px_estimate_observe(px_estimate* e, px_estimate_observer fn, void* user);
 
+/* v0.6: predictive-coding loop — confidence gains a framework-side
+ * consumer (Friston: "state as posterior estimate").
+ *
+ *   px_estimate_predict(e, expected, tolerance);  // register prediction
+ *   px_estimate_set(e, observed, conf);           // resolves it
+ *   px_estimate_surprise(e);                       // |observed - expected|
+ *
+ * On the resolving set: confidence = conf * exp(-|observed - expected|
+ * / tolerance). Observations that violate predictions reduce
+ * confidence even when the caller asserts 1.0; accurate predictions
+ * keep it. One-shot per predict(); tolerance <= 0 is treated as 1.0.
+ * Retires the "confidence is decorative" finding (no framework logic
+ * consumed it before v0.6). */
+void         px_estimate_predict(px_estimate* e, double expected,
+                                 double tolerance);
+
+/* v0.6: absolute prediction error of the last prediction-resolved
+ * px_estimate_set (0.0 when no prediction was pending). Pure query. */
+double       px_estimate_surprise(const px_estimate* e);
+
 /* ============================================================
  * Derived Estimate — automatic dependency tracking
  *
@@ -486,6 +506,21 @@ void           px_perception_free(px_perception* p);
 
 const char*    px_perception_name(const px_perception* p);
 
+/* v0.6: register the destructor used to free cached representamens.
+ * Perception fns are heterogeneous (px_fb*, char*, ...), so the
+ * framework cannot guess how to free a denotation; the caller who
+ * knows the type registers its destructor here. From then on, cache
+ * overwrites, turn-boundary clears, and px_perception_free all free
+ * the old value through it. NULL restores the v0.5 behavior (leak on
+ * overwrite). Retires the documented v0.5 representamen leak for
+ * perceptions that declare their denotation type.
+ *
+ * Ownership contract: once cached, the perception owns the
+ * representamen; px_perception_invoke_single returns a borrowed
+ * pointer valid until the next turn boundary. */
+void           px_perception_set_free_fn(px_perception* p,
+                                         void (*free_fn)(void*));
+
 /* Phase 2 (v0.3): query API — which perceptions depend on a given Estimate?
  * Used by the app loop to know which perceptions to re-evaluate.
  * Returns heap-allocated array (caller frees) of matching perceptions.
@@ -646,12 +681,27 @@ typedef struct {
     int    breakdown_transition;      /* 0=none, +1=entered,    */
                                        /* -1=recovered           */
     double timestamp_ms;
+    /* v0.6: feedback-budget dimensions (the "instantly visible" half
+     * of the feedback axiom, made measurable). iteration_ms is the
+     * wall-clock duration of the step; budget_ms is the loop's
+     * declared deadline (0 = none); budget_exceeded is
+     * budget_ms > 0 && iteration_ms > budget_ms. */
+    double iteration_ms;
+    double budget_ms;
+    bool   budget_exceeded;
 } px_loop_audit_entry;
 
 int             px_loop_audit_count(const px_loop* loop);
 int             px_loop_audit_get(const px_loop* loop,
                                   px_loop_audit_entry* out,
                                   int max_entries);
+
+/* v0.6: declare this loop's feedback budget in milliseconds (0/none
+ * by default). Every audit entry then carries iteration_ms /
+ * budget_ms / budget_exceeded — "was the feedback timely?" becomes
+ * a queryable fact, not a hope. Negative values are clamped to 0. */
+void            px_loop_set_budget(px_loop* loop, double budget_ms);
+double          px_loop_budget(const px_loop* loop);
 
 /* Replay the last `n` audit entries: re-trigger each closure that
  * was triggered, re-invoke each perception that was invoked. Useful
@@ -867,6 +917,183 @@ bool          px_breakdown_is_recovered(const px_breakdown* b);
  * (it has broken down for this actor). */
 void          px_breakdown_to_relation(px_breakdown* b, px_graph* g,
                                          void* node);
+
+/* ============================================================
+ * v0.6 PROTOTYPE — Interaction: a continuous interaction process
+ * (6th abstraction candidate)
+ *
+ * Per ADR-0016 (proposed) and continuous-intent-speculation.md
+ * Option B. ADR-0006 deferred the continuous-interaction
+ * abstraction to v1.0+ pending evidence; hover_drag_4abs.c supplied
+ * that evidence ("INTOLERABLE for complex gesture/touch UIs").
+ * This prototype gathers the next round of evidence WITHOUT
+ * touching the 5 canonical abstractions — same protocol as the
+ * v3 prototype section above.
+ *
+ * What it models: a process with identity, trajectory, and outcome.
+ *
+ *     begin(ev) → sample(ev)* → commit(ev) | cancel(reason)
+ *
+ * vs the existing abstractions (orthogonality):
+ *   - Estimate  = persistent state ("state with time + uncertainty").
+ *                 An interaction is NOT state: it has bounded
+ *                 lifetime and an outcome. Samples do NOT notify
+ *                 observers or auto-invoke perceptions — the 60Hz
+ *                 hot path is inert. This is what kills the
+ *                 hover_drag_4abs.c HACKs 1-3 (mouse position as
+ *                 Estimate = observer fan-out per mouse move).
+ *   - Closure   = discrete speech act (ASSERT/REQUEST/...). An
+ *                 interaction is not an act but a PROCESS that
+ *                 RESOLVES to an act at commit — bridged via
+ *                 px_interaction_on_commit / the phase hook. This
+ *                 kills HACKs 4-5 ("begin drag" as REQUEST, mouse
+ *                 move as EXPRESS).
+ *   - Perception = pure function. An interaction is mutable — the
+ *                 only Planex object allowed to change per-sample
+ *                 without notification. Perceptions may READ the
+ *                 current sample (via user data) as an input.
+ *   - Relation  = graph. Interactions participate in relations
+ *                 like any node (e.g. region AFFORDS interaction,
+ *                 interaction TRIGGERS closure).
+ *
+ * Denotational semantics: an interaction denotes a trajectory
+ * [t0..tn] → Sample plus an outcome ∈ {committed, cancelled}.
+ * Queries are pure functions of that trajectory.
+ *
+ * Traditions sampled (see ADR-0016 for the full derivation):
+ *   - Garnet Interactors (Myers 1990) — interaction technique as object
+ *   - CSP process algebra (Hoare) — prefix + choice: P = begin→P', commit⊕cancel
+ *   - Statecharts (Harel) — the missing "do action" of ongoing activity
+ *   - Direct manipulation (Shneiderman 1983) — "continuous representation,
+ *     incremental actions" — the process IS the unit
+ *   - FRP (Elliott) — Behavior covers continuous values, not
+ *     bounded processes with outcomes (the gap this fills)
+ * ============================================================ */
+
+typedef struct px_interaction px_interaction;
+
+/* Lifecycle phase of a process. IDLE→BEGAN→ACTIVE→(COMMITTED|CANCELLED)
+ * is the only legal progression; terminal ops are idempotent no-ops
+ * after the first call. */
+typedef enum {
+    PX_INT_IDLE = 0,
+    PX_INT_BEGAN,       /* begin() called, no samples yet            */
+    PX_INT_ACTIVE,      /* at least one sample appended              */
+    PX_INT_COMMITTED,   /* ended successfully — outcome = committed  */
+    PX_INT_CANCELLED    /* aborted — outcome = cancelled             */
+} px_int_phase;
+
+const char* px_int_phase_str(px_int_phase p);
+
+/* A single sample. Deliberately a value type with no pointers —
+ * samples are data, not objects. Channels:
+ *   x, y   — primary 2D channel (pointer position, touch point)
+ *   value  — generic scalar channel (pressure, angle, wheel ticks)
+ *   button — button/key id carried through the process (0 = none)
+ *   flags  — app-defined bit flags (e.g. modifier keys)          */
+typedef struct {
+    double   t_ms;      /* timestamp: px_now_ms() or app clock */
+    double   x, y;
+    double   value;
+    int      button;
+    unsigned flags;
+} px_int_sample;
+
+/* Phase-transition callback. Called at begin/commit/cancel ONLY —
+ * never per sample. This is the process→intent compilation point:
+ * the hook inspects the trajectory (px_interaction_*) and triggers
+ * the Closure the process resolves to. */
+typedef void (*px_int_hook)(px_interaction* it, px_int_phase phase, void* user);
+
+/* Create an interaction that can retain `capacity` samples (ring
+ * buffer; oldest are overwritten when full, total count is kept).
+ * capacity <= 0 uses 32. Returns NULL on failure. */
+px_interaction* px_interaction_new(const char* name, int capacity);
+void            px_interaction_free(px_interaction* it);
+const char*     px_interaction_name(const px_interaction* it);
+
+/* Feed the process. sample() auto-begins an IDLE interaction.
+ * Terminal ops after the first are no-ops. commit()/cancel() fire
+ * the phase hook and the bound bridge (below). cancel() records a
+ * reason string (queryable; NULL = "(none)"). */
+void            px_interaction_begin(px_interaction* it);
+void            px_interaction_sample(px_interaction* it, const px_int_sample* s);
+void            px_interaction_commit(px_interaction* it);
+void            px_interaction_cancel(px_interaction* it, const char* reason);
+
+/* Pure queries. */
+px_int_phase        px_interaction_phase(const px_interaction* it);
+const char*         px_interaction_cancel_reason(const px_interaction* it);
+const px_int_sample* px_interaction_last(const px_interaction* it);   /* NULL if none */
+int                 px_interaction_stored(const px_interaction* it);  /* ≤ capacity */
+int                 px_interaction_total(const px_interaction* it);   /* since begin */
+const px_int_sample* px_interaction_at(const px_interaction* it, int i); /* 0 = oldest stored */
+
+/* Derived measures over the retained trajectory (pure, O(stored)).
+ * duration = last.t - first-stored.t; displacement = |last - first|;
+ * path_length = Σ |s[i+1] - s[i]|; velocity = |last - prev| / Δt
+ * (0 when fewer than two samples or Δt <= 0). */
+double          px_interaction_duration_ms(const px_interaction* it);
+double          px_interaction_displacement(const px_interaction* it);
+double          px_interaction_path_length(const px_interaction* it);
+double          px_interaction_velocity(const px_interaction* it);
+
+/* Bridge 1 — phase hook: the process→intent compilation point. */
+void            px_interaction_on_phase(px_interaction* it, px_int_hook fn, void* user);
+
+/* Bridge 2 — commit/cancel resolve to Closure triggers (discrete
+ * intents). The payload is copied at BIND time (intent-as-value:
+ * the payload becomes part of last_intent and is replayable).
+ * Pass NULL/0 for closures whose action reads the interaction via
+ * its user pointer instead. */
+void            px_interaction_on_commit(px_interaction* it, px_closure* c,
+                                         void* payload, size_t payload_size);
+void            px_interaction_on_cancel(px_interaction* it, px_closure* c);
+
+/* Bridge 3 — publish the phase to an Estimate at TRANSITIONS only
+ * (never per sample). The estimate is set to (double)phase:
+ * IDLE=0, BEGAN=1, ACTIVE=2, COMMITTED=3, CANCELLED=4. This is the
+ * ONLY sanctioned path from interaction to Estimate — the seam that
+ * keeps "process" from being conflated with "state". The estimate's
+ * lifetime is the caller's responsibility. */
+void            px_interaction_publish_phase(px_interaction* it, px_estimate* est);
+
+/* ============================================================
+ * v0.6 PROTOTYPE — Region + affordance query (intent compilation)
+ *
+ * A px_region is pure data (geometry + label) — NOT an abstraction.
+ * It exists to be the `a` node of an AFFORDS relation:
+ *
+ *     px_declare(g, region, PX_REL_AFFORDS, closure);
+ *
+ * px_afford_at(g, x, y) then answers "which affordance contains
+ * (x, y)?" — the missing compile step from PHYSICAL event to
+ * SEMANTIC intent (hit-testing as a graph query, per the audit
+ * finding that on_click(ev.x, ev.y) raw-coordinate dispatch
+ * outsources Norman's execution-gulf translation to every app).
+ *
+ * Region registry: regions are process-global (like perceptions);
+ * px_region_at / px_afford_at scan most-recently-declared-first, so
+ * later declarations are "on top" (z-order by declaration order).
+ * ============================================================ */
+
+typedef struct px_region px_region;
+
+px_region*  px_region_new(px_rect r, const char* label);
+void        px_region_free(px_region* r);
+px_rect     px_region_rect(const px_region* r);
+const char* px_region_label(const px_region* r);
+void        px_region_set_rect(px_region* r, px_rect rect); /* re-layout in place */
+
+/* Which region contains (x, y)? Topmost (latest-declared) wins.
+ * NULL if none. Pure query over the registry. */
+px_region*  px_region_at(double x, double y);
+
+/* Intent compilation: the closure afforded at (x, y). Finds the
+ * topmost containing region, then queries `g` for (region
+ * AFFORDS closure) edges; returns the first closure found, NULL
+ * if none. The caller triggers it with a semantic payload. */
+px_closure* px_afford_at(px_graph* g, double x, double y);
 
 #ifdef __cplusplus
 }

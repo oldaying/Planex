@@ -564,12 +564,29 @@ px_event px_window_poll_event(px_window* w) {
             ev.y = xev.xmotion.y;
             break;
         case ButtonPress:
+            /* v0.6: X11 wheel events arrive as Button4/Button5 presses.
+             * Map them to PX_EV_WHEEL instead of PX_EV_MOUSE_DOWN so the
+             * semantic layer (scroll = continuous channel) stays distinct
+             * from button clicks. */
+            if (xev.xbutton.button == 4 || xev.xbutton.button == 5) {
+                ev.kind = PX_EV_WHEEL;
+                ev.x = xev.xbutton.x;
+                ev.y = xev.xbutton.y;
+                ev.wheel_dy = (xev.xbutton.button == 5) ? 1 : -1;
+                break;
+            }
             ev.kind = PX_EV_MOUSE_DOWN;
             ev.x = xev.xbutton.x;
             ev.y = xev.xbutton.y;
             ev.button = xev.xbutton.button;
             break;
         case ButtonRelease:
+            /* Wheel releases are swallowed — the press already delivered
+             * the full PX_EV_WHEEL event. */
+            if (xev.xbutton.button == 4 || xev.xbutton.button == 5) {
+                ev.kind = PX_EV_NONE;
+                break;
+            }
             ev.kind = PX_EV_MOUSE_UP;
             ev.x = xev.xbutton.x;
             ev.y = xev.xbutton.y;

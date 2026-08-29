@@ -65,6 +65,12 @@ void   px_fb_set_pixel(px_fb* fb, int x, int y, uint32_t rgba);
  * Pointer is owned by fb; do not free. */
 const uint32_t* px_fb_pixels(const px_fb* fb);
 
+/* v0.6: Get raw pixel buffer (mutable access for backends / blitters).
+ * Same lifetime and format rules as px_fb_pixels(); use when a bulk
+ * copy needs to write pixels (e.g. row-wise memcpy of a perception's
+ * framebuffer into a window's framebuffer). */
+uint32_t* px_fb_pixels_mutable(px_fb* fb);
+
 /* Read a single pixel. */
 uint32_t px_fb_get_pixel(const px_fb* fb, int x, int y);
 

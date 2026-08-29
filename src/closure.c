@@ -60,6 +60,14 @@ struct px_closure {
      * px_undo_record(graph, this) before running the action. */
     px_graph*         undo_graph;
 
+    /* v0.6: one-shot warning flag for the bind-ordering L2 leak
+     * (leak-budgets.md Closure §L2-1). If undo recording is globally
+     * enabled but this closure has no bound graph, the FIRST trigger
+     * warns on stderr — previously undo silently did nothing, which
+     * violated Norman's "system status visibility" for the developer.
+     * The warning fires once per closure, not per trigger. */
+    bool              warned_no_graph;
+
     /* v3 prototype: perlocution sub-API.
      * Perlocution is the *effect* of the system's utterance on the
      * actor's mental state — distinct from `status` (operational)
@@ -145,9 +153,21 @@ void px_closure_trigger(px_closure* c, void* payload, size_t size) {
     }
 
     /* v0.3: if undo is enabled AND closure has bound graph,
-     * snapshot affected Estimates before action runs. */
+     * snapshot affected Estimates before action runs.
+     *
+     * v0.6: if undo is enabled but NO graph is bound, warn once.
+     * Before this, forgetting px_closure_bind_graph made undo
+     * silently ineffective — the type system cannot enforce call
+     * ordering, so the runtime must make the omission visible. */
     if (px_undo_is_enabled() && c->undo_graph) {
         px_undo_record(c->undo_graph, c);
+    } else if (px_undo_is_enabled() && !c->undo_graph && !c->warned_no_graph) {
+        fprintf(stderr,
+                "[planex] warning: undo is enabled but closure \"%s\" has no "
+                "bound graph — undo will not record this closure. "
+                "Call px_closure_bind_graph(c, g) before triggering.\n",
+                c->goal ? c->goal : "(unnamed)");
+        c->warned_no_graph = true;
     }
 
     /* Stage 3-4: Action + Execution */

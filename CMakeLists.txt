@@ -44,6 +44,8 @@ set(CORE_SOURCES
     src/layout.c
     src/actor.c        # v3 prototype (essence derivation v3 / Path B)
     src/breakdown.c    # v3 prototype (essence derivation v3 / Path B)
+    src/interaction.c  # v0.6 prototype (ADR-0016: continuous interaction process)
+    src/hit.c          # v0.6 prototype (ADR-0016: region + affordance query)
 )
 
 # ============================================================
@@ -220,6 +222,15 @@ add_test(NAME feedback_tests COMMAND test_feedback)
 add_executable(test_v05_retire tests/test_v05_retire.c)
 target_link_libraries(test_v05_retire planex_lib)
 add_test(NAME v05_retire_tests COMMAND test_v05_retire)
+
+# v0.6 interaction prototype + leak-retire test suite — validates the
+# 6th abstraction candidate (px_interaction: inert hot path, transitions-
+# only bridges) + the v0.6 retires (confidence predictive loop,
+# representamen free_fn, a11y query side, loop feedback budget).
+# Per ADR-0016 (proposed) + canonical/leak-budgets.md v0.6 retire summary.
+add_executable(test_v06_interaction tests/test_v06_interaction.c)
+target_link_libraries(test_v06_interaction planex_lib)
+add_test(NAME v06_interaction_tests COMMAND test_v06_interaction)
 
 # v3 prototype test suite — validates that the 4 new essence
 # categories (Interpretant, Perlocution, Breakdown, 3-place Relation)

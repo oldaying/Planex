@@ -85,14 +85,20 @@ struct px_perception {
      * duration of a single px_estimate_set → auto-invoke call chain;
      * it is not consulted by any other path.
      *
-     * Ownership: the cached representamen is owned by the perception
-     * fn (which produced it). We hold a non-owning reference. The
-     * cache is overwritten on the next fire; the previous value is
-     * leaked (we don't know how to free it — perception fns are
-     * heterogeneous). This is a known v0.5 limitation; a future
-     * version can add a free_fn to px_perception_new. */
+     * Ownership (v0.6): if a free_fn is registered via
+     * px_perception_set_free_fn, the OLD cached representamen is freed
+     * through it before the cache is overwritten (fire_and_cache) and
+     * on perception free. Without a free_fn the old behavior stands —
+     * the previous value is leaked (perception fns are heterogeneous,
+     * the framework cannot guess the destructor). This retires the
+     * documented v0.5 "the previous value is leaked" limitation for
+     * perceptions that declare their denotation type. */
     void*           last_representamen;
     bool            has_last;
+
+    /* v0.6: optional destructor for representamens produced by fn.
+     * NULL = caller-managed (leak-on-overwrite, v0.5 behavior). */
+    void          (*free_fn)(void* representamen);
 };
 
 /* ============================================================
@@ -167,6 +173,12 @@ px_perception* px_perception_new(
 
 void px_perception_free(px_perception* p) {
     if (!p) return;
+
+    /* v0.6: free the cached representamen through the registered
+     * destructor, if any. */
+    if (p->has_last && p->last_representamen && p->free_fn) {
+        p->free_fn(p->last_representamen);
+    }
 
     /* Remove from registry */
     px_perception_node** pp = &g_perceptions;
@@ -257,15 +269,51 @@ px_perception** px_perceptions_for_estimate(px_estimate* est, int* out_count) {
 
 static void fire_and_cache(px_perception* p) {
     if (!p || !p->fn) return;
-    /* Previous cache is leaked (ownership unknown). See struct doc. */
+    /* v0.6: if a destructor is registered, the previous cached value
+     * is freed through it BEFORE being overwritten — this is the fix
+     * for the documented v0.5 leak ("the previous value is leaked").
+     * Without a destructor we keep the v0.5 behavior (ownership is
+     * unknown to the framework). */
+    if (p->has_last && p->last_representamen && p->free_fn) {
+        p->free_fn(p->last_representamen);
+    }
     p->last_representamen = p->fn(p->inputs, p->n_inputs, p->user);
     p->has_last = true;
 }
 
+/* v0.6: register the destructor used to free cached representamens.
+ *
+ * Perception fns are heterogeneous (px_fb*, char*, JSON strings, ...)
+ * so the framework cannot guess how to free a denotation. The caller
+ * who KNOWS the denotation type registers its destructor here; from
+ * then on, every cache overwrite and px_perception_free frees the old
+ * value through it. NULL restores the v0.5 leak-on-overwrite behavior.
+ *
+ * Example:
+ *   px_perception_set_free_fn(p, (void (*)(void*))px_fb_free);
+ *
+ * Note: the loop's interpretant (px_perception_interpret's product)
+ * is owned by the interpret_fn, not by this mechanism — see
+ * feedback.c for that known limitation. */
+void px_perception_set_free_fn(px_perception* p, void (*free_fn)(void*)) {
+    if (!p) return;
+    p->free_fn = free_fn;
+}
+
 /* Internal: clear cache on a single perception. Called by loop
- * functions at the start of each turn. NOT part of public API. */
+ * functions at the start of each turn. NOT part of public API.
+ *
+ * v0.6 ownership contract: once a representamen is cached, the
+ * perception owns it; px_perception_invoke_single returns a BORROWED
+ * pointer, valid until the next turn boundary (this clear, the next
+ * fire, or px_perception_free). If a free_fn is registered, the value
+ * is freed HERE — holding an invoke_single result across turns was
+ * never valid (it would be stale/leaked in v0.5 too). */
 void px__perception_clear_cache(px_perception* p) {
     if (!p) return;
+    if (p->has_last && p->last_representamen && p->free_fn) {
+        p->free_fn(p->last_representamen);
+    }
     p->has_last = false;
     p->last_representamen = NULL;
 }

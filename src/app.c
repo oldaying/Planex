@@ -19,6 +19,7 @@
 #include "planex/planex.h"
 #include "planex/app.h"
 #include <stdio.h>
+#include <string.h>
 
 /* Target 60fps = ~16.67ms per frame */
 #define FRAME_INTERVAL_MS 16
@@ -36,7 +37,13 @@ static void app_resize_adapter(px_window* w, int width, int height, void* user) 
 }
 
 /* Render one frame: use perception if set, else legacy render callback.
- * Copies perception fb pixels to window fb, then frees perception fb. */
+ * Copies perception fb pixels to window fb, then frees perception fb.
+ *
+ * v0.6 fast path: when both framebuffers have the same width, the copy
+ * is a per-row memcpy instead of a per-pixel function call (the v0.5
+ * path made feedback latency scale with W*H function calls — the
+ * "feedback has no time budget" finding). The per-pixel fallback is
+ * kept for the mismatched-width case (clipped copy). */
 static void app_render_frame(const px_app_desc* desc, px_window* win, px_fb* fb) {
     (void)win;  /* window handle not used — fb is already the window's fb */
     if (desc->perception) {
@@ -49,9 +56,19 @@ static void app_render_frame(const px_app_desc* desc, px_window* win, px_fb* fb)
             int copyW = (W < winW) ? W : winW;
             int copyH = (H < winH) ? H : winH;
             const uint32_t* src = px_fb_pixels(pfb);
-            for (int y = 0; y < copyH; y++) {
-                for (int x = 0; x < copyW; x++) {
-                    px_fb_set_pixel(fb, x, y, src[y * W + x]);
+            if (W == winW) {
+                /* Fast path: contiguous rows — memcpy per row. */
+                uint32_t* dst = px_fb_pixels_mutable(fb);
+                size_t row_bytes = (size_t)copyW * sizeof(uint32_t);
+                for (int y = 0; y < copyH; y++) {
+                    memcpy(dst + (size_t)y * W, src + (size_t)y * W, row_bytes);
+                }
+            } else {
+                /* Clipped path: widths differ — per-pixel copy. */
+                for (int y = 0; y < copyH; y++) {
+                    for (int x = 0; x < copyW; x++) {
+                        px_fb_set_pixel(fb, x, y, src[y * W + x]);
+                    }
                 }
             }
             px_fb_free(pfb);
@@ -119,6 +136,17 @@ int px_app_run(const px_app_desc* desc) {
                 case PX_EV_MOUSE_UP:
                     if (desc->on_mouse_up) {
                         if (desc->on_mouse_up(ev.x, ev.y, desc->user)) {
+                            event_changed = true;
+                        }
+                    }
+                    break;
+                case PX_EV_WHEEL:
+                    /* v0.6: scroll wheel — a continuous channel, distinct
+                     * from discrete clicks. Feed interactions or estimate
+                     * scroll state from the dy ticks. */
+                    if (desc->on_wheel) {
+                        if (desc->on_wheel(ev.x, ev.y, ev.wheel_dy,
+                                           desc->user)) {
                             event_changed = true;
                         }
                     }

@@ -95,6 +95,11 @@ const uint32_t* px_fb_pixels(const px_fb* fb) {
     return fb ? fb->pixels : NULL;
 }
 
+/* v0.6: mutable mirror of px_fb_pixels — for bulk writes (row memcpy). */
+uint32_t* px_fb_pixels_mutable(px_fb* fb) {
+    return fb ? fb->pixels : NULL;
+}
+
 void px_fb_fill_rect(px_fb* fb, int x, int y, int w, int h, uint32_t rgba) {
     if (!fb || w <= 0 || h <= 0) return;
     int x0 = x < 0 ? 0 : x;

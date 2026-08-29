@@ -109,6 +109,40 @@ void     px_a11y_focus(px_a11y* a);
 /* Get human-readable role name (for debugging). */
 const char* px_a11y_role_str(px_a11y_role role);
 
+/* ============================================================
+ * v0.6: Query side — the a11y channel becomes assertable
+ *
+ * Until v0.6 the a11y channel was write-only logging (L9: "logging-
+ * only"). These getters mirror the setters, and a bounded ring of
+ * recent announcements is kept queryable. Two consumers:
+ *   1. Tests: multi-channel consistency can now be asserted in C
+ *      ("the a11y value string contains the visual count") instead
+ *      of parsing stderr.
+ *   2. Future platform bridges: AT-SPI2/UIA/NSAccessibility glue can
+ *      drain the same state — the query side IS the bridge contract.
+ * The real platform bridges remain stubbed (#if 0 in a11y.c).
+ * ============================================================ */
+
+px_a11y_role px_a11y_get_role(const px_a11y* a);
+const char*  px_a11y_get_name(const px_a11y* a);
+const char*  px_a11y_get_value(const px_a11y* a);
+unsigned     px_a11y_get_state(const px_a11y* a);
+
+/* Enable/disable the stderr logging (query side keeps working either
+ * way — production apps can silence the log without losing the data). */
+void         px_a11y_set_verbose(px_a11y* a, bool verbose);
+bool         px_a11y_is_verbose(const px_a11y* a);
+
+/* Bounded announcement history (ring, most recent last).
+ * px_a11y_announcement_count: how many announcements are retained
+ *   (0..PX_A11Y_ANNOUNCE_CAPACITY).
+ * px_a11y_announcement(a, i): the i-th retained announcement, 0 =
+ *   oldest. NULL if i is out of range. Pointers are owned by the a11y
+ *   context and valid until the context is freed. */
+#define PX_A11Y_ANNOUNCE_CAPACITY 16
+int          px_a11y_announcement_count(const px_a11y* a);
+const char*  px_a11y_announcement(const px_a11y* a, int i);
+
 #ifdef __cplusplus
 }
 #endif

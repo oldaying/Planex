@@ -155,9 +155,13 @@ int main(void) {
     px_closure_trigger(app.inc, NULL, 0);
     px_closure_trigger(app.dec, NULL, 0);
 
-    /* In Phase 1, perceptions are not auto-invoked. We call them manually.
-     * Phase 2 (v0.3) will invoke perceptions automatically when
-     * their source Estimates change. */
+    /* v0.5 (Phase 2, landed — the old "Phase 1: manual invocation"
+     * comment was retired): perceptions are auto-invoked by
+     * px_estimate_set when their source Estimates change, so the
+     * triggers above have ALREADY fired both perceptions once per
+     * count change. The direct calls below are the diagnostic seam
+     * (px_perception_invoke_* exists for tests/explicit re-perceive);
+     * normal application code does NOT need them. */
     printf("\nDenotations after interactions:\n");
 
     /* Invoke text perception */

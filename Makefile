@@ -34,7 +34,8 @@ LDFLAGS += $(FREETYPE_LIBS) $(FONTCONFIG_LIBS)
 # Core sources (no backend dependency)
 CORE_SRCS = $(SRC_DIR)/relation.c $(SRC_DIR)/estimate.c $(SRC_DIR)/closure.c \
 	    $(SRC_DIR)/perception.c $(SRC_DIR)/undo.c $(SRC_DIR)/feedback.c \
-	    $(SRC_DIR)/fb.c $(SRC_DIR)/font.c $(SRC_DIR)/a11y.c $(SRC_DIR)/layout.c
+            $(SRC_DIR)/fb.c $(SRC_DIR)/font.c $(SRC_DIR)/a11y.c $(SRC_DIR)/layout.c \
+            $(SRC_DIR)/interaction.c $(SRC_DIR)/hit.c
 CORE_OBJS = $(patsubst $(SRC_DIR)/%.c,$(BUILD)/%.o,$(CORE_SRCS))
 
 # ============================================================
@@ -102,7 +103,7 @@ BACKEND_OBJS := $(patsubst $(SRC_DIR)/%.c,$(BUILD)/%.o,$(filter-out $(SRC_DIR)/a
 
 EXAMPLES_NO_X11 = counter_4abs multi_perception perception_smoke perception_phase2 \
 	          undo_via_graph antipattern_estimate antipattern_closure antipattern_perception \
-	          counter_denotative calculator_denotative editor_meaning
+                  counter_denotative calculator_denotative editor_meaning hover_drag_interaction
 
 # All X11 demos work on all backends (public API is identical)
 EXAMPLES_WINDOWED = counter_perception_window counter_interactive hover_drag_4abs
@@ -121,10 +122,12 @@ TEST_FEEDBACK  = $(BUILD)/test_feedback
 TEST_FEEDBACK_SRC = $(TST_DIR)/test_feedback.c
 TEST_V05       = $(BUILD)/test_v05_retire
 TEST_V05_SRC   = $(TST_DIR)/test_v05_retire.c
+TEST_V06       = $(BUILD)/test_v06_interaction
+TEST_V06_SRC   = $(TST_DIR)/test_v06_interaction.c
 TEST_COMP      = $(BUILD)/test_completeness
 TEST_COMP_SRC  = $(TST_DIR)/test_completeness.c
 
-.PHONY: all clean test test_ortho test_feedback test_v05 check-completeness check-compression check-examples check-essence examples backends-info
+.PHONY: all clean test test_ortho test_feedback test_v05 test_v06 check-completeness check-compression check-examples check-essence examples backends-info
 
 all: examples test
 
@@ -185,6 +188,12 @@ test_v05: $(TEST_V05)
 
 $(TEST_V05): $(TEST_V05_SRC) $(CORE_OBJS) | $(BUILD)
 	$(CC) $(CFLAGS) -I$(INC_DIR) $(TEST_V05_SRC) $(CORE_OBJS) -o $@ $(LDFLAGS)
+
+test_v06: $(TEST_V06)
+	./$(TEST_V06)
+
+$(TEST_V06): $(TEST_V06_SRC) $(CORE_OBJS) | $(BUILD)
+	$(CC) $(CFLAGS) -I$(INC_DIR) $(TEST_V06_SRC) $(CORE_OBJS) -o $@ $(LDFLAGS)
 
 # ============================================================
 # Completeness check — closed-corpus falsifiability test
@@ -276,10 +285,10 @@ check-examples: examples
 	            rm -f /tmp/_px_actual_$$ /tmp/_px_exp_$$ /tmp/_px_act_norm_$$; \
 	            exit 1; \
 	        fi; \
-	        rm -f /tmp/_px_actual_$$ /tmp/_px_exp_$$ /tmp/_px_act_norm_$$; \
-	    else \
+	            rm -f /tmp/_px_actual_$$ /tmp/_px_exp_$$ /tmp/_px_act_norm_$$; \
+	        else \
 	        echo "[SKIP] $$ex: no .expected file"; \
-	    fi; \
+	        fi; \
 	done
 
 # ============================================================

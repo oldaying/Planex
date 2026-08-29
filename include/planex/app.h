@@ -57,6 +57,12 @@ typedef struct {
      * Use for drag-end, drop, etc. */
     bool  (*on_mouse_up)(int x, int y, void* user);
 
+    /* v0.6: Called on scroll wheel / trackpad scroll.
+     * dy is in ticks: positive = down/away, negative = up/toward.
+     * (x, y) is the cursor position at scroll time.
+     * Return true if state changed (forces re-render). */
+    bool  (*on_wheel)(int x, int y, int dy, void* user);
+
     /* Called on key press. Return true if state changed. */
     bool  (*on_key)(char key, void* user);
 

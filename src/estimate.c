@@ -79,6 +79,15 @@ struct px_estimate {
     double      value;
     double      confidence;
 
+    /* v0.6: predictive-coding state (Friston). A pending prediction
+     * makes the NEXT px_estimate_set resolve it: surprise is recorded,
+     * confidence decays by prediction error. One-shot per predict().
+     * See px_estimate_predict() docs in planex.h. */
+    bool        has_prediction;
+    double      predicted_value;
+    double      prediction_tolerance;
+    double      last_surprise;
+
     /* Animation trajectory (Planex's "Behavior" kernel) */
     bool        animating;
     double      duration_ms;
@@ -182,6 +191,20 @@ void px_estimate_set(px_estimate* e, double value, double confidence) {
     e->animating  = false;
     e->value      = value;
     e->confidence = confidence;
+
+    /* v0.6: resolve a pending prediction (predictive-coding loop).
+     * This is confidence's framework-side consumer: an observation that
+     * violates a registered prediction reduces confidence even when the
+     * caller asserts 1.0. The prediction is one-shot. */
+    if (e->has_prediction) {
+        double tol = e->prediction_tolerance > 0 ? e->prediction_tolerance : 1.0;
+        e->last_surprise = fabs(value - e->predicted_value);
+        e->confidence = confidence * exp(-e->last_surprise / tol);
+        e->has_prediction = false;
+    } else {
+        e->last_surprise = 0.0;
+    }
+
     notify(e);
     /* v0.5 Phase 2: auto-invoke perceptions that depend on this
      * estimate. This closes the implicit-seam gap — users no longer
@@ -189,6 +212,45 @@ void px_estimate_set(px_estimate* e, double value, double confidence) {
      * a state change. See leak-budgets.md §4. */
     extern int px_perception_invoke_for_estimate(px_estimate* est);
     px_perception_invoke_for_estimate(e);
+}
+
+/* v0.6: register a prediction for this estimate's next value.
+ *
+ * The Friston citation in this file's header ("state as posterior
+ * estimate") finally gets a runtime counterpart: predict → observe
+ * → update. Until v0.6 the confidence field had no framework-side
+ * consumer (alternative-perspectives.md School 4: "currently
+ * decorative") — users could read and write it, but no framework
+ * logic ever responded to it.
+ *
+ * Contract:
+ *   px_estimate_predict(e, expected, tolerance);
+ *   px_estimate_set(e, observed, conf);       <- resolves the prediction
+ *   px_estimate_surprise(e);                   <- |observed - expected|
+ *
+ * On the resolving set:
+ *   confidence = conf * exp(-|observed - expected| / tolerance)
+ *
+ * i.e. accurate predictions keep confidence, violated predictions
+ * decay it (exponentially in normalized error). tolerance <= 0 is
+ * treated as 1.0. The prediction is one-shot: a second set() without
+ * a new predict() carries the caller's confidence unchanged.
+ *
+ * Intended for sensor-fed estimates (the confidence_demo.c pattern).
+ * Derived estimates technically work but predictions on them are
+ * unusual — recompute overwrites the value from sources. */
+void px_estimate_predict(px_estimate* e, double expected, double tolerance) {
+    if (!e) return;
+    e->has_prediction      = true;
+    e->predicted_value     = expected;
+    e->prediction_tolerance = tolerance;
+}
+
+/* v0.6: absolute prediction error of the last prediction-resolved
+ * px_estimate_set; 0.0 when no prediction was pending (or before any
+ * set). Pure query. */
+double px_estimate_surprise(const px_estimate* e) {
+    return e ? e->last_surprise : 0.0;
 }
 
 void px_estimate_animate(px_estimate* e, double target, double duration_ms) {

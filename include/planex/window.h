@@ -51,6 +51,7 @@ typedef enum {
     PX_EV_CLOSE,
     PX_EV_IME_COMPOSE,   /* IME preedit intermediate text (Stage 9) */
     PX_EV_IME_COMMIT,   /* IME final committed text (Stage 9) */
+    PX_EV_WHEEL,        /* Scroll wheel / trackpad scroll (v0.6) */
 } px_event_kind;
 
 typedef struct {
@@ -60,6 +61,11 @@ typedef struct {
     int           button;   /* 1=left, 2=middle, 3=right for mouse */
     int           key;      /* X11 keycode for key events */
     char          key_char; /* ASCII char if printable, else 0 */
+
+    /* v0.6: wheel delta in ticks, used when kind == PX_EV_WHEEL.
+     * Positive = scroll down/away from user; negative = up/toward.
+     * x/y carry the cursor position at scroll time. */
+    int           wheel_dy;
 
     /* IME composition (Stage 9) — used when kind == PX_EV_IME_COMMIT
      * or PX_EV_IME_COMPOSE. UTF-8 encoded, may be multibyte. */

@@ -137,6 +137,21 @@
     [self queueEvent:ev];
 }
 
+/* v0.6: scroll wheel / trackpad scrolling. deltaY > 0 = content moved
+ * up = user scrolled up (toward) = wheel_dy negative. */
+- (void)scrollWheel:(NSEvent*)event {
+    NSPoint p = [event locationInWindow];
+    px_event ev = {0};
+    ev.kind = PX_EV_WHEEL;
+    ev.x = (int)p.x;
+    ev.y = (int)(px_fb_height(fb) - p.y);  /* flip Y */
+    ev.wheel_dy = (event.deltaY > 0.5) ? -1
+                : (event.deltaY < -0.5) ? 1 : 0;
+    if (ev.wheel_dy != 0) {
+        [self queueEvent:ev];
+    }
+}
+
 /* ============================================================
  * Stage 14: NSTextInputClient protocol
  * ============================================================ */
