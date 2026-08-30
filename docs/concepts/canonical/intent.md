@@ -118,6 +118,21 @@ The loop is *first-class*: `px_loop_step` is auditable, replayable, and interrup
 
 ---
 
+## Routing surfaces (v0.8 doctrine)
+
+Event routing has two surfaces, decided **per event class** ([ADR-0022](../../decisions/accepted/ADR-0022-v08-dual-path-adjudication.md) — the dual-path adjudication):
+
+| Event class | The path | The raw callback's role |
+|---|---|---|
+| Pointer-down, discrete act | `px_afford_compile` — the closure form ([ADR-0017](../../decisions/accepted/ADR-0017-intent-compilation-promotion.md)) | `on_click` = fallback for unresolved presses |
+| Pointer gesture (drag) | `px_afford_compile_process` — the process form ([ADR-0021](../../decisions/accepted/ADR-0021-v08-drag-begin-afford.md)) | `on_mouse_move` / `on_mouse_up` suppressed — the process owns the stream |
+| Keyboard focus + activation | focus-ring walk + `px_afford_compile_focus` ([ADR-0020](../../decisions/accepted/ADR-0020-v08-keyboard-channel.md)) | `on_key` = fallback for keys that compile to nothing |
+| Wheel, non-activation keys, IME | none yet | `on_wheel` / `on_key` / `on_ime_commit` = the only surface |
+
+The afford path is canonical for every class it serves; the raw callbacks are a **declared transition state** with per-callback retirement conditions (ADR-0022), and **no new event class may ship raw-only** — the drift guard that keeps "type drives interaction routing" from degrading into an optional convenience.
+
+---
+
 ## Non-goals (full list in `non-goals.md`)
 
 The five categories below are NOT things Planex will ever do — they are scope boundaries that protect the three pillars above. Each non-goal is paired with the pillar it would break if adopted.
@@ -125,7 +140,7 @@ The five categories below are NOT things Planex will ever do — they are scope 
 | # | Non-goal | Why rejected | Pillar protected |
 |---|---|---|---|
 | 1 | AI integration (LLM in the loop) | Couples UI to a non-deterministic reasoner; intent ceases to be a verifiable value | Intent-as-value |
-| 2 | Continuous/transient interaction as first-class | Empirical evidence shows it's a *property* of an existing abstraction, not an *abstraction* itself (deferred to v1.0+, ADR-0006) | Essence-justified admission |
+| 2 | Mobile / touch first-class support | Trajectories make single-pointer gestures derivable, but simultaneous-pointer arbitration is unmodeled (NG-6); the channel axiom is proven one channel at a time — pointer, then keyboard (v0.8) | Essence-justified admission |
 | 3 | Native styling (look-native-on-each-OS) | Multi-channel denotation already serves a11y + audit; "native look" is a Perception channel, not a new abstraction | Multi-channel denotation |
 | 4 | Backwards-compatible ABI across major versions | Planex is single-maintainer, no shipped-product ABI consumers; v0.4→v4 ABI break is documented in UPGRADING.md | Essence-justified admission (allows retiring wrong abstractions) |
 | 5 | DSL form (Tcl/Lua-style embedded language) | DSLs leak syntactically; abstraction leaks semantically — the two forms are not interchangeable (see `abstraction-form.md` Prerequisite 2) | Intent-as-value (specifically: typed value, not parse tree) |

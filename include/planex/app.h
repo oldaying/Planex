@@ -45,30 +45,52 @@ typedef struct {
      * with demos that haven't migrated to the perception API. */
     void  (*render)(px_fb* fb, void* user);
 
-    /* Called on left-click. Return true if state changed (will re-render). */
+    /* Called on left-click. Return true if state changed (will re-render).
+     *
+     * Routing role (ADR-0022): the FALLBACK for presses the afford graph
+     * does not resolve when intent_graph is set (the compile is the path);
+     * the surface when it is not. */
     bool  (*on_click)(int x, int y, void* user);
 
     /* v0.3: Called on mouse move. Return true if state changed.
      * Fires on every mouse move event (60+ Hz when mouse is moving).
-     * Use for hover, drag tracking, etc. */
+     * Use for hover, drag tracking, etc.
+     *
+     * Routing role (ADR-0022): suppressed while a compiled process owns
+     * the gesture (ADR-0021 — preview derives from the trajectory, not
+     * from a callback); otherwise the surface for ambient streams. */
     bool  (*on_mouse_move)(int x, int y, void* user);
 
     /* v0.3: Called on mouse button release. Return true if state changed.
-     * Use for drag-end, drop, etc. */
+     * Use for drag-end, drop, etc.
+     *
+     * Routing role (ADR-0022): suppressed while a compiled process owns
+     * the gesture (the release commits it, ADR-0021); otherwise the
+     * fallback surface. */
     bool  (*on_mouse_up)(int x, int y, void* user);
 
     /* v0.6: Called on scroll wheel / trackpad scroll.
      * dy is in ticks: positive = down/away, negative = up/toward.
      * (x, y) is the cursor position at scroll time.
-     * Return true if state changed (forces re-render). */
+     * Return true if state changed (forces re-render).
+     *
+     * Routing role (ADR-0022): the ONLY surface for this event class —
+     * no compile form exists yet (L12 owns the abstraction question). */
     bool  (*on_wheel)(int x, int y, int dy, void* user);
 
-    /* Called on key press. Return true if state changed. */
+    /* Called on key press. Return true if state changed.
+     *
+     * Routing role (ADR-0022): the FALLBACK for keys the graph does not
+     * compile (shortcuts, arrows — ADR-0020 CAVEATS) when intent_graph
+     * is set; the only surface when it is not. */
     bool  (*on_key)(char key, void* user);
 
     /* Optional: called when IME commits UTF-8 text (Stage 9).
      * utf8_text is null-terminated UTF-8 (may be multi-byte for CJK).
-     * Return true if state changed (forces re-render). */
+     * Return true if state changed (forces re-render).
+     *
+     * Routing role (ADR-0022): the ONLY surface for this event class —
+     * text commit is not a routing concern. */
     bool  (*on_ime_commit)(const char* utf8_text, void* user);
 
     /* Optional: called every frame (after render) to update app state.
@@ -98,8 +120,14 @@ typedef struct {
      * receives WHERE-in-semantics (region label), not WHERE-in-
      * pixels as a routing key. Clicks that resolve to no afforded
      * closure fall back to on_click unchanged. NULL (the default)
-     * keeps raw-coordinate dispatch exactly as before — the path is
-     * opt-in per ADR-0016's evidence-gathering posture. */
+     * keeps raw-coordinate dispatch exactly as before. The opt-in
+     * posture ADR-0016 adopted for evidence gathering is now a DECIDED
+     * transition state (ADR-0022, v0.8 Line 3): the afford path is
+     * canonical for every event class it serves — pointer discrete
+     * (this compile), pointer continuous (the process form, ADR-0021),
+     * keyboard focus + activation (ADR-0020) — and the raw callbacks
+     * are the declared fallback / only-surface per event class, with
+     * per-callback retirement conditions named in ADR-0022. */
     px_graph*   intent_graph;
 
     /* v0.8 (Line 1): optional focus-change notification for the

@@ -357,6 +357,14 @@ The begin step now resolves through the afford graph: an AFFORDS edge targeting 
 
 ---
 
+## L16: The raw-coordinate routing surface is a declared transition state (v0.8, ADR-0022)
+
+**Severity:** Low — doctrine, not mechanism. The v0.8 Line 3 adjudication (ADR-0022) decided the dual-path question: **explicit keep, declared**. The afford graph is the canonical routing surface for every event class it serves (pointer discrete + continuous, keyboard focus + activation — ADR-0017/0021/0020); the raw callbacks (`on_click`, `on_mouse_move`, `on_mouse_up`, `on_wheel`, `on_key`, `on_ime_commit`) remain, in two declared roles: **(a) the fallback** for graph-served classes — a press the graph does not resolve, a key that compiles to nothing (the graph answers what it knows about declared regions; the app stays sovereign over the undeclared), and **(b) the only surface** for classes with no compile form: wheel (L12), non-activation keys (shortcuts, arrows — ADR-0020 CAVEATS), and IME commit.
+
+This is a declared state, not a silent default: ADR-0022 records the evidence census (event-class table; of 25 examples, 2 route through the graph — the evidence apps with `on_click` NULL by design — 2 windowed apps stay raw with recorded reasons, and 3 event classes have no compile form), the **per-callback retirement conditions** (a callback retires to the deprecation registry only when a compile form exists AND a real example routes that class through the graph AND the corpus re-score supports it), and the **drift guard**: no new event class may ship raw-only — it must land with a compile form or a ledger row naming the gap. The nearest retirement candidates are `on_mouse_up` and the drag-begin use of `on_mouse_move` (the compile form has existed since ADR-0021); the wheel channel is the standing raw-only debt. The census is a snapshot dated 2026-08-30 and must be recomputed by the PR that lands a new example or event class.
+
+---
+
 ## How to read this document
 
 If you're evaluating Planex for a use case:

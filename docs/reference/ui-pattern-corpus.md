@@ -115,7 +115,7 @@ The boundary zone, re-scored at v0.7. **7/15 patterns are clean** after the prom
 | P32 | Context menu (right-click) | ✅ clean | EXAMPLE palette_afford.c | Button-3 compiles to px_pointer_intent with region label embedded — position context is in the intent value (ADR-0017) |
 | P33 | Autocomplete suggestions | ⚠️ forced | CLAIM_ONLY | Async list + temporary selection — doable but forced |
 | P34 | Infinite scroll | ⚠️ forced | LIMITATION L12 | Scroll position is transient + continuous; wheel events landed but no scroll abstraction |
-| P35 | Resizable panel (drag handle) | ⚠️ forced | LIMITATION L11 | Drag mechanism exists (ADR-0018) but drag-begin affordance seam + no demo = forced |
+| P35 | Resizable panel (drag handle) | ⚠️ forced | LIMITATION L11 | Drag-begin now afford-routes (ADR-0021) but no resizable-panel demo exists = forced |
 | P36 | Color picker (drag slider) | ✅ clean | EXAMPLE palette_afford.c | Live preview derived from trajectory, one committed estimate write (ADR-0017 + ADR-0018) |
 | P37 | Knob / rotary control | ⚠️ forced | CLAIM_ONLY | Rotary = drag process + app-side angle math — derivable but undemonstrated (ADR-0018) |
 | P38 | Scroll position | ⚠️ forced | LIMITATION L12 | High-frequency transient; wheel events land (v0.6) but position-as-state remains forced |
@@ -124,7 +124,7 @@ The boundary zone, re-scored at v0.7. **7/15 patterns are clean** after the prom
 
 The v0.7 re-score (ADRs [0017](../decisions/accepted/ADR-0017-intent-compilation-promotion.md) and [0018](../decisions/accepted/ADR-0018-interaction-process-promotion.md)) flipped P24–P28, P32, P36 from ⚠️/❌ to ✅ and downgraded P29/P37 from ❌ to ⚠️. What remains: multi-touch (NG-6), timing-delay composites, and scroll-position transients. ADR-0006's deferral protocol completed: the boundary-exposing demo measured the pain, the prototypes landed in v0.6, the promotions landed in v0.7 on real-application evidence.
 
-The v0.8 Line 2 landing ([ADR-0021](../decisions/accepted/ADR-0021-v08-drag-begin-afford.md)) changed no verdicts: P28 and P36 were already ✅ on hand-wired-begin evidence — their *begin* evidence upgraded to graph-routed (`designer_tools.c`: drags compile through `px_afford_compile_process`), which strengthens the verdicts without re-scoring them (the closing rule requires an ADR to change a verdict; this is a recorded evidence upgrade, not a change).
+The v0.8 Line 2 landing ([ADR-0021](../decisions/accepted/ADR-0021-v08-drag-begin-afford.md)) changed no verdicts: P28 and P36 were already ✅ on hand-wired-begin evidence — their *begin* evidence upgraded to graph-routed (`designer_tools.c`: drags compile through `px_afford_compile_process`), which strengthens the verdicts without re-scoring them (the closing rule requires an ADR to change a verdict; this is a recorded evidence upgrade, not a change). The v0.8 Line 3 adjudication ([ADR-0022](../decisions/accepted/ADR-0022-v08-dual-path-adjudication.md)) changed no verdicts either: it records the routing-surface census the Category D rows now read against (P34/P38 stay ⚠️ on L12 — the wheel channel is the census's standing raw-only debt), and P35's note is upgraded in place (the drag-begin seam closed; what keeps it forced is the missing resizable-panel demo).
 
 ---
 

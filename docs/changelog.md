@@ -8,6 +8,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Decided — v0.8: the dual-path adjudication (Line 3, ADR-0022 — the raw surface is a declared transition state)
+
+- No default-flip, no deprecation — **explicit keep, declared**: the afford graph is already canonical for every event class it serves (pointer discrete + continuous, keyboard focus + activation); the raw callbacks keep two declared roles — the **fallback** for graph-served classes (unresolved presses, keys that compile to nothing) and the **only surface** for the classes with no compile form (wheel — L12; non-activation keys — ADR-0020 CAVEATS; IME). `intent_graph` opt-in mechanics, defaults, and behavior are unchanged; what changed is doctrine.
+- The evidence census is recorded in ADR-0022 (dated, recomputable): of 25 examples, 2 route through the graph (the evidence apps, `on_click` NULL by design), 2 windowed apps stay raw with recorded reasons (the boundary-exposing demo per ADR-0006; the perception demo), 3 event classes have no compile form. Corpus Category D stays 7/15 clean — bounded by channel coverage (L11/L12/NG-6), not by the dual-path question.
+- Per-callback retirement conditions named (a callback retires to the deprecation registry only when a compile form exists AND a real example routes that class through the graph AND the corpus re-score supports it — the ADR-0019 process), plus the drift guard: **no new event class may ship raw-only**.
+- Docs: `limitations.md` L16 opened (the declared state); `intent.md` gains the routing-surface doctrine table; `app.h` labels each callback's routing role at the point of use; corpus P35 note upgraded in place (the drag-begin seam ADR-0021 closed; what keeps it forced is the missing resizable-panel demo — no verdict change, distribution stays **39/23/6**); v0.8 roadmap Line 3 → Decided and the intent-compilation ledger row closes.
+- Fixed in passing: `intent.md`'s one-page non-goals table still listed "continuous/transient interaction as first-class … deferred to v1.0+" — a stance that died with ADR-0018's v0.7 promotion of `px_interaction` (the partial-sync drift the v0.7 doc pass missed). The row now states the canonical NG-6 (mobile/touch) boundary instead.
+
 ### Added — v0.8: the drag-begin afford, the process form (Line 2, ADR-0021 — L15b retired)
 
 - `px_afford_compile_process(g, x, y, button, out)`: the process form of intent compilation — an AFFORDS edge targeting a `px_interaction` resolves a pointer-down to the PROCESS (the inert-trajectory machine), not to a closure. Same relation (`PX_REL_AFFORDS`), second resolution form; same last-declared-first rule; window-free, backend-free; miss zeroes the payload. **Drag-ability becomes graph data — the begin seam is gone.**
