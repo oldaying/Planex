@@ -6,7 +6,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
-## [Unreleased]
+## [0.6.0] — 2026-08-30
 
 ### Added — v0.6: interaction prototype (ADR-0016, proposed)
 

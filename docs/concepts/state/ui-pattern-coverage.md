@@ -244,4 +244,4 @@ Based on this matrix, the most revealing demo would be **hover + drag reorder** 
 - [UI Pattern Corpus](../../reference/ui-pattern-corpus.md) — the closed, versioned corpus distilled from this matrix; `tests/test_completeness.c` enforces its invariants in CI
 - [ADR-0002](../../decisions/accepted/ADR-0002-relation-necessity-pending-undo.md) — undo works (Category C pattern 19)
 - [ADR-0005](../../decisions/accepted/ADR-0005-promote-perception-to-fourth-abstraction.md) — Perception handles Category H
-- [v0.4 Roadmap](v0.4-roadmap.md) — should be updated with these findings
+- [v0.4 Roadmap](../history/v0.4-roadmap.md) — superseded (v0.4–v0.6 shipped); retained in `history/`

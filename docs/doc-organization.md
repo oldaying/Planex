@@ -48,9 +48,9 @@ The 19 files in `concepts/` decompose by actual function into six categories tha
 | Category | Files |
 |----------|-------|
 | **Normative position papers** | `abstraction-form.md`, `why-four-abstractions.md`, `leak-budgets.md`, `non-goals.md` |
-| **Descriptive state docs** | `architecture.md`, `limitations.md`, `ui-pattern-coverage.md`, `roadmap-matrix.md`, `versioning.md`, `v0.4-roadmap.md` |
+| **Descriptive state docs** | `architecture.md`, `limitations.md`, `ui-pattern-coverage.md`, `roadmap-matrix.md`, `versioning.md`, `v0.7-roadmap.md` |
 | **Speculative / proposal** | `continuous-intent-speculation.md` |
-| **Historical / superseded** | `essence-derivation-v1.md`, `essence-derivation-v2.md`, `essence-derivation-v3.md`, `essence-derivation-v4-clean.md` |
+| **Historical / superseded** | `essence-derivation-v1.md`, `essence-derivation-v2.md`, `essence-derivation-v3.md`, `essence-derivation-v4-clean.md`, `v0.4-roadmap.md` |
 | **Background / survey** | `alternative-perspectives.md`, `path-C-lineage.md`, `ui-essence-layers.md` |
 | **Reference** | `glossary.md` |
 
@@ -165,9 +165,9 @@ Eight principles for Planex's doc organization, each grounded in the research an
 
 **Application:** Split `concepts/` along reader intent:
 - `concepts/canonical/` — normative position papers (abstraction-form, why-four-abstractions, leak-budgets, non-goals)
-- `concepts/state/` — descriptive current-state docs (architecture, limitations, ui-pattern-coverage, roadmap-matrix, versioning, v0.4-roadmap)
+- `concepts/state/` — descriptive current-state docs (architecture, limitations, ui-pattern-coverage, roadmap-matrix, versioning, v0.7-roadmap)
 - `concepts/speculation/` — proposals not yet accepted (continuous-intent-speculation)
-- `concepts/history/` — superseded derivation docs (essence-derivation-v1, v2, v3, v4-clean)
+- `concepts/history/` — superseded docs (essence-derivation-v1, v2, v3, v4-clean, v0.4-roadmap)
 - `concepts/background/` — literature surveys (alternative-perspectives, path-C-lineage, ui-essence-layers)
 - `concepts/glossary.md` — promoted to top-level `reference/glossary.md` (per Principle 3)
 
@@ -225,14 +225,15 @@ docs/
 │   │   ├── ui-pattern-coverage.md
 │   │   ├── roadmap-matrix.md
 │   │   ├── versioning.md
-│   │   └── v0.4-roadmap.md
+│   │   └── v0.7-roadmap.md
 │   ├── speculation/       # proposals not yet accepted
 │   │   └── continuous-intent-speculation.md
-│   ├── history/           # superseded derivation docs
+│   ├── history/           # superseded docs
 │   │   ├── essence-derivation-v1.md
 │   │   ├── essence-derivation-v2.md
 │   │   ├── essence-derivation-v3.md
-│   │   └── essence-derivation-v4-clean.md
+│   │   ├── essence-derivation-v4-clean.md
+│   │   └── v0.4-roadmap.md
 │   └── background/         # literature surveys
 │       ├── alternative-perspectives.md
 │       ├── path-C-lineage.md
@@ -290,7 +291,7 @@ Four waves, each independently shippable as a single PR. The waves are ordered b
 | `docs/concepts/state/ui-pattern-coverage.md` | `docs/concepts/state/ui-pattern-coverage.md` | descriptive |
 | `docs/concepts/state/roadmap-matrix.md` | `docs/concepts/state/roadmap-matrix.md` | descriptive |
 | `docs/concepts/state/versioning.md` | `docs/concepts/state/versioning.md` | descriptive |
-| `docs/concepts/state/v0.4-roadmap.md` | `docs/concepts/state/v0.4-roadmap.md` | descriptive |
+| `docs/concepts/history/v0.4-roadmap.md` | `docs/concepts/history/v0.4-roadmap.md` (moved from `state/` at v0.6.0) | superseded |
 | `docs/concepts/speculation/continuous-intent-speculation.md` | `docs/concepts/speculation/continuous-intent-speculation.md` | speculative |
 | `docs/concepts/history/essence-derivation-v1.md` | `docs/concepts/history/essence-derivation-v1.md` | superseded |
 | `docs/concepts/history/essence-derivation-v2.md` | `docs/concepts/history/essence-derivation-v2.md` | superseded |

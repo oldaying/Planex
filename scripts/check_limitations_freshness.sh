@@ -37,8 +37,9 @@
 #   - docs/changelog.md
 #   - docs/research/
 #   - docs/concepts/history/
+#     (v0.4-roadmap.md moved there at v0.6.0; the blanket history/ exemption
+#      now covers it — the former explicit state/ entry was removed)
 #   - docs/concepts/background/
-#   - docs/concepts/state/v0.4-roadmap.md         (file name is the version tag)
 #   - docs/concepts/state/ui-pattern-coverage.md  (Applies to v0.4 snapshot)
 #   - docs/concepts/state/roadmap-matrix.md       (Applies to v0.4 forward-looking)
 #   - docs/concepts/canonical/why-four-abstractions.md
@@ -105,7 +106,6 @@ exempt_paths=(
     "docs/research/"
     "docs/concepts/history/"
     "docs/concepts/background/"
-    "docs/concepts/state/v0.4-roadmap.md"
     "docs/concepts/state/ui-pattern-coverage.md"
     "docs/concepts/state/roadmap-matrix.md"
     "docs/concepts/canonical/why-four-abstractions.md"

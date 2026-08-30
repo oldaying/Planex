@@ -7,7 +7,7 @@ A "state" doc:
 - Describes the **current** state (architecture, limitations, roadmap, versioning).
 - Is **descriptive** (contrasts with `canonical/` which is normative).
 - Is **current** (not superseded — `history/` is for that).
-- May include planned future work (in `roadmap-matrix.md` and the version roadmaps `v0.4-roadmap.md` / `v0.7-roadmap.md`) but the work is described as "planned", not as "committed" — commitment requires an ADR.
+- May include planned future work (in `roadmap-matrix.md` and the current version roadmap, `v0.7-roadmap.md`) but the work is described as "planned", not as "committed" — commitment requires an ADR. Superseded roadmaps (e.g. `v0.4-roadmap.md`) live in [`../history/`](../history/).
 
 ## Contents
 
@@ -18,7 +18,6 @@ A "state" doc:
 | [`ui-pattern-coverage.md`](ui-pattern-coverage.md) | v0.4 snapshot: 68 UI patterns × 4 abstractions coverage matrix. The v0.5 canonical replacement is [`../../reference/ui-pattern-corpus.md`](../../reference/ui-pattern-corpus.md) (5 abstractions + CI-enforced via `make check-completeness`); this v0.4 doc is retained for history of the analysis. <!-- stale-allow: describes the v0.4 snapshot file's content; "4 abstractions" is accurate for that era --> |
 | [`roadmap-matrix.md`](roadmap-matrix.md) | Cross-tab of abstractions × verification dimensions (tradition citation, orthogonality test, leak budget, example count). |
 | [`versioning.md`](versioning.md) | Planex's three-system versioning rule book (semantic version, abstraction epoch, leak budget epoch). |
-| [`v0.4-roadmap.md`](v0.4-roadmap.md) | The v0.4 minor-version roadmap. Items here describe planned work; commitment is via ADR. |
 | [`v0.7-roadmap.md`](v0.7-roadmap.md) | The v0.7 minor-version roadmap: mechanism judges for the doc-only axioms (intent compilation promotion, budget-as-contract, Estimate schema, a11y AT-SPI2 bridge, Closure constructor split), the interaction promotion decision, the Path C adoption posture, and the conditions ledger. Items here describe planned work; commitment is via ADR. |
 
 ## Relationship to other directories
