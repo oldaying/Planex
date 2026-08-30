@@ -710,6 +710,76 @@ static void test_e2_ordering_mistake_unwritable(void) {
 }
 
 /* ============================================================
+ * F. Edge lifecycle — px_undeclare (the CI-found dangling edge)
+ *
+ * The v0.7 push's first CI run aborted hover_drag_interaction on
+ * the final affordance assertion on Ubuntu while passing locally.
+ * Root cause: the example freed and recreated the drag process
+ * without retiring its AFFORDS edges; px_afford_at then returned
+ * the dead pointer. The assertion only passed on Debian glibc
+ * because the allocator reused the freed address — layout luck,
+ * not correctness. Section F pins the retirement discipline.
+ * ============================================================ */
+
+static void test_f1_undeclare_retires_the_edge(void) {
+    /* declare → retire → gone from has_relation AND query AND count;
+     * retiring a retired edge is an honest false. */
+    px_graph* g = px_graph_new();
+    int a = 0, b = 0;
+    assert(px_declare(g, &a, PX_REL_TRIGGERS, &b));
+    assert(px_has_relation(g, &a, PX_REL_TRIGGERS, &b));
+    assert(px_undeclare(g, &a, PX_REL_TRIGGERS, &b));
+    assert(!px_has_relation(g, &a, PX_REL_TRIGGERS, &b));
+    px_node_list l = px_query(g, &a, PX_REL_TRIGGERS);
+    assert(l.count == 0);
+    px_node_list_free(&l);
+    assert(px_graph_count(g) == 0);
+    assert(!px_undeclare(g, &a, PX_REL_TRIGGERS, &b)); /* already gone */
+    px_graph_free(g);
+}
+
+static void test_f2_undeclare_spares_siblings(void) {
+    /* Only the first (a, kind, b) match goes: same-kind siblings
+     * and same-endpoint different-kind edges survive. */
+    px_graph* g = px_graph_new();
+    int a = 0, b1 = 0, b2 = 0;
+    px_declare(g, &a, PX_REL_TRIGGERS, &b1);
+    px_declare(g, &a, PX_REL_TRIGGERS, &b2);
+    px_declare(g, &a, PX_REL_DEPENDS_ON, &b1);
+    assert(px_undeclare(g, &a, PX_REL_TRIGGERS, &b1));
+    assert(px_graph_count(g) == 2);
+    assert(!px_has_relation(g, &a, PX_REL_TRIGGERS, &b1));
+    assert(px_has_relation(g, &a, PX_REL_TRIGGERS, &b2));
+    assert(px_has_relation(g, &a, PX_REL_DEPENDS_ON, &b1)); /* kind-scoped */
+    px_graph_free(g);
+}
+
+static void test_f3_dangling_edge_regression(void) {
+    /* The CI regression pinned: retire-then-free keeps px_afford_at
+     * naming the LIVE process across a rebuild, independent of
+     * allocator layout. Region is process-global — freed at the end. */
+    px_graph* g = px_graph_new();
+    px_region* r = px_region_new(px_rect_make(20, 40, 280, 32), "item");
+    px_interaction* drag = px_interaction_new("drag", 8);
+    px_declare(g, r, PX_REL_AFFORDS, drag);
+
+    /* The discipline the example now follows. */
+    px_undeclare(g, r, PX_REL_AFFORDS, drag);
+    px_interaction_free(drag);
+    drag = px_interaction_new("drag-2", 8);
+    px_declare(g, r, PX_REL_AFFORDS, drag);
+
+    px_closure* afforded = px_afford_at(g, 100, 50);
+    assert((void*)afforded == (void*)drag);      /* the LIVE process */
+    assert(px_has_relation(g, r, PX_REL_AFFORDS, drag));
+
+    px_undeclare(g, r, PX_REL_AFFORDS, drag);
+    px_interaction_free(drag);
+    px_region_free(r);
+    px_graph_free(g);
+}
+
+/* ============================================================
  * Main
  * ============================================================ */
 
@@ -720,7 +790,8 @@ int main(void) {
     printf("B. Line 2 — budget as contract.\n");
     printf("C. Line 3 — Estimate schema.\n");
     printf("D. Line 4 — a11y bridge stub contract.\n");
-    printf("E. Line 5 — Closure constructor split.\n\n");
+    printf("E. Line 5 — Closure constructor split.\n");
+    printf("F. Edge lifecycle — px_undeclare (CI-found dangling edge).\n\n");
 
     printf("[A] Intent compilation routing\n");
     TEST(a1_compile_resolves_region_to_closure);
@@ -750,6 +821,11 @@ int main(void) {
     TEST(e1_with_graph_binds_at_birth);
     TEST(e2_ordering_mistake_unwritable);
 
+    printf("\n[F] Edge lifecycle: px_undeclare\n");
+    TEST(f1_undeclare_retires_the_edge);
+    TEST(f2_undeclare_spares_siblings);
+    TEST(f3_dangling_edge_regression);
+
     printf("\n----------------\n");
     printf("%d/%d passed\n", g_tests_pass, g_tests_run);
     printf("\nWhat this suite closes (v0.7-roadmap Line 1):\n");
@@ -772,5 +848,8 @@ int main(void) {
     printf("  - closure constructor split: graph at birth, aggregate L2\n");
     printf("    = 0%% — the ordering leak is unwritable (bind_graph\n");
     printf("    deprecated, registry-tracked)\n");
+    printf("  - edge lifecycle: px_undeclare retires edges before their\n");
+    printf("    endpoints die — px_afford_at names the LIVE process on\n");
+    printf("    every allocator layout (the CI-found dangling edge)\n");
     return (g_tests_pass == g_tests_run) ? 0 : 1;
 }

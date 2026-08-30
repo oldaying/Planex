@@ -296,11 +296,24 @@ int main(void) {
            "    3 Estimates × 62 writes instead)\n\n", app.hook_fires);
 
     /* Re-arm: a committed process is terminal; the app loop would
-     * create (or reset) the next one. We exercise a fresh one here. */
+     * create (or reset) the next one. We exercise a fresh one here.
+     * The AFFORDS edges name the process by POINTER — the edges are
+     * retired BEFORE the process is freed and re-declared for its
+     * successor. Skipping the retire step leaves dangling edges:
+     * px_afford_at would hand callers a dead pointer whenever the
+     * allocator does not reuse the freed address (the CI-found
+     * regression — it passed on Debian glibc by layout luck and
+     * aborted on the Ubuntu runner). */
+    for (int i = 0; i < N_ITEMS; i++) {
+        px_undeclare(app.graph, app.item_region[i], PX_REL_AFFORDS, app.drag);
+    }
     px_interaction_free(app.drag);
     app.drag = px_interaction_new("list-drag-2", 64);
     px_interaction_on_phase(app.drag, on_drag_phase, &app);
     px_interaction_on_cancel(app.drag, app.cancel_drag);
+    for (int i = 0; i < N_ITEMS; i++) {
+        px_declare(app.graph, app.item_region[i], PX_REL_AFFORDS, app.drag);
+    }
 
     /* ---- 3. drag + ESC → cancel: nothing reorders ----------------- */
     printf("[3] drag slot 0 toward slot 3, then ESC (cancel)...\n");
@@ -364,12 +377,16 @@ int main(void) {
     }
     printf("\n");
 
-    /* Affordance check — intent compilation end to end. */
+    /* Affordance check — intent compilation end to end. With the
+     * retire-then-re-declare discipline above this asserts the LIVE
+     * process pointer on every allocator layout (no address-reuse
+     * luck involved); it tightened from the old two-way assert,
+     * whose second arm (commit_reorder) was never an AFFORDS
+     * target and only ever matched by accident. */
     px_closure* afforded = px_afford_at(app.graph, 160, ITEM_Y_START + 3 * ITEM_H + 5);
     printf("  afford_at(slot 3):  %s\n",
            afforded ? "found (drag process)" : "NULL");
-    assert((void*)afforded == (void*)app.drag ||
-           (void*)afforded == (void*)app.commit_reorder);
+    assert((void*)afforded == (void*)app.drag);
 
     /* ---- cleanup -------------------------------------------------- */
     px_interaction_free(app.drag);

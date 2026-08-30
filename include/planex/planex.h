@@ -126,6 +126,20 @@ void         px_graph_free(px_graph* g);
 /* Declare a relation. Returns NULL on failure. */
 px_relation* px_declare(px_graph* g, void* a, px_rel_kind kind, void* b);
 
+/* Retire the first relation matching (a, kind, b). Returns true if
+ * an edge was removed — the edge-lifecycle counterpart of
+ * px_has_relation.
+ *
+ * EDGE LIFECYCLE CONTRACT: edges name their endpoints by pointer,
+ * and nothing cascades. Freeing an endpoint (region, closure,
+ * interaction, estimate) without retiring its edges leaves them
+ * DANGLING — px_query/px_afford_at will hand callers a dead
+ * pointer. The declaring code owns the edges: retire them before
+ * freeing the endpoint. (The CI-found dangling-AFFORDS regression
+ * in examples/hover_drag_interaction.c is the pinning example;
+ * tests/test_v07.c section F locks the discipline.) */
+bool         px_undeclare(px_graph* g, void* a, px_rel_kind kind, void* b);
+
 /* Query: does this relation exist? */
 bool         px_has_relation(px_graph* g, void* a, px_rel_kind kind, void* b);
 

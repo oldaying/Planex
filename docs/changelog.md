@@ -39,6 +39,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - CI gains the `a11y-atspi-bridge` compile-probe job: installs atk headers and compiles the adapter under the flag — absent headers report "condition unmet" (row stays partial); present headers make the compile blocking (API drift is caught).
 - `PLATFORMS.md`: Linux accessibility flips from "API + logging" to "AT-SPI2 bridge behind PX_A11Y_ATSPI + query side". `limitations.md` L9 partial-resolution: orca end-to-end verification remains the open external condition.
 
+### Fixed — v0.7: edge lifecycle — px_undeclare (the CI-found dangling edge)
+
+- The v0.7 push's first CI run exposed two real defects; both are fixed here.
+- **Dangling AFFORDS edges**: `examples/hover_drag_interaction.c` aborted on its final affordance assertion on the Ubuntu runner while passing on Debian — the example freed and recreated the drag process but left its five AFFORDS edges pointing at the dead object; `px_afford_at` returned a freed pointer. The local pass was allocator layout luck (Debian glibc reused the freed address; the runner's glibc did not). No Planex API could express the honest fix: the graph had create/read without delete.
+- `px_undeclare(g, a, kind, b)`: retires the first edge matching (a, kind, b) — the edge-lifecycle counterpart of `px_has_relation`, symmetric predicate, propagation-accounted. **Edge-lifecycle contract** stated at the declaration site: edges name endpoints by pointer, nothing cascades, the declarer retires before freeing the endpoint.
+- `hover_drag_interaction.c`: the re-arm sequence now retires → frees → recreates → re-declares; the assertion tightens to the live process pointer (no address-reuse luck involved) — its second arm (`commit_reorder`) was never an AFFORDS target.
+- `tests/test_v07.c` section F (3 tests): retirement semantics, sibling-edge sparing, and the dangling-edge regression pinned as the discipline.
+- **CI `a11y-atspi-bridge`**: `at-spi2-atk` no longer exists on Ubuntu 24.04 (folded into at-spi2-core); the probe installs `libatk1.0-dev` only — the probe's absent-header branch still reports "condition unmet" honestly where a distro ships no bridge header.
+
 ### Added — v0.7: Estimate schema — the describable value contract (Line 3)
 
 - `px_estimate_schema` (kind + name + optional print/equal) beside the value: opt-in via `px_estimate_set_schema` (borrowed pointer, app-owned static const; zero cost when unset). Not a type system — a describable contract: tests assert "this estimate is INT and equals 3" (`px_estimate_schema_of` + `px_value_kind_name`), values denotate kind-aware (`px_estimate_describe` — INT/DOUBLE/PERCENT/BOOL defaults or custom print), equality is kind-aware (`px_estimate_value_equal` — exact for discrete kinds, 1e-9 for DOUBLE).

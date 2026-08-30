@@ -124,6 +124,36 @@ bool px_has_relation(px_graph* g, void* a, px_rel_kind kind, void* b) {
     return false;
 }
 
+/* Retire the first edge matching (a, kind, b) — the edge-lifecycle
+ * counterpart of px_has_relation. Until this existed the graph had
+ * create/read without delete, which made the honest lifetime
+ * discipline (retire before freeing an endpoint) impossible to
+ * write: the CI-found dangling-AFFORDS regression in
+ * hover_drag_interaction.c surfaced a dead interaction pointer from
+ * px_afford_at whenever the allocator did not reuse the freed
+ * address (Debian glibc did, Ubuntu CI glibc did not — layout
+ * luck, not correctness). Edges name endpoints by pointer and
+ * nothing cascades: the declarer owns the edges and retires them
+ * before freeing the endpoint. Actor-scoped edges (px_declare_for)
+ * are matched on (a, kind, b) only, first match wins — same
+ * predicate shape as px_has_relation. */
+bool px_undeclare(px_graph* g, void* a, px_rel_kind kind, void* b) {
+    if (!g || !a || !b) return false;
+    px_relation** pp = &g->head;
+    while (*pp) {
+        g_px_edges_walked++; /* v0.7 Line 2: propagation accounting */
+        if ((*pp)->a == a && (*pp)->kind == kind && (*pp)->b == b) {
+            px_relation* dead = *pp;
+            *pp = dead->next;
+            free(dead);
+            g->count--;
+            return true;
+        }
+        pp = &(*pp)->next;
+    }
+    return false;
+}
+
 px_node_list px_query(px_graph* g, void* node, px_rel_kind kind) {
     /* Backward-compat wrapper: old px_query returns nodes for any actor
      * (i.e., actor=NULL in the 3-place model). */
