@@ -4,7 +4,9 @@
  * This demo proves that Relation is NECESSARY, not just convenient.
  * It does this by implementing undo-via-graph:
  *
- *   1. Bind Closure to graph: px_closure_bind_graph(inc, graph)
+ *   1. Create closures WITH the graph: px_closure_new_with_graph(..., g)
+ *      (v0.7; the demo originally used the two-call px_closure_bind_graph
+ *      form — deprecated since ADR-0019)
  *   2. Enable undo: px_undo_set_enabled(true)
  *   3. Trigger Closure multiple times — each trigger auto-snapshots
  *      the affected Estimates (via TRIGGERS relation)
@@ -73,19 +75,17 @@ int main(void) {
     app.unrelated = px_estimate_new(999, 1.0);  /* not bound to any Closure */
     px_graph* g = px_graph_new();
 
-    px_closure* inc = px_closure_new("increment", PX_INTENT_REQUEST,
-                                      on_inc, eval_always_true, &app);
-    px_closure* dec = px_closure_new("decrement", PX_INTENT_REQUEST,
-                                      on_dec, eval_always_true, &app);
+    /* v0.7: the graph arrives with the closures (ADR-0019 constructor
+     * split — the bind call cannot be forgotten or raced). */
+    px_closure* inc = px_closure_new_with_graph("increment", PX_INTENT_REQUEST,
+                                                on_inc, eval_always_true, &app, g);
+    px_closure* dec = px_closure_new_with_graph("decrement", PX_INTENT_REQUEST,
+                                                on_dec, eval_always_true, &app, g);
 
     /* Declare: inc TRIGGERS count, dec TRIGGERS count.
      * Crucially: NO Closure triggers 'unrelated'. */
     px_declare(g, inc, PX_REL_TRIGGERS, app.count);
     px_declare(g, dec, PX_REL_TRIGGERS, app.count);
-
-    /* v0.3: bind graph to closures so trigger auto-snapshots */
-    px_closure_bind_graph(inc, g);
-    px_closure_bind_graph(dec, g);
 
     /* Enable undo recording */
     px_undo_set_enabled(true);

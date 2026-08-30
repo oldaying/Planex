@@ -45,6 +45,7 @@ The distinction matters: a "deprecated" API will eventually be removed; a "diagn
 | `px_perception_invoke_all()` | diagnostic seam | n/a (v0.5 retire of L2 leak) | (kept for testing/debugging) | Phase 2 auto-invocation landed in v0.5 (closing the L2 leak where Perception was a no-op that callers had to invoke manually). The manual invoke functions remain as a diagnostic seam: tests and debugging benefit from being able to trigger Perception outside the auto-invocation path. Removing them would break tests without cleaning up any abstraction-eroding leak. | [ADR-0013](../decisions/accepted/ADR-0013-v05-leak-budget-retire.md) |
 | `px_perception_invoke_single(...)` | diagnostic seam | n/a | (kept) | Same as above. | [ADR-0013](../decisions/accepted/ADR-0013-v05-leak-budget-retire.md) |
 | `px_perception_invoke_for_estimate(e)` | diagnostic seam | n/a | (kept) | Same as above. | [ADR-0013](../decisions/accepted/ADR-0013-v05-leak-budget-retire.md) |
+| `px_closure_bind_graph(c, g)` | deprecated | v0.7 (deprecated; removal candidate v1.0) | `px_closure_new_with_graph(goal, kind, action, evaluation, user, graph)` | The two-call form has an ordering dependency the C type system cannot enforce (bind must precede trigger or undo silently records nothing) — the last aggregate L2 leak, retired by constructor shape so the mistake is unwritable. Still callable through the window; the v0.6 one-time warning guards deliberate unbound use. | [ADR-0019](../decisions/accepted/ADR-0019-v07-leak-budget-retire.md) |
 
 ---
 

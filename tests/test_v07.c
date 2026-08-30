@@ -20,6 +20,9 @@
  *   D. Line 4 — the a11y AT-SPI2 bridge: the stub contract when the
  *      flag is absent (the real adapter compile-probes in CI).
  *
+ *   E. Line 5 — Closure constructor split: the graph arrives with
+ *      the closure; the bind_graph ordering leak is unwritable.
+ *
  * Build (or: make test_v07):
  *   cc -std=c17 -I include tests/test_v07.c \
  *      src/relation.c src/estimate.c src/closure.c src/perception.c \
@@ -434,15 +437,15 @@ static void test_b4_propagation_accounting(void) {
     px_estimate* c = px_derived_new(passthrough, NULL, &b, 1);
     px_estimate* d = px_derived_new(sum2, NULL, (px_estimate*[]){a, c}, 2);
 
-    px_closure* seta = px_closure_new("set a", PX_INTENT_REQUEST,
-                                      on_set_src, eval_true, a);
+    /* Undo wiring via the v0.7 constructor split (Line 5): the graph
+     * arrives with the closure — no bind call to forget. */
+    px_closure* seta = px_closure_new_with_graph(
+        "set a", PX_INTENT_REQUEST, on_set_src, eval_true, a, g);
     px_estimate* srcs[] = { d };
     px_perception* p = px_perception_new("p", perceive_null, srcs, 1, NULL);
     px_loop* loop = px_loop_new(seta, p);
 
-    /* Undo wiring: the trigger walks the graph. */
     px_declare(g, seta, PX_REL_TRIGGERS, a);
-    px_closure_bind_graph(seta, g);
     px_undo_set_enabled(true);
 
     px_loop_step(loop, NULL, 0);   /* a += 1 → b, c, d recompute */
@@ -652,6 +655,61 @@ static void test_d1_bridge_stub_contract(void) {
 }
 
 /* ============================================================
+ * E. Line 5 — Closure constructor split (the last L2 retire)
+ * ============================================================ */
+
+static void test_e1_with_graph_binds_at_birth(void) {
+    /* The graph arrives WITH the closure; undo records immediately —
+     * there is no bind call to forget, no window to race. */
+    px_graph* g = px_graph_new();
+    px_estimate* count = px_estimate_new(0, 1.0);
+    px_closure* inc = px_closure_new_with_graph(
+        "inc", PX_INTENT_REQUEST, on_set_src, eval_true, count, g);
+    assert(inc);
+
+    px_declare(g, inc, PX_REL_TRIGGERS, count);
+    px_undo_set_enabled(true);
+    px_undo_clear();
+
+    px_closure_trigger(inc, NULL, 0);
+    assert(px_estimate_value(count) == 1.0);
+    assert(px_undo_count() == 1);           /* recorded — no bind call */
+    assert(px_undo() == 1);                 /* and it restores */
+    assert(px_estimate_value(count) == 0.0);
+
+    px_undo_set_enabled(false);
+    px_closure_free(inc);
+    px_estimate_free(count);
+    px_graph_free(g);
+}
+
+static void test_e2_ordering_mistake_unwritable(void) {
+    /* The v0.6 leak: create, trigger, THEN bind — undo silently
+     * recorded nothing. With the split constructor there is no code
+     * shape that produces this bug: the graph is a constructor
+     * argument. This test pins the OLD failure mode's absence by
+     * demonstrating the deprecated path still works when used in
+     * the right order (deprecation window, registry-tracked). */
+    px_graph* g = px_graph_new();
+    px_estimate* count = px_estimate_new(0, 1.0);
+    px_closure* inc = px_closure_new("inc", PX_INTENT_REQUEST,
+                                     on_set_src, eval_true, count);
+    px_declare(g, inc, PX_REL_TRIGGERS, count);
+    px_undo_set_enabled(true);
+    px_undo_clear();
+
+    /* Deprecated two-call form, used correctly: still functional. */
+    px_closure_bind_graph(inc, g);
+    px_closure_trigger(inc, NULL, 0);
+    assert(px_undo_count() == 1);
+
+    px_undo_set_enabled(false);
+    px_closure_free(inc);
+    px_estimate_free(count);
+    px_graph_free(g);
+}
+
+/* ============================================================
  * Main
  * ============================================================ */
 
@@ -661,7 +719,8 @@ int main(void) {
     printf("A. Line 1 — intent compilation routing (afford/region).\n");
     printf("B. Line 2 — budget as contract.\n");
     printf("C. Line 3 — Estimate schema.\n");
-    printf("D. Line 4 — a11y bridge stub contract.\n\n");
+    printf("D. Line 4 — a11y bridge stub contract.\n");
+    printf("E. Line 5 — Closure constructor split.\n\n");
 
     printf("[A] Intent compilation routing\n");
     TEST(a1_compile_resolves_region_to_closure);
@@ -687,6 +746,10 @@ int main(void) {
     printf("\n[D] a11y bridge stub contract (Line 4)\n");
     TEST(d1_bridge_stub_contract);
 
+    printf("\n[E] Closure constructor split (Line 5)\n");
+    TEST(e1_with_graph_binds_at_birth);
+    TEST(e2_ordering_mistake_unwritable);
+
     printf("\n----------------\n");
     printf("%d/%d passed\n", g_tests_pass, g_tests_run);
     printf("\nWhat this suite closes (v0.7-roadmap Line 1):\n");
@@ -706,5 +769,8 @@ int main(void) {
     printf("    a11y value-naming seam (set_value_estimate)\n");
     printf("  - a11y bridge: honest stub without the flag (attach NULL,\n");
     printf("    NULL-safe no-ops); real adapter compiled by the CI probe\n");
+    printf("  - closure constructor split: graph at birth, aggregate L2\n");
+    printf("    = 0%% — the ordering leak is unwritable (bind_graph\n");
+    printf("    deprecated, registry-tracked)\n");
     return (g_tests_pass == g_tests_run) ? 0 : 1;
 }

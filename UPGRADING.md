@@ -91,6 +91,47 @@ minimum C standard bumped from C11 to C17; new required dependency on
 
 ## Entries
 
+### v0.7 (2026-08-30)
+
+Not an ABI break — additive changes plus one deprecation. Listed here because
+the deprecation has a migration path and two v0.7 defaults are behavior
+changes worth knowing about. See ADR-0017/0018 (abstraction promotions) and
+ADR-0019 (the leak-budget retire) for the decisions.
+
+#### `++ API changes:`
+
+- **`px_closure_bind_graph` deprecated** (removal candidate v1.0):
+  - Before: `px_closure_new(...)` then `px_closure_bind_graph(c, g)`
+    (must precede the first trigger, or undo silently records nothing)
+  - After: `px_closure_new_with_graph(goal, kind, action, evaluation, user, g)`
+    — the graph arrives with the closure; the ordering mistake is unwritable
+  - Why: the two-call form was the last aggregate L2 leak (ADR-0019)
+  - Migration: mechanical — move the graph argument into the constructor and
+    delete the bind call. The old form stays callable through the window.
+  - ADR: [ADR-0019](docs/decisions/accepted/ADR-0019-v07-leak-budget-retire.md)
+
+- **`px_loop` now has a default budget (16ms)**:
+  - Before: `px_loop_new` created loops with no deadline (budget 0)
+  - After: every loop ships with `PX_LOOP_DEFAULT_BUDGET_MS` (one 60fps
+    frame); overruns warn once on stderr and count in
+    `px_loop_budget_overruns()`; audit entries carry propagation
+    accounting (`propagation_edges` / `propagation_depth`)
+  - Why: budget-as-contract (v0.7 Line 2) — unbudgeted feedback is the
+    Garnet/Amulet failure mode
+  - Migration: loops that genuinely want no deadline call
+    `px_loop_set_budget(loop, 0)` explicitly — now a decision, not a default
+
+- **Audit entry struct grew** (`propagation_edges`, `propagation_depth`):
+  additive; recompile-only. `px_pointer_intent`, `px_estimate_schema`, the
+  intent-routing `px_app_desc.intent_graph`, and the a11y bridge API are
+  likewise additive (opt-in, zero cost when unused).
+
+#### `++ Build changes:`
+
+- New source `src/a11y_bridge_atspi.c` is in the default build as a stub;
+  compiling the real AT-SPI2 bridge needs `-DPX_A11Y_ATSPI` + atk headers
+  (see PLATFORMS.md).
+
 ### v4 (released 2026-08)
 
 The v4 rederivation. ABI break from v0.4. See ADR-0012 for the

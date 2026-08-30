@@ -22,6 +22,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Corpus Category D re-scored (same-commit amendment): P24–P28, P32, P36 flip to ✅ CLEAN (EXAMPLE-grounded); P29/P37 downgrade ❌→⚠️. Distribution 31/29/8 → **38/24/6**; test_completeness constants updated (75/75 checks).
 - Abstraction count 5 → 7 across all non-exempt docs; `check_stale_abstraction_count.sh` now enforces the 7-count (stale 5/five pattern + stops-at-px_loop enumeration pattern).
 
+### Changed — v0.7: Closure constructor split retires the last L2 (Line 5, ADR-0019)
+
+- `px_closure_new_with_graph(goal, kind, action, evaluation, user, graph)`: the undo graph arrives with the closure — the bind-before-trigger ordering rule is deleted from the API's grammar (the mistake is unwritable). `px_closure_bind_graph` is **deprecated** (registry entry; removal candidate v1.0), still functional through the window; the v0.6 one-time warning now guards only deliberate unbound use.
+- **Aggregate L2 = 0/99 = 0%** — first zero. Retire curve: 17% (v0.4) → 3.8% (v0.5) → 1.7% (v0.6) → 0% (v0.7). The leak-budget gate holds it there.
+- Examples migrated to the safe form: `undo_via_graph.c`, `palette_afford.c`, `integration_4abs.c`, `counter_perception_window.c`. Tests: `test_v07.c` section E. `UPGRADING.md` gains the v0.7 migration entries (deprecation + default-budget behavior change + additive structs).
+
 ### Added — v0.7: a11y AT-SPI2 bridge behind the query-side contract (Line 4)
 
 - `src/a11y_bridge_atspi.c`: the Linux adapter (ATK + atk-bridge provider path) — a replaceable adapter behind the v0.6 query-side contract, not an ontology commitment. The mirror is minimal (application root + current element + alert): roles/states/names/values sync on flush; the announcement ring drains into the alert object (orca reads alert name changes). Known limits recorded in-source: values ride in the description (no AtkValue on no-op objects), flat tree, identical consecutive announcements fire once.

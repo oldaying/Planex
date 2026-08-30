@@ -114,9 +114,35 @@ px_closure* px_closure_new(
     return c;
 }
 
+/* v0.7 Line 5 (ADR-0019): the constructor split that retires the last
+ * aggregate L2 leak. The graph arrives WITH the closure — before any
+ * trigger can race it — so the bind_graph ordering dependency (call
+ * bind BEFORE trigger or undo silently does nothing) becomes
+ * unwritable by construction. */
+px_closure* px_closure_new_with_graph(
+    const char*      goal,
+    px_intent_kind   intent_kind,
+    px_action_fn     action,
+    px_eval_fn       evaluation,
+    void*            user,
+    px_graph*        graph) {
+
+    px_closure* c = px_closure_new(goal, intent_kind, action,
+                                   evaluation, user);
+    if (!c) return NULL;
+    c->undo_graph = graph;   /* bound at birth; no two-call window */
+    return c;
+}
+
 /* v0.3: bind a graph to this closure for undo-via-graph.
  * After binding, if px_undo_is_enabled(), px_closure_trigger
- * will automatically snapshot affected Estimates before action. */
+ * will automatically snapshot affected Estimates before action.
+ *
+ * DEPRECATED since v0.7 (ADR-0019): the two-call form is the last
+ * aggregate L2 leak — an ordering dependency the type system cannot
+ * enforce. Use px_closure_new_with_graph(...) instead; this form
+ * remains callable through the deprecation window (registry:
+ * deprecation-registry.md). */
 void px_closure_bind_graph(px_closure* c, px_graph* g) {
     if (c) c->undo_graph = g;
 }

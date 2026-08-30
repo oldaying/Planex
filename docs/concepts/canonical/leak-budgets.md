@@ -387,14 +387,14 @@ ADR-0017 (intent compilation) and ADR-0018 (px_interaction) promoted two prototy
 |---|---|---|---|---|
 | Relation (+edges_walked, Line 2) | 8 | 5 | 0 | **0%** |
 | Estimate (+predict/surprise; +depth pair, Line 2; +schema ops, Line 3) | 27 | 4 | **0** | **0%** |
-| Closure | 12 | 6 | 1 | **8%** (loud; constructor split is the v0.7 Line 5 target) |
+| Closure (+new_with_graph, Line 5) | 13 | 6 | **0** | **0%** (bind_graph deprecated, ADR-0019) |
 | Perception (+set_free_fn) | 7 | 1 | **0** | **0%** |
 | `px_loop` (+budget ops; +budget_overruns, Line 2) | 14 | 1 | **0** | **0%** |
 | **Intent compilation (new, Line 1)** | **8** | **2** | **0** | **0%** |
 | **`px_interaction` (new, Line 1)** | **22** | **2** | **0** | **0%** |
-| **Total (v0.7)** | **98** | **21** | **1** | **1.0%** |
+| **Total (v0.7 final)** | **99** | **21** | **0** | **0%** |
 
-Aggregate L2 = 1/98 = **1.0%**. The single remaining L2 (Closure `bind_graph` ordering) is unchanged from v0.6 and is the v0.7 Line 5 retire target (constructor split → aggregate L2 = 0%).
+Aggregate L2 = 0/99 = **0%** — first zero. The Closure `bind_graph` ordering leak (the last aggregate L2 since v0.6) is retired by the ADR-0019 constructor split: the graph arrives with the closure, so the bind-before-trigger ordering rule no longer exists to be forgotten. The budget gate holds this at zero; any new L2 must be retired in-version or explicitly re-budgeted in a successor ADR.
 
 ### Line 2 additions (budget as contract)
 
@@ -407,6 +407,12 @@ Aggregate L2 = 1/98 = **1.0%**. The single remaining L2 (Closure `bind_graph` or
 - `px_estimate_schema` (kind + name + optional print/equal) beside the value: opt-in via `px_estimate_set_schema`, borrowed pointer (app-owned static const), zero cost when unset. `px_estimate_describe` denotates through the schema or kind defaults; `px_estimate_value_equal` compares kind-aware; `px_a11y_set_value_estimate` is the a11y seam that reads it (feeds the Line 4 bridges).
 - The void* L1 retirement path recorded above: the contract half closes, the pointer half stays as documented permanent host cost.
 - Verification: `tests/test_v07.c` section C (4 tests).
+
+### Line 5 additions (Closure constructor split — aggregate L2 → 0%)
+
+- `px_closure_new_with_graph(goal, kind, action, evaluation, user, graph)` — the graph arrives with the closure; the bind-before-trigger ordering rule is deleted from the API's grammar. `px_closure_bind_graph` is deprecated (registry entry; removal candidate v1.0), still callable through the window; the v0.6 one-time warning now guards only deliberate unbound use.
+- Closure: 12 → 13 ops, L2 1 → **0**. Aggregate: **0/99 = 0%** — the retire curve 17% (v0.4) → 3.8% (v0.5) → 1.7% (v0.6) → 0% (v0.7) completes.
+- Verification: `tests/test_v07.c` section E (graph-at-birth records undo with zero bind calls; the deprecated form still works used correctly); examples migrated to the safe form (`undo_via_graph`, `palette_afford`, `integration_4abs`, `counter_perception_window`).
 
 ---
 

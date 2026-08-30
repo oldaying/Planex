@@ -242,16 +242,21 @@ int main(void) {
     app.canvas = px_region_new(px_rect_make(20, 96, 280, 120), "canvas");
     app.reset  = px_region_new(px_rect_make(250, 20, 50, 28), "reset");
 
-    /* Closures — the app's acts. */
-    app.select_color  = px_closure_new("select color",  PX_INTENT_REQUEST,
-                                       on_select_color, eval_true, &app);
-    app.canvas_act    = px_closure_new("canvas act (paint | context-clear)",
-                                       PX_INTENT_REQUEST,
-                                       on_canvas_act,   eval_true, &app);
-    app.set_brightness = px_closure_new("set brightness", PX_INTENT_DECLARE,
-                                        on_set_brightness, eval_true, &app);
-    app.reset_all     = px_closure_new("reset all",     PX_INTENT_REQUEST,
-                                       on_reset_all,    eval_true, &app);
+    /* Closures — the app's acts. The undo graph arrives WITH each
+     * closure (the v0.7 constructor split, ADR-0019): there is no
+     * bind call to forget, no ordering window to race. */
+    app.select_color  = px_closure_new_with_graph(
+        "select color",  PX_INTENT_REQUEST,
+        on_select_color, eval_true, &app, app.graph);
+    app.canvas_act    = px_closure_new_with_graph(
+        "canvas act (paint | context-clear)", PX_INTENT_REQUEST,
+        on_canvas_act,   eval_true, &app, app.graph);
+    app.set_brightness = px_closure_new_with_graph(
+        "set brightness", PX_INTENT_DECLARE,
+        on_set_brightness, eval_true, &app, app.graph);
+    app.reset_all     = px_closure_new_with_graph(
+        "reset all",     PX_INTENT_REQUEST,
+        on_reset_all,    eval_true, &app, app.graph);
 
     /* Affordances — one closure per act, label-driven. NOTE: the
      * canvas affords ONE closure (canvas_act), not separate paint/
@@ -275,11 +280,7 @@ int main(void) {
     px_declare(app.graph, app.reset_all,     PX_REL_TRIGGERS, app.sel_color);
     px_declare(app.graph, app.reset_all,     PX_REL_TRIGGERS, app.brightness);
     px_declare(app.graph, app.reset_all,     PX_REL_TRIGGERS, app.n_dots);
-    px_closure_bind_graph(app.select_color,  app.graph);
-    px_closure_bind_graph(app.canvas_act,    app.graph);
-    px_closure_bind_graph(app.set_brightness, app.graph);
-    px_closure_bind_graph(app.reset_all,     app.graph);
-    px_undo_set_enabled(true);
+    px_undo_set_enabled(true);   /* graphs bound at construction */
 
     /* The slider drag process. */
     app.slider_drag = px_interaction_new("slider", 64);

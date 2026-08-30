@@ -32,6 +32,7 @@ ADR numbering (ADR-0001 onward) is permanent; the directory only encodes the cur
 | ADR-0013 | [v0.5 Leak Budget Retire](accepted/ADR-0013-v05-leak-budget-retire.md) | accepted |
 | ADR-0017 | [Promote intent compilation (region + AFFORDS + compile step) to the 6th canonical abstraction](accepted/ADR-0017-intent-compilation-promotion.md) | accepted |
 | ADR-0018 | [Promote px_interaction (interaction process) to the 7th canonical abstraction](accepted/ADR-0018-interaction-process-promotion.md) | accepted |
+| ADR-0019 | [v0.7 leak-budget retire — Closure constructor split takes aggregate L2 to zero](accepted/ADR-0019-v07-leak-budget-retire.md) | accepted |
 | ADR-0001 | [Perception is currently a no-op placeholder](superseded/ADR-0001-perception-currently-noop.md) | superseded |
 
 ## Templates and rules

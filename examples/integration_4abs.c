@@ -215,11 +215,11 @@ int main(void) {
     a.doubled=px_derived_new(derive_doubled, NULL, srcs, 1);
 
     /* Closures: 5 different Intent kinds */
-    a.inc=px_closure_new("increment", PX_INTENT_REQUEST, on_inc, eval_nonneg, &a);
-    a.dec=px_closure_new("decrement", PX_INTENT_REQUEST, on_dec, eval_nonneg, &a);
-    a.reset=px_closure_new("reset counter", PX_INTENT_DECLARE, on_reset, eval_true, &a);
-    a.animate_to_10=px_closure_new("animate to 10", PX_INTENT_REQUEST, on_animate, eval_true, &a);
-    a.save=px_closure_new("save to server", PX_INTENT_PROMISE, on_save, eval_true, &a);
+    a.inc=px_closure_new_with_graph("increment", PX_INTENT_REQUEST, on_inc, eval_nonneg, &a, a.graph);
+    a.dec=px_closure_new_with_graph("decrement", PX_INTENT_REQUEST, on_dec, eval_nonneg, &a, a.graph);
+    a.reset=px_closure_new_with_graph("reset counter", PX_INTENT_DECLARE, on_reset, eval_true, &a, a.graph);
+    a.animate_to_10=px_closure_new_with_graph("animate to 10", PX_INTENT_REQUEST, on_animate, eval_true, &a, a.graph);
+    a.save=px_closure_new_with_graph("save to server", PX_INTENT_PROMISE, on_save, eval_true, &a, a.graph);
 
     /* Relations: all closures trigger count */
     px_declare(a.graph, a.inc,          PX_REL_TRIGGERS, a.count);
@@ -228,12 +228,8 @@ int main(void) {
     px_declare(a.graph, a.animate_to_10, PX_REL_TRIGGERS, a.count);
     px_declare(a.graph, a.save,         PX_REL_TRIGGERS, a.count);
 
-    /* Undo: bind all closures to graph */
-    px_closure_bind_graph(a.inc, a.graph);
-    px_closure_bind_graph(a.dec, a.graph);
-    px_closure_bind_graph(a.reset, a.graph);
-    px_closure_bind_graph(a.animate_to_10, a.graph);
-    px_closure_bind_graph(a.save, a.graph);
+    /* Undo: graphs bound at construction (v0.7 constructor split,
+     * ADR-0019 — the bind call cannot be forgotten). */
     px_undo_set_enabled(true);
 
     /* Perceptions: 3 denotations */

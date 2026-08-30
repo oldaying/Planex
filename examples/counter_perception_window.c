@@ -223,19 +223,17 @@ int main(void) {
     CounterApp app = {0};
     app.count = px_estimate_new(0, 1.0);
     app.graph = px_graph_new();
-    app.inc   = px_closure_new("increment counter", PX_INTENT_REQUEST,
-                                 on_inc, eval_nonneg, &app);
-    app.dec   = px_closure_new("decrement counter", PX_INTENT_REQUEST,
-                                 on_dec, eval_nonneg, &app);
+    app.inc   = px_closure_new_with_graph("increment counter", PX_INTENT_REQUEST,
+                                 on_inc, eval_nonneg, &app, app.graph);
+    app.dec   = px_closure_new_with_graph("decrement counter", PX_INTENT_REQUEST,
+                                 on_dec, eval_nonneg, &app, app.graph);
 
     px_declare(app.graph, app.inc, PX_REL_TRIGGERS, app.count);
     px_declare(app.graph, app.dec, PX_REL_TRIGGERS, app.count);
 
-    /* v0.3: bind graph to closures for undo-via-graph.
-     * When undo is enabled AND closure has bound graph,
-     * px_closure_trigger auto-snapshots affected Estimates. */
-    px_closure_bind_graph(app.inc, app.graph);
-    px_closure_bind_graph(app.dec, app.graph);
+    /* Undo: graphs bound at construction (v0.7 constructor split,
+     * ADR-0019). When undo is enabled, px_closure_trigger
+     * auto-snapshots affected Estimates. */
     px_undo_set_enabled(true);
 
     /* Register side perceptions (a11y + log) for the same Estimate.
