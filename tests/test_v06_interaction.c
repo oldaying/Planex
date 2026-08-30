@@ -630,7 +630,9 @@ static void test_j1_budget_audit_dimensions(void) {
     px_perception* p = px_perception_new("p", perceive_null, srcs, 1, NULL);
     px_loop* loop = px_loop_new(c, p);
 
-    assert(px_loop_budget(loop) == 0.0);     /* no budget by default */
+    /* v0.7 Line 2: budget is a CONTRACT — the default is one 60fps
+     * frame, not 0. (v0.6 had no default; j1 originally asserted 0.) */
+    assert(px_loop_budget(loop) == PX_LOOP_DEFAULT_BUDGET_MS);
     px_loop_set_budget(loop, 16.0);
     assert(px_loop_budget(loop) == 16.0);
 
@@ -653,7 +655,10 @@ static void test_j1_budget_audit_dimensions(void) {
     px_estimate_free(e);
 }
 
-static void test_j2_budget_disabled_by_default(void) {
+static void test_j2_budget_explicit_opt_out(void) {
+    /* v0.7 Line 2: renamed semantics — the budget is ON by default;
+     * disabling is an explicit opt-out. A loop without a deadline is
+     * a decision, not an accident. */
     px_estimate* e = px_estimate_new(0, 1.0);
     px_closure* c = px_closure_new("inc", PX_INTENT_REQUEST,
                                     on_inc, eval_true, e);
@@ -661,12 +666,23 @@ static void test_j2_budget_disabled_by_default(void) {
     px_perception* p = px_perception_new("p", perceive_null, srcs, 1, NULL);
     px_loop* loop = px_loop_new(c, p);
 
+    /* Default: one frame. */
+    assert(px_loop_budget(loop) == PX_LOOP_DEFAULT_BUDGET_MS);
     px_loop_step(loop, NULL, 0);
     px_loop_audit_entry entry;
     px_loop_audit_get(loop, &entry, 1);
-    assert(entry.budget_ms == 0.0);
+    assert(entry.budget_ms == PX_LOOP_DEFAULT_BUDGET_MS);
     assert(entry.budget_exceeded == false);
     assert(entry.iteration_ms >= 0.0);
+
+    /* Explicit opt-out: 0 means "no deadline, on purpose". */
+    px_loop_set_budget(loop, 0.0);
+    px_loop_step(loop, NULL, 0);
+    px_loop_audit_entry entries2[2];
+    assert(px_loop_audit_get(loop, entries2, 2) == 2);
+    assert(entries2[0].budget_ms == PX_LOOP_DEFAULT_BUDGET_MS); /* first */
+    assert(entries2[1].budget_ms == 0.0);                      /* opt-out */
+    assert(entries2[1].budget_exceeded == false);
 
     px_loop_free(loop);
     px_perception_free(p);
@@ -728,7 +744,7 @@ int main(void) {
 
     printf("\n[J] loop feedback budget\n");
     TEST(j1_budget_audit_dimensions);
-    TEST(j2_budget_disabled_by_default);
+    TEST(j2_budget_explicit_opt_out);
 
     printf("\n----------------\n");
     printf("%d/%d passed\n", g_tests_pass, g_tests_run);

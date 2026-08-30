@@ -689,6 +689,18 @@ typedef struct {
     double iteration_ms;
     double budget_ms;
     bool   budget_exceeded;
+    /* v0.7 Line 2 (budget as contract): propagation accounting — what
+     * did PROPAGATION cost this step, as opposed to what the frame
+     * cost? propagation_edges is the number of Relation-graph edges
+     * examined during the step (undo snapshots, affordance queries,
+     * dependency lookups — see px_relation_edges_walked());
+     * propagation_depth is the deepest derived-recompute chain
+     * observed since the previous audit entry was written (see
+     * px_derive_depth_peak()). Both are zero for steps whose
+     * propagation touches no graph and no deriveds — which is itself
+     * an honest answer. */
+    unsigned long long propagation_edges;
+    int                propagation_depth;
 } px_loop_audit_entry;
 
 int             px_loop_audit_count(const px_loop* loop);
@@ -696,12 +708,38 @@ int             px_loop_audit_get(const px_loop* loop,
                                   px_loop_audit_entry* out,
                                   int max_entries);
 
-/* v0.6: declare this loop's feedback budget in milliseconds (0/none
- * by default). Every audit entry then carries iteration_ms /
- * budget_ms / budget_exceeded — "was the feedback timely?" becomes
- * a queryable fact, not a hope. Negative values are clamped to 0. */
+/* v0.7 Line 2 (budget as contract): every loop has a budget by
+ * DEFAULT — PX_LOOP_DEFAULT_BUDGET_MS (16ms, one 60fps frame), the
+ * feedback axiom's deadline. A loop that ships without a deadline is
+ * the Garnet/Amulet failure mode (propagation cost never measured is
+ * never budgeted), so the default is finite; passing 0 remains the
+ * EXPLICIT opt-out ("no deadline, on purpose"), not the silent
+ * default. Negative values are clamped to 0.
+ *
+ * Every audit entry then carries iteration_ms / budget_ms /
+ * budget_exceeded plus the v0.7 propagation dimensions — "was the
+ * feedback timely, and what did propagation cost?" are queryable
+ * facts, not hopes. An overrun is LOUD: warn-once on stderr in every
+ * build, abort via assert when the library is compiled with
+ * -DPX_DEBUG_BUDGET (strict mode). px_loop_budget_overruns() counts. */
+#define PX_LOOP_DEFAULT_BUDGET_MS 16.0
+
 void            px_loop_set_budget(px_loop* loop, double budget_ms);
 double          px_loop_budget(const px_loop* loop);
+
+/* v0.7: how many audit entries exceeded the budget so far. Pure
+ * query; the warn-once stderr notice fires on the first only. */
+int             px_loop_budget_overruns(const px_loop* loop);
+
+/* v0.7 Line 2: propagation accounting, process-global counters.
+ * px_relation_edges_walked() is the monotonic count of relation
+ * edges examined by graph traversals since process start (the audit
+ * entry records per-step deltas). px_derive_depth_peak() returns the
+ * deepest derived-recompute chain observed since its previous call
+ * (read-and-reset; px_loop_step calls it once per iteration). */
+unsigned long long px_relation_edges_walked(void);
+int                px_derive_depth_peak(void);   /* pure read */
+void               px_derive_depth_reset(void);  /* explicit reset */
 
 /* Replay the last `n` audit entries: re-trigger each closure that
  * was triggered, re-invoke each perception that was invoked. Useful

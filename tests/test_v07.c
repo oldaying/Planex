@@ -9,6 +9,10 @@
  *      routing semantics (afforded click → closure trigger;
  *      unresolved click → raw-coordinate fallback).
  *
+ *   B. Line 2 — budget as contract: default budget on every loop,
+ *      explicit opt-out, propagation accounting (edges + depth) in
+ *      the audit entry, overrun counting.
+ *
  * Build (or: make test_v07):
  *   cc -std=c17 -I include tests/test_v07.c \
  *      src/relation.c src/estimate.c src/closure.c src/perception.c \
@@ -297,13 +301,170 @@ static void test_a7_multi_edge_resolution_is_last_declared(void) {
 }
 
 /* ============================================================
+ * B. Line 2 — budget as contract
+ * ============================================================ */
+
+static void* perceive_null(px_estimate* const* in, int n, void* u) {
+    (void)in; (void)n; (void)u;
+    return NULL;
+}
+
+static void on_set_src(px_intent i, void* u) {
+    (void)i;
+    px_estimate* e = (px_estimate*)u;
+    px_estimate_set(e, px_estimate_value(e) + 1.0, 1.0);
+}
+
+static double sum2(px_estimate* const* in, int n, void* u) {
+    (void)n; (void)u;
+    return px_estimate_value(in[0]) + px_estimate_value(in[1]);
+}
+
+static double passthrough(px_estimate* const* in, int n, void* u) {
+    (void)n; (void)u;
+    return px_estimate_value(in[0]);
+}
+
+static void test_b1_default_budget_is_one_frame(void) {
+    /* The contract: every loop ships with a deadline. The default is
+     * one 60fps frame — the feedback axiom's "instantly visible"
+     * given a number. No loop is silently unbounded. */
+    px_estimate* e = px_estimate_new(0, 1.0);
+    px_closure* c = px_closure_new("inc", PX_INTENT_REQUEST,
+                                   on_set_src, eval_true, e);
+    px_estimate* srcs[] = { e };
+    px_perception* p = px_perception_new("p", perceive_null, srcs, 1, NULL);
+    px_loop* loop = px_loop_new(c, p);
+
+    assert(px_loop_budget(loop) == PX_LOOP_DEFAULT_BUDGET_MS);
+    assert(PX_LOOP_DEFAULT_BUDGET_MS == 16.0);
+
+    px_loop_step(loop, NULL, 0);
+    px_loop_audit_entry entry;
+    assert(px_loop_audit_get(loop, &entry, 1) == 1);
+    assert(entry.budget_ms == PX_LOOP_DEFAULT_BUDGET_MS);
+    assert(entry.iteration_ms >= 0.0);
+    assert(entry.budget_exceeded == false); /* a trivial step fits */
+    assert(px_loop_budget_overruns(loop) == 0);
+
+    px_loop_free(loop);
+    px_perception_free(p);
+    px_closure_free(c);
+    px_estimate_free(e);
+}
+
+static void test_b2_explicit_opt_out(void) {
+    /* Zero is a decision, not a default: set_budget(0) disables the
+     * deadline, and the audit records that decision per entry. */
+    px_estimate* e = px_estimate_new(0, 1.0);
+    px_closure* c = px_closure_new("inc", PX_INTENT_REQUEST,
+                                   on_set_src, eval_true, e);
+    px_estimate* srcs[] = { e };
+    px_perception* p = px_perception_new("p", perceive_null, srcs, 1, NULL);
+    px_loop* loop = px_loop_new(c, p);
+
+    px_loop_set_budget(loop, 0.0);
+    px_loop_step(loop, NULL, 0);
+    px_loop_audit_entry entry;
+    assert(px_loop_audit_get(loop, &entry, 1) == 1);
+    assert(entry.budget_ms == 0.0);
+    assert(entry.budget_exceeded == false);
+
+    /* Negative budgets clamp to 0 (the opt-out), never a deadline. */
+    px_loop_set_budget(loop, -5.0);
+    assert(px_loop_budget(loop) == 0.0);
+
+    px_loop_free(loop);
+    px_perception_free(p);
+    px_closure_free(c);
+    px_estimate_free(e);
+}
+
+static void test_b3_overrun_is_loud_and_counted(void) {
+    /* A budget of one nanosecond is exceeded by any real iteration.
+     * The overrun must be (a) recorded in the entry, (b) counted by
+     * px_loop_budget_overruns, (c) warned exactly once on stderr —
+     * the single notice is visible in this suite's own output when
+     * it runs (deliberate overrun, by design of this test). Strict
+     * abort mode (PX_DEBUG_BUDGET) is compile-time opt-in precisely
+     * so this test can exist. */
+    px_estimate* e = px_estimate_new(0, 1.0);
+    px_closure* c = px_closure_new("inc", PX_INTENT_REQUEST,
+                                   on_set_src, eval_true, e);
+    px_estimate* srcs[] = { e };
+    px_perception* p = px_perception_new("p", perceive_null, srcs, 1, NULL);
+    px_loop* loop = px_loop_new(c, p);
+
+    px_loop_set_budget(loop, 0.000001); /* 1ns: nothing fits */
+    px_loop_step(loop, NULL, 0);
+    px_loop_step(loop, NULL, 0);
+    px_loop_step(loop, NULL, 0);
+
+    px_loop_audit_entry entries[3];
+    assert(px_loop_audit_get(loop, entries, 3) == 3);
+    for (int i = 0; i < 3; i++) {
+        assert(entries[i].budget_exceeded == true);
+        assert(entries[i].iteration_ms > 0.0);
+    }
+    assert(px_loop_budget_overruns(loop) == 3);
+
+    px_loop_free(loop);
+    px_perception_free(p);
+    px_closure_free(c);
+    px_estimate_free(e);
+}
+
+static void test_b4_propagation_accounting(void) {
+    /* The audit entry must answer BOTH cost questions: what did the
+     * frame cost (iteration_ms) and what did PROPAGATION cost. With
+     * undo enabled and a graph bound, the closure trigger walks
+     * TRIGGERS edges (propagation_edges > 0); a derived chain
+     * a -> b -> c -> d nests recompute (propagation_depth >= 2). */
+    px_graph* g = px_graph_new();
+    px_estimate* a = px_estimate_new(1.0, 1.0);
+    px_estimate* b = px_derived_new(passthrough, NULL, &a, 1);
+    px_estimate* c = px_derived_new(passthrough, NULL, &b, 1);
+    px_estimate* d = px_derived_new(sum2, NULL, (px_estimate*[]){a, c}, 2);
+
+    px_closure* seta = px_closure_new("set a", PX_INTENT_REQUEST,
+                                      on_set_src, eval_true, a);
+    px_estimate* srcs[] = { d };
+    px_perception* p = px_perception_new("p", perceive_null, srcs, 1, NULL);
+    px_loop* loop = px_loop_new(seta, p);
+
+    /* Undo wiring: the trigger walks the graph. */
+    px_declare(g, seta, PX_REL_TRIGGERS, a);
+    px_closure_bind_graph(seta, g);
+    px_undo_set_enabled(true);
+
+    px_loop_step(loop, NULL, 0);   /* a += 1 → b, c, d recompute */
+
+    px_loop_audit_entry entry;
+    assert(px_loop_audit_get(loop, &entry, 1) == 1);
+    assert(entry.propagation_edges > 0);  /* TRIGGERS query walked edges */
+    assert(entry.propagation_depth >= 2); /* b → c chain nested ≥ 2 */
+    assert(px_estimate_value(d) == 4.0);  /* (1+1) + (1+1) — chain ran */
+
+    px_undo_set_enabled(false);
+    px_loop_free(loop);
+    px_perception_free(p);
+    px_closure_free(seta);
+    px_estimate_free(d);
+    px_estimate_free(c);
+    px_estimate_free(b);
+    px_estimate_free(a);
+    px_graph_free(g);
+}
+
+/* ============================================================
  * Main
  * ============================================================ */
 
 int main(void) {
     printf("Planex v0.7 line verification\n");
     printf("=============================\n");
-    printf("A. Line 1 — intent compilation routing (afford/region).\n\n");
+    printf("A. Line 1 — intent compilation routing (afford/region).\n");
+    printf("B. Line 2 — budget as contract.\n\n");
 
     printf("[A] Intent compilation routing\n");
     TEST(a1_compile_resolves_region_to_closure);
@@ -313,6 +474,12 @@ int main(void) {
     TEST(a5_app_desc_routing_semantics);
     TEST(a6_label_truncation_is_safe);
     TEST(a7_multi_edge_resolution_is_last_declared);
+
+    printf("\n[B] Budget as contract (Line 2)\n");
+    TEST(b1_default_budget_is_one_frame);
+    TEST(b2_explicit_opt_out);
+    TEST(b3_overrun_is_loud_and_counted);
+    TEST(b4_propagation_accounting);
 
     printf("\n----------------\n");
     printf("%d/%d passed\n", g_tests_pass, g_tests_run);
@@ -325,5 +492,8 @@ int main(void) {
     printf("    -> raw fallback, NULL intent_graph -> legacy dispatch\n");
     printf("  - multi-edge resolution: last-declared AFFORDS edge wins\n");
     printf("    (pinned — a region with two affordances is a spec'd rule)\n");
+    printf("  - budget contract: default 16ms frame deadline, explicit\n");
+    printf("    opt-out, overruns counted + warned once, propagation\n");
+    printf("    cost (edges + derive depth) in every audit entry\n");
     return (g_tests_pass == g_tests_run) ? 0 : 1;
 }

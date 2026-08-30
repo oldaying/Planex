@@ -39,8 +39,10 @@
  */
 #define _POSIX_C_SOURCE 200809L
 #include "planex/planex.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 /* Internal perception-cache helpers (perception.c). Declared here at
  * file scope so step/view_only/replay all share one declaration. */
@@ -62,6 +64,14 @@ struct px_loop {
      * budget — the audit answer to "feedback happened, but was it
      * timely?". See px_loop_set_budget(). */
     double         budget_ms;
+
+    /* v0.7 Line 2 (budget as contract): overrun accounting. budget_
+     * overruns counts entries that exceeded the deadline; budget_
+     * warned gates the one-time stderr notice (warn-once, like the
+     * v0.6 bind_graph warning). Strict mode (-DPX_DEBUG_BUDGET,
+     * debug builds) additionally asserts on overrun. */
+    int            budget_overruns;
+    bool           budget_warned;
 
     /* v3 prototype: pending breakdown transition for the next step.
      * Set by px_loop_mark_breakdown(). px_loop_step reads and clears
@@ -87,6 +97,12 @@ px_loop* px_loop_new(px_closure* c, px_perception* p) {
     loop->closure    = c;
     loop->perception = p;
     loop->paused     = false;
+
+    /* v0.7 Line 2: budget as contract — every loop has a deadline by
+     * default (one 60fps frame; the feedback axiom's "instantly
+     * visible" given a number). Zero remains available as an explicit
+     * opt-out via px_loop_set_budget(loop, 0). */
+    loop->budget_ms  = PX_LOOP_DEFAULT_BUDGET_MS;
 
     loop->audit = (px_loop_audit_entry*)calloc(PX_LOOP_AUDIT_CAPACITY,
                                                 sizeof(px_loop_audit_entry));
@@ -115,7 +131,8 @@ static void audit_push(px_loop* loop,
                         bool interpretant_constructed,
                         int  perlocution_kind,
                         int  breakdown_transition,
-                        double iteration_start_ms) {
+                        double iteration_start_ms,
+                        unsigned long long edges_start) {
     px_loop_audit_entry* e = &loop->audit[loop->audit_head];
     e->closure_triggered       = closure_triggered;
     e->perception_invoked      = perception_invoked;
@@ -135,6 +152,37 @@ static void audit_push(px_loop* loop,
     e->budget_exceeded = (loop->budget_ms > 0.0)
                           && (e->iteration_ms > loop->budget_ms);
 
+    /* v0.7 Line 2: propagation accounting. Edges walked since the
+     * step began (the caller snapshotted the counter at t0 and we
+     * pass it in as iteration_start_edges); derive-chain peak since
+     * the previous entry (read-and-reset). */
+    e->propagation_edges = px_relation_edges_walked() - edges_start;
+    e->propagation_depth = px_derive_depth_peak();
+    px_derive_depth_reset(); /* explicit: this entry consumed the peak */
+
+    /* v0.7 Line 2: an overrun is LOUD, not just recorded. Warn-once
+     * on stderr in every build (the v0.6 bind_graph precedent); abort
+     * in strict mode. See px_loop_set_budget's doc. */
+    if (e->budget_exceeded) {
+        loop->budget_overruns++;
+        if (!loop->budget_warned) {
+            fprintf(stderr,
+                    "Planex: px_loop iteration overran its budget "
+                    "(%.3fms > %.3fms) — the feedback contract was "
+                    "violated. Subsequent overruns are counted, not "
+                    "printed (px_loop_budget_overruns()).\n",
+                    e->iteration_ms, e->budget_ms);
+            loop->budget_warned = true;
+        }
+#if defined(PX_DEBUG_BUDGET) && !defined(NDEBUG)
+        /* Strict mode: compile the library with -DPX_DEBUG_BUDGET to
+         * make a budget overrun abort. Test suites deliberately
+         * overrunning must NOT define this (or must opt out via
+         * set_budget(0)) — which is why it is opt-in. */
+        assert(!"px_loop budget overrun (PX_DEBUG_BUDGET strict mode)");
+#endif
+    }
+
     loop->audit_head = (loop->audit_head + 1) % PX_LOOP_AUDIT_CAPACITY;
     loop->audit_count++;
 }
@@ -150,6 +198,10 @@ static void audit_push(px_loop* loop,
  * consistently exceeds its budget is detectable, queryable evidence
  * (long-running dashboards can assert "no entry in the last hour
  * exceeded 16ms"). budget_ms <= 0 disables the check (default). */
+int px_loop_budget_overruns(const px_loop* loop) {
+    return loop ? loop->budget_overruns : 0;
+}
+
 void px_loop_set_budget(px_loop* loop, double budget_ms) {
     if (!loop) return;
     if (budget_ms < 0) budget_ms = 0;
@@ -206,6 +258,8 @@ int px_loop_step(px_loop* loop, void* trigger_payload, size_t trigger_size) {
     if (loop->paused) return 0;
 
     double t0 = px_now_ms();
+    /* v0.7 Line 2: propagation accounting starts here. */
+    unsigned long long edges0 = px_relation_edges_walked();
 
     /* v0.5: clear bound perception's representamen cache at turn start.
      * This ensures invoke_single below either returns the freshly-cached
@@ -268,7 +322,7 @@ int px_loop_step(px_loop* loop, void* trigger_payload, size_t trigger_size) {
      * v0.6 feedback-budget dimensions. */
     audit_push(loop, closure_triggered, perception_invoked,
                interpretant_constructed, perlocution_kind,
-               breakdown_transition, t0);
+               breakdown_transition, t0, edges0);
 
     return perception_invoked ? 1 : 0;
 }
@@ -278,6 +332,8 @@ int px_loop_step_view_only(px_loop* loop) {
     if (loop->paused) return 0;
 
     double t0 = px_now_ms();
+    /* v0.7 Line 2: propagation accounting starts here. */
+    unsigned long long edges0 = px_relation_edges_walked();
 
     /* v0.6 scope retirement (leak-budgets.md px_loop §L2): view-only
      * step now invokes ONLY this loop's bound perception, not every
@@ -302,7 +358,7 @@ int px_loop_step_view_only(px_loop* loop) {
     loop->pending_breakdown_transition = 0;
 
     audit_push(loop, false, perception_invoked, false, perlocution_kind,
-               breakdown_transition, t0);
+               breakdown_transition, t0, edges0);
     return perception_invoked ? 1 : 0;
 }
 

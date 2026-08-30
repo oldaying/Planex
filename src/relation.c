@@ -69,6 +69,26 @@ int px_graph_count(const px_graph* g) {
 }
 
 /* ============================================================
+ * v0.7 Line 2: propagation accounting
+ *
+ * A monotonic count of relation edges examined by graph traversals
+ * (px_query / px_query_for / px_has_relation). px_loop_step snapshots
+ * the per-step delta into its audit entry, so "what did PROPAGATION
+ * cost" becomes measurable next to "what did the frame cost"
+ * (v0.7-roadmap Line 2; the Garnet/Amulet lesson: propagation cost
+ * that is never measured is never budgeted).
+ *
+ * Process-global by design — Planex is single-app single-threaded
+ * (same pattern as the region registry and the undo stack).
+ * ============================================================ */
+
+static unsigned long long g_px_edges_walked = 0;
+
+unsigned long long px_relation_edges_walked(void) {
+    return g_px_edges_walked;
+}
+
+/* ============================================================
  * Declare / query
  * ============================================================ */
 
@@ -98,6 +118,7 @@ px_relation* px_declare(px_graph* g, void* a, px_rel_kind kind, void* b) {
 bool px_has_relation(px_graph* g, void* a, px_rel_kind kind, void* b) {
     if (!g || !a || !b) return false;
     for (px_relation* r = g->head; r; r = r->next) {
+        g_px_edges_walked++; /* v0.7 Line 2: propagation accounting */
         if (r->a == a && r->kind == kind && r->b == b) return true;
     }
     return false;
@@ -125,6 +146,7 @@ px_node_list px_query_for(px_graph* g, void* node, px_rel_kind kind,
     /* Two passes: count, then fill. */
     int cap = 0;
     for (px_relation* r = g->head; r; r = r->next) {
+        g_px_edges_walked++; /* v0.7 Line 2: propagation accounting */
         if (r->kind != kind) continue;
         if (r->actor != NULL && r->actor != actor) continue;
         if (r->a == node || r->b == node) cap++;
@@ -136,6 +158,7 @@ px_node_list px_query_for(px_graph* g, void* node, px_rel_kind kind,
 
     int i = 0;
     for (px_relation* r = g->head; r; r = r->next) {
+        g_px_edges_walked++; /* v0.7 Line 2: propagation accounting */
         if (r->kind != kind) continue;
         if (r->actor != NULL && r->actor != actor) continue;
         if (r->a == node) {

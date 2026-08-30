@@ -370,20 +370,26 @@ ADR-0017 (intent compilation) and ADR-0018 (px_interaction) promoted two prototy
 
 **L2 = 0/22 = 0%.** The denotational contract (inert samples, transitions-only seams) is enforced by `test_v06_interaction.c` section D; `publish_phase` is the *named sanctioned seam* to Estimate, not an incompleteness leak. Terminal phases (re-arm required) and absent multi-process arbitration are recorded capability gaps (L12/NG-6), not op leaks.
 
-### Aggregate (v0.7, promotion state)
+### Aggregate (v0.7)
 
 | Abstraction | Total ops | L1 | L2 | L2 leak % |
 |---|---|---|---|---|
-| Relation | 7 | 5 | 0 | **0%** |
-| Estimate (+advance/predict/surprise) | 20 | 4 | **0** | **0%** |
+| Relation (+edges_walked, Line 2) | 8 | 5 | 0 | **0%** |
+| Estimate (+advance/predict/surprise; +depth_peak/depth_reset, Line 2) | 22 | 4 | **0** | **0%** |
 | Closure | 12 | 6 | 1 | **8%** (loud; constructor split is the v0.7 Line 5 target) |
 | Perception (+set_free_fn) | 7 | 1 | **0** | **0%** |
-| `px_loop` (+budget ops) | 13 | 1 | **0** | **0%** |
-| **Intent compilation (new)** | **8** | **2** | **0** | **0%** |
-| **`px_interaction` (new)** | **22** | **2** | **0** | **0%** |
-| **Total (v0.7)** | **89** | **21** | **1** | **1.1%** |
+| `px_loop` (+budget ops; +budget_overruns, Line 2) | 14 | 1 | **0** | **0%** |
+| **Intent compilation (new, Line 1)** | **8** | **2** | **0** | **0%** |
+| **`px_interaction` (new, Line 1)** | **22** | **2** | **0** | **0%** |
+| **Total (v0.7)** | **93** | **21** | **1** | **1.1%** |
 
-Aggregate L2 = 1/89 = **1.1%**. The single remaining L2 (Closure `bind_graph` ordering) is unchanged from v0.6 and is the v0.7 Line 5 retire target (constructor split → aggregate L2 = 0%).
+Aggregate L2 = 1/93 = **1.1%**. The single remaining L2 (Closure `bind_graph` ordering) is unchanged from v0.6 and is the v0.7 Line 5 retire target (constructor split → aggregate L2 = 0%).
+
+### Line 2 additions (budget as contract)
+
+- `px_loop` gains a **default budget** (`PX_LOOP_DEFAULT_BUDGET_MS` = 16ms, one 60fps frame) — a loop without a deadline is now an explicit `px_loop_set_budget(loop, 0)` decision, not a silent default. Overruns are loud: warn-once on stderr in every build; abort under `-DPX_DEBUG_BUDGET` strict mode. `px_loop_budget_overruns` counts (pure query).
+- Audit entries gain **propagation accounting**: `propagation_edges` (per-step delta of `px_relation_edges_walked`, the monotonic edge-traversal counter in `relation.c`) and `propagation_depth` (`px_derive_depth_peak` / `px_derive_depth_reset`, the derive-chain accounting pair in `estimate.c`). The accounting reads are pure; the reset is a separate explicit op — a read-and-reset single function would itself have been an L2 leak (side effect in an apparent query), so the pair is split by design.
+- Verification: `tests/test_v07.c` section B (4 tests: default-on, explicit opt-out, overrun counted + warned once, propagation edges/depth in a derive chain with undo). `test_v06_interaction.c` j1/j2 updated for the new default (j2 renamed `budget_explicit_opt_out`).
 
 ---
 

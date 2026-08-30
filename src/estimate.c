@@ -335,6 +335,26 @@ static void derived_on_source_changed(px_estimate* src, void* user) {
     px_derived_recompute(derived);
 }
 
+/* v0.7 Line 2: propagation-depth accounting (see px_derived_recompute).
+ * g_px_derive_depth is the CURRENT recompute-chain recursion depth;
+ * g_px_derive_depth_peak is the deepest chain observed since the last
+ * px_derive_depth_peak() read. px_loop_step reads-and-resets it per
+ * iteration for the audit entry. Process-global (single-app design). */
+static int g_px_derive_depth      = 0;
+static int g_px_derive_depth_peak = 0;
+
+int px_derive_depth_peak(void) {
+    /* Pure query — the read side of the accounting pair. The reset is
+     * a separate explicit op (px_derive_depth_reset) so neither query
+     * carries a side effect (the leak criterion: an apparent getter
+     * that mutates is an L2 leak). */
+    return g_px_derive_depth_peak;
+}
+
+void px_derive_depth_reset(void) {
+    g_px_derive_depth_peak = 0;
+}
+
 void px_derived_recompute(px_estimate* derived) {
     if (!derived || !derived->derived) return;
     /* v0.5 cycle detection: if this estimate is already mid-recompute,
@@ -343,6 +363,13 @@ void px_derived_recompute(px_estimate* derived) {
      * may be stale (last writer wins), but no stack overflow. */
     if (derived->recomputing) return;
     derived->recomputing = true;
+
+    /* v0.7 Line 2: propagation-depth accounting — track chain nesting
+     * so the audit entry can answer "how deep did propagation go?". */
+    g_px_derive_depth++;
+    if (g_px_derive_depth > g_px_derive_depth_peak) {
+        g_px_derive_depth_peak = g_px_derive_depth;
+    }
 
     px_derived_state* st = derived->derived;
     double new_value = st->fn(st->sources, st->n_sources, st->user);
@@ -353,6 +380,7 @@ void px_derived_recompute(px_estimate* derived) {
      * us returns early. */
     px_estimate_set(derived, new_value, derived->confidence);
 
+    g_px_derive_depth--;
     derived->recomputing = false;
 }
 

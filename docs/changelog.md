@@ -6,6 +6,28 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [Unreleased]
+
+### Added — v0.7: intent compilation promoted to the 6th canonical abstraction (ADR-0017)
+
+- `px_pointer_intent`: the compiled-pointer value — region label embedded by value (replay-safe after the region is freed), x/y/button ride along as payload context, not routing keys.
+- `px_afford_compile(g, x, y, button, out)`: the window-free compile step (pure function of registry + graph + position); miss zeroes the payload so stale data cannot leak through the fallback path.
+- `px_app_desc.intent_graph`: opt-in routing in `px_app_run` — pointer-downs compile before dispatch; unresolved clicks fall back to `on_click`; NULL keeps legacy dispatch identical (zero cost when unset).
+- Multi-edge resolution specified and pinned: a region with several AFFORDS edges resolves **last-declared-first** (tests/test_v07.c a7).
+- `examples/palette_afford.c`: the real-application evidence — five affordances, one routing rule, zero raw-coordinate callbacks; button-3 context action discriminated in the payload; slider drag as inert trajectory + one committed write; undo through the graph.
+
+### Added — v0.7: px_interaction promoted to the 7th canonical abstraction (ADR-0018)
+
+- The v0.6 prototype is canonical; THE INVARIANT (inert samples, transitions-only seams) is now normative, enforced by test_v06_interaction.c section D. `publish_phase` remains the only sanctioned seam to Estimate. No signature changes.
+- Corpus Category D re-scored (same-commit amendment): P24–P28, P32, P36 flip to ✅ CLEAN (EXAMPLE-grounded); P29/P37 downgrade ❌→⚠️. Distribution 31/29/8 → **38/24/6**; test_completeness constants updated (75/75 checks).
+- Abstraction count 5 → 7 across all non-exempt docs; `check_stale_abstraction_count.sh` now enforces the 7-count (stale 5/five pattern + stops-at-px_loop enumeration pattern).
+
+### Added — v0.7: budget as contract (Line 2)
+
+- `PX_LOOP_DEFAULT_BUDGET_MS` (16ms): every `px_loop` ships with a deadline — the feedback axiom's "instantly visible" given a number. `px_loop_set_budget(loop, 0)` is the explicit opt-out. Overruns are loud: warn-once on stderr in all builds, abort under `-DPX_DEBUG_BUDGET` strict mode; `px_loop_budget_overruns()` counts.
+- Propagation accounting in every audit entry: `propagation_edges` (per-step delta of the new `px_relation_edges_walked()` monotonic counter) + `propagation_depth` (`px_derive_depth_peak()` / `px_derive_depth_reset()` — read and reset are separate ops so no query carries a side effect).
+- `tests/test_v07.c` section B (4 tests); `test_v06_interaction.c` j1/j2 updated for the default (j2 renamed `budget_explicit_opt_out`).
+
 ## [0.6.0] — 2026-08-30
 
 ### Added — v0.6: interaction prototype (ADR-0016, proposed)
