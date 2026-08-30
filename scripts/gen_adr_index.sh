@@ -36,6 +36,8 @@ emit_header() {
     echo
     echo "ADR numbering (ADR-0001 onward) is permanent; the directory only encodes the current lifecycle state, never the numbering."
     echo
+    echo "ADR-0015 is permanently reserved by \`tests/synthetic_adr_0015.md\` — the deliberately bad synthetic ADR that \`check_essence_admission.sh --synthetic\` must reject (ADR-0014's falsifiability demonstration). The number is retired, not missing: no real ADR will ever carry it."
+    echo
     echo "| # | Title | Status |"
     echo "|---|-------|--------|"
 }
