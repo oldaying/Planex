@@ -8,6 +8,27 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — v0.6: interaction prototype (ADR-0016, proposed)
+
+- New `px_interaction` process abstraction (prototype, not canonical): begin → sample* → commit|cancel phase machine with a trajectory ring and pure-metric accessors (position / velocity / distance / duration), built on the design invariant **sample laziness** — zero observer notifications and zero perception invocations while no one samples. Three bridges: `on_phase` hook (BEGAN / MOVED / ENDED / COMMITTED / CANCELLED transitions), Closure `on_commit` / `on_cancel` triggers, `publish_phase` converting transitions to Estimate writes. Implemented in `src/interaction.c` (~370 lines); 27 tests in `tests/test_v06_interaction.c` (sections A–F prototype, G–J v0.6 retire verification), wired into all 4 CI jobs (linux-cmake, linux-make, windows, strict-warnings). Auto-begin semantics: the first sample enters the trajectory *before* the BEGAN transition fires (the starting event belongs to the trajectory).
+- New `px_region` + `px_afford_at` (prototype): global region registry with z-order scan and AFFORDS-graph affordance query — intent compilation as a graph query instead of raw-coordinate hit-testing. Implemented in `src/hit.c` (~160 lines).
+- New example `examples/hover_drag_interaction.c` + `.expected` snapshot: the boundary-closure demo against `hover_drag_4abs.c` (130 mouse events → 2 estimate writes; 5 of 7 HACKs retired; cancel as a first-class outcome; swipe derivable from metrics).
+- ADR-0016 (`docs/decisions/proposed/ADR-0016-interaction-prototype-option-b.md`, proposed): follows the ADR-0009 v3-prototype precedent — evidence-gathering code without touching the 5 canonical abstractions. Promotion to a 6th canonical abstraction requires its own ADR against the ADR-0011 admission bar, real-application evidence, and a Category D re-scoring.
+
+### Added — v0.6: six audit-fix retires (aggregate L2 3.8% → 1.7%)
+
+- `PX_EV_WHEEL` added to `window.h` + x11 (Button4/5) / win32 (WM_MOUSEWHEEL) / cocoa (scrollWheel) backends + `on_wheel` app callback.
+- Closure `bind_graph` omission is now loud: one-time stderr warning when undo is enabled with no graph bound (the ordering dependency itself remains; the constructor split is the v0.7 retire path).
+- Estimate: `px_estimate_predict` / `px_estimate_surprise` — Friston predictive-loop seeds; confidence gains a framework-side consumer.
+- Perception: `px_perception_set_free_fn` — opt-in representamen destructor; the cache leak is retired across clear_cache / fire / free paths.
+- px_loop: view-only and replay branches now invoke only the loop's bound perception (scope leak retired — feedback section L2 → 0%, was 9%); audit entries gain `iteration_ms` / `budget_ms` / `budget_exceeded`; `px_loop_set_budget` / `px_loop_budget`.
+- a11y: query-side API (getters, 16-entry announcement ring, `set_verbose`) — the stable contract that platform bridges will adapt to; render fast path (row-level memcpy) in `app.c`.
+
+### Changed — v0.6 documentation sync
+
+- `limitations.md` L12: "not abstracted" → "prototype landed in v0.6 (canonical promotion pending)", with the open items (multi-touch / NG-6, intent gradient, Category D re-scoring, promotion ADR).
+- `leak-budgets.md`: v0.6 retire summary — aggregate L2 3.8% → 1.7% (remaining: Closure `bind_graph` ordering dependency, loud since v0.6).
+
 ### Added — Abstraction-form comparative study (research report)
 
 - New `docs/research/2025-08-28-abstraction-as-form-comparative-study.md` (289 lines) — survey of 8 alternative organizational forms (DSL, component library, pattern language, ECS, FRP, data-driven config, Kay-OOP, tagless final), 6 critique traditions (Worse-Is-Better, Simple Made Easy, Leaky Abstractions, Abstraction Inversion, Rule of Three, Over-Abstraction/End-of-Civ), 5 philosophy-driven design precedents (Winograd/Flores Coordinator, Conal Elliott Fran/Pan, Dourish/Ishii embodied UI, Friston free-energy, Kay Smalltalk), and 9 production C/UI libraries for calibration (SDL, GLib/GObject, Cairo, Wayland, libuv, GTK, Qt, Dear ImGui, Redis). **Verdict**: abstraction is the correct primary form for Planex's stated goals (intent-as-value, multi-channel denotation, cognitive-bandwidth constraint, C17 feasibility, no-AI-as-driver per ADR-0003), with three caveats — Planex must (1) explicitly distinguish "abstraction-as-typed-value" (Planex's form) from "abstraction-as-encapsulation" (rejected), (2) explicitly rebut the Rule of Three via an essence-justified vs duplication-justified ADR, (3) quantify per-abstraction leak budgets. Seven gaps identified with three tiers of recommendations (T1.1–T1.3, T2.1–T2.4, T3.1–T3.3). The 32 web searches and 7 page_reader fetches are not committed to the repo; their artifacts are kept under `/home/z/my-project/research-task14/` and `/home/z/my-project/scripts/extract_page_text.py`. Status: reference research output, not a decision.
