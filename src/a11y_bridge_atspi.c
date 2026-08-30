@@ -11,6 +11,13 @@
  * Build with the bridge (Linux, needs atk + atk-bridge headers):
  *   make CFLAGS_EXTRA="-DPX_A11Y_ATSPI $(pkg-config --cflags atk atk-bridge-2.0)"
  *
+ * Include-layout note (found by the CI probe's first real compile):
+ * atk-bridge.h's on-disk location is distro-dependent (Ubuntu 22.04:
+ * /usr/include/atk-bridge-2.0/, Ubuntu 24.04:
+ * /usr/include/at-spi2-atk/2.0/). The source therefore includes
+ * <atk-bridge.h> BARE and relies on the pkg-config cflags to resolve
+ * the layout — never hard-code the directory prefix.
+ *
  * Without -DPX_A11Y_ATSPI this file compiles to a stub whose attach()
  * returns NULL — the logging/query-side default, byte-for-byte the
  * v0.6 behavior (the flag is opt-in, so no build regresses).
@@ -35,13 +42,15 @@
  *
  * THREAD SAFETY: single-threaded, like the rest of Planex.
  */
+#define _POSIX_C_SOURCE 200809L
 #include "planex/a11y.h"
 #include <stdio.h>
 
 #if defined(PX_A11Y_ATSPI)
 
 #include <atk/atk.h>
-#include <atk-bridge-2.0/atk-bridge.h>
+#include <atk-bridge.h>   /* bare: pkg-config atk-bridge-2.0 resolves
+                           * the distro-dependent include layout */
 #include <stdlib.h>
 #include <string.h>
 
