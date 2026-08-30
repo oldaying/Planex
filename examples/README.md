@@ -2,11 +2,11 @@
 
 > What each demo proves, organized by which abstraction's which capability it demonstrates.
 
-Post-ADR-0005 redesign (commit c24bbcab57): the previous 25 3-abstraction-era demos were removed. Post-ADR-0008 (v0.4): the catalog reflects the 5-abstraction API (Relation + Estimate + Closure + Perception + px_loop); demos that exercise `px_loop` are tagged with the Feedback badge in their tier-1 entry.
+Post-ADR-0005 redesign (commit c24bbcab57): the previous 25 3-abstraction-era demos were removed. Post-ADR-0008 (v0.4): the catalog reflected the 5-abstraction API. Post-ADR-0017/0018 (v0.7): the catalog also covers the intent-compilation and interaction-process demos (abstractions 6 and 7); demos that exercise `px_loop` are tagged with the Feedback badge in their tier-1 entry.
 
 Demos are categorized into three tiers:
 
-- **Tier 1 — Canonical demos**: built and run, validate the 5-abstraction API
+- **Tier 1 — Canonical demos**: built and run, validate the abstraction API (7 abstractions since v0.7)
 - **Tier 2 — Prototype demos**: not in build, use pre-ADR-0005 API, kept as research reference
 - **Tier 3 — Smoke tests**: built and run, validate API surface
 
@@ -14,13 +14,13 @@ See [roadmap-matrix.md](../docs/concepts/state/roadmap-matrix.md) for the matrix
 
 ---
 
-## Tier 1 — Canonical demos (in build, use the v0.4+ 5-abstraction API)
+## Tier 1 — Canonical demos (in build, use the v0.4+ API; set is 7 abstractions since v0.7)
 
 ### Counter 4-Abs (`counter_4abs.c`)
 
 **The canonical hello world of Planex post-ADR-0005.**
 
-Validates that all five abstractions work together (4 from ADR-0005 + `px_loop` from ADR-0008; this demo focuses on the first 4):
+Validates that the abstractions of its era work together (4 from ADR-0005 + `px_loop` from ADR-0008; this demo predates the v0.7 promotions and focuses on the first 4):
 
 - **Estimate**: `count` state with value + confidence
 - **Closure**: `inc` and `dec` actions (5-stage, **no perception parameter** — new API)
@@ -66,6 +66,20 @@ Planex's Perception abstraction makes multiple denotations **first-class**. This
 ```bash
 ./build/multi_perception
 ```
+
+---
+
+### Hover + Drag via Interaction (`hover_drag_interaction.c`)
+
+**The boundary-closing demo for the interaction process (abstraction 7, ADR-0018).**
+
+Counterpart of `hover_drag_4abs.c` (the boundary-EXPOSING demo per ADR-0006). Same list-reorder scenario with the process abstraction: hover as region query, drag as inert trajectory, cancel as first-class outcome, tap-vs-drag by measure, swipe derivable. 130 events → 2 estimate writes (5 of 7 HACKs retired). Ran in CI via `make check-examples`.
+
+### Palette with Afford Routing (`palette_afford.c`)
+
+**The real-application evidence for intent compilation (abstraction 6, ADR-0017).**
+
+A palette painter (swatches, brightness slider, canvas, reset) whose click handling has **zero raw-coordinate callbacks** — every pointer-down compiles through `px_afford_compile`; the afforded closure triggers with a `px_pointer_intent` payload (region label embedded, replay-safe). Button-3 compiles to the same shape (context-clear in the payload). The slider is a drag process: 40 samples, live preview derived per frame, one committed estimate write. Undo through the graph. Ran in CI via `make check-examples`.
 
 ---
 
@@ -147,7 +161,7 @@ Demonstrates the four phenomenological abstractions (Context, Visibility, Trace,
 
 ---
 
-## Why only 7 demos now (was 25)
+## Why the catalog stays small (was 25 demos)
 
 Before ADR-0005, Planex had 25 demos that inflated the count by including:
 
@@ -155,7 +169,7 @@ Before ADR-0005, Planex had 25 demos that inflated the count by including:
 - **3 engineering variants** (perf / resize / animate) — proved backend capability, not abstraction capability
 - **11 3-abstraction-era demos** (counter / slider / checkbox / radio / dropdown / form / tabs / wizard / modal / todo / todo_app) — used the old API and the "render-as-Closure" anti-pattern (Closure with `PX_INTENT_EXPRESS`)
 
-These 22 demos were deleted in commit c24bbcab57. The 3 remaining demos in build + 4 prototypes out of build represent the same conceptual coverage with less redundancy.
+These 22 demos were deleted in commit c24bbcab57. The principle stands: each catalog entry must prove an abstraction's capability, not a backend's. The build has since grown demos that earn their place by that standard (undo, antipatterns, animation, async, confidence, editor, hover-drag-interaction, palette-afford); the catalog documents the load-bearing ones.
 
 **The conceptual argument** "Planex abstractions can express common UI patterns" still holds — `counter_4abs` and `multi_perception` demonstrate it. The old demos were backend-completeness proofs, not abstraction-completeness proofs.
 
@@ -164,7 +178,7 @@ These 22 demos were deleted in commit c24bbcab57. The 3 remaining demos in build
 ## How to add a new demo
 
 1. Decide which abstraction's which capability you're proving
-2. Use the **new 4-abstraction API**:
+2. Use the **current API** (7 abstractions since v0.7):
    - `px_closure_new(goal, intent_kind, action, evaluation, user)` — 5 args, no perception
    - `px_perception_new(name, fn, inputs, n_inputs, user)` for rendering
 3. Add to `CMakeLists.txt` in `STDOUT_DEMOS` (or `WINDOWED_DEMOS` if it needs a window)

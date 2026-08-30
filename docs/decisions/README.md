@@ -30,6 +30,8 @@ ADR numbering (ADR-0001 onward) is permanent; the directory only encodes the cur
 | ADR-0011 | [Essence-justified abstraction is exempt from the Rule of Three](accepted/ADR-0011-essence-justified-abstraction-exempts-rule-of-three.md) | accepted |
 | ADR-0012 | [v4 Orthogonality Pressure Test — Four Findings (Two L2 Leaks + One Migration Gap + One Protocol Coupling)](accepted/ADR-0012-v4-orthogonality-pressure-test-four-findings.md) | accepted |
 | ADR-0013 | [v0.5 Leak Budget Retire](accepted/ADR-0013-v05-leak-budget-retire.md) | accepted |
+| ADR-0017 | [Promote intent compilation (region + AFFORDS + compile step) to the 6th canonical abstraction](accepted/ADR-0017-intent-compilation-promotion.md) | accepted |
+| ADR-0018 | [Promote px_interaction (interaction process) to the 7th canonical abstraction](accepted/ADR-0018-interaction-process-promotion.md) | accepted |
 | ADR-0001 | [Perception is currently a no-op placeholder](superseded/ADR-0001-perception-currently-noop.md) | superseded |
 
 ## Templates and rules

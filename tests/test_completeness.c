@@ -37,9 +37,9 @@
  * ============================================================ */
 
 #define EXPECTED_TOTAL   68
-#define EXPECTED_CLEAN   31
-#define EXPECTED_FORCED  29
-#define EXPECTED_CANNOT   8
+#define EXPECTED_CLEAN   38
+#define EXPECTED_FORCED  24
+#define EXPECTED_CANNOT   6
 
 /* ============================================================
  * Pattern table — one row per UI pattern in the corpus.
@@ -139,21 +139,23 @@ static const pattern_t kPatterns[] = {
     {22,  "Branching history (fork)",        "C", CANNOT, G_LIMITATION, "L4" },
     {23,  "Collaborative editing (multi-user)", "C", CANNOT, G_NONGOAL, "NG-12" },
 
-    /* Category D: Continuous / Transient Interaction (P24-P38) — 0 clean, 11 forced, 4 cannot */
-    {24,  "Hover highlight",                "D", FORCED, G_LIMITATION, "L12" },
-    {25,  "Mouse cursor position",          "D", FORCED, G_LIMITATION, "L12" },
-    {26,  "Pressed button visual",          "D", FORCED, G_LIMITATION, "L11" },
-    {27,  "Drag preview (ghost image)",      "D", FORCED, G_LIMITATION, "L11" },
-    {28,  "Drag-drop reorder",              "D", FORCED, G_LIMITATION, "L11" },
-    {29,  "Swipe gesture (touch)",          "D", CANNOT, G_LIMITATION, "L12" },
+    /* Category D: Continuous / Transient Interaction (P24-P38) â 7 clean, 7 forced, 1 cannot
+     * (v0.7 re-score per ADR-0017 intent-compilation promotion + ADR-0018
+     * interaction-process promotion; was 0/11/4 at v0.5) */
+    {24,  "Hover highlight",                "D", CLEAN,  G_EXAMPLE,    "hover_drag_interaction.c" },
+    {25,  "Mouse cursor position",          "D", CLEAN,  G_EXAMPLE,    "hover_drag_interaction.c" },
+    {26,  "Pressed button visual",          "D", CLEAN,  G_EXAMPLE,    "hover_drag_interaction.c" },
+    {27,  "Drag preview (ghost image)",      "D", CLEAN,  G_EXAMPLE,    "hover_drag_interaction.c" },
+    {28,  "Drag-drop reorder",              "D", CLEAN,  G_EXAMPLE,    "hover_drag_interaction.c" },
+    {29,  "Swipe gesture (touch)",          "D", FORCED, G_LIMITATION, "L12" },
     {30,  "Pinch-to-zoom",                  "D", CANNOT, G_LIMITATION, "L12" },
-    {31,  "Tooltip on hover (delayed)",      "D", FORCED, G_LIMITATION, "L11" },
-    {32,  "Context menu (right-click)",     "D", FORCED, G_LIMITATION, "L11" },
+    {31,  "Tooltip on hover (delayed)",     "D", FORCED, G_LIMITATION, "L11" },
+    {32,  "Context menu (right-click)",     "D", CLEAN,  G_EXAMPLE,    "palette_afford.c" },
     {33,  "Autocomplete suggestions",       "D", FORCED, G_CLAIM_ONLY, NULL },
     {34,  "Infinite scroll",                "D", FORCED, G_LIMITATION, "L12" },
     {35,  "Resizable panel (drag handle)",  "D", FORCED, G_LIMITATION, "L11" },
-    {36,  "Color picker (drag slider)",      "D", FORCED, G_LIMITATION, "L11" },
-    {37,  "Knob / rotary control",           "D", CANNOT, G_LIMITATION, "L12" },
+    {36,  "Color picker (drag slider)",      "D", CLEAN,  G_EXAMPLE,    "palette_afford.c" },
+    {37,  "Knob / rotary control",          "D", FORCED, G_CLAIM_ONLY, NULL },
     {38,  "Scroll position",                 "D", FORCED, G_LIMITATION, "L12" },
 
     /* Category E: Layout & Spatial (P39-P44) — 2 clean, 4 forced */

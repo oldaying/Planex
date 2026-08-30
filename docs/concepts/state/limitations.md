@@ -1,6 +1,6 @@
 # Limitations and Known Gaps
 
-> **Applies to**: v0.6. What Planex claims vs. what Planex actually delivers. This document exists to keep the README's "5 abstractions" tagline honest by surfacing the gaps that the tagline hides.
+> **Applies to**: v0.7. What Planex claims vs. what Planex actually delivers. This document exists to keep the README's "seven abstractions" tagline honest by surfacing the gaps that the tagline hides.
 
 Research-grade projects gain credibility by being explicit about their limitations. seL4 lists which security properties are proven and which aren't. Lean lists which axioms are consistent and which are open. Planex must do the same.
 
@@ -89,7 +89,7 @@ Before these examples landed, Planex's anti-pattern claim against React / Solid 
 
 ### Status in roadmap matrix
 
-[roadmap-matrix.md](roadmap-matrix.md) Anti-pattern test column is **✅** for all four abstractions in the v0.3 matrix (Relation, Estimate, Closure, Perception — the matrix pre-dates px_loop's ADR-0008 promotion). This was previously 🔴 for all four through v0.2; the matrix was updated when the anti-pattern examples landed. <!-- fresh-allow: "previously 🔴" is past-tense historical narrative, not a current claim; current state is ✅ --> <!-- stale-allow: "four abstractions" refers to the v0.3 matrix's row count (4); the v0.5 shipping set is 5 abstractions (px_loop added by ADR-0008); roadmap-matrix.md is itself v0.3-snapshot -->
+[roadmap-matrix.md](roadmap-matrix.md) Anti-pattern test column is **✅** for every abstraction row (the v0.3 core four, `px_loop` appended at v0.4, intent compilation + `px_interaction` appended at v0.7). This was previously 🔴 for the core four through v0.2; the matrix was updated when the anti-pattern examples landed. <!-- fresh-allow: "previously 🔴" is past-tense historical narrative, not a current claim; current state is ✅ -->
 
 ### Caveat (P2.4 — separate open gap, not L3)
 
@@ -220,11 +220,14 @@ This is acknowledged but not currently a priority. The pre-1.0 research phase is
 
 ---
 
-## L11: Multi-frame interaction processes are not abstracted
+## L11: Timing-delay interaction composites and the intent gradient are not abstracted
 
-**Severity:** Medium — affects testability and debuggability of hover/drag/focus interactions
+**Severity:** Medium — affects time-composite interactions (tooltips, resize handles); Low — the hover/drag core this entry used to carry
 
-All mainstream UI libraries — including Planex — model intent as **discrete events**: click, key press, submit, hover enter, hover leave. There is no abstraction for the **continuous gradient of intent** that real users experience (approach → potential → decided → executing → retracting).
+**Partially closed in v0.7** ([ADR-0018](../../decisions/accepted/ADR-0018-interaction-process-promotion.md)): multi-frame interaction processes ARE now abstracted — `px_interaction` (begin → sample* → commit|cancel, inert hot path, transitions-only bridges) is the canonical 7th abstraction, and hover/drag/pressed/reorder patterns are cleanly expressible (corpus Category D re-score: 0/15 → 7/15 clean). What remains under this L-number, per the corpus groundings P31/P35:
+
+- **Timing-delay composites** (P31 tooltip-with-delay, P35 resize handle): hover is a clean region query and drag is a clean process, but *composing* them with time delays still needs `on_tick` timing hacks — two transient dimensions the abstraction set does not compose declaratively.
+- **The intent gradient** (the original core of this entry): all mainstream UI libraries — including Planex — model intent as **discrete acts** (or, since v0.7, bounded processes with outcomes). The **continuous gradient of intent** that real users experience (approach → potential → decided → executing → retracting) remains unexpressed.
 
 Concrete consequences:
 
@@ -237,7 +240,7 @@ This is not unique to Planex. It is shared by React, Vue, SwiftUI, Flutter, Qt, 
 
 Planex's Closure uses five discrete Intent kinds (`PX_INTENT_ASSERT/REQUEST/PROMISE/DECLARE/EXPRESS`), inherited from Winograd/Flores speech-act theory. This is the same simplification — intent is treated as a discrete act, not a continuous process.
 
-**Implication:** Hover/drag/focus interactions in Planex apps cannot be cleanly unit-tested. Bugs in these interactions will be reported by users, not caught by tests.
+**Implication (narrowed):** hover/drag processes are now unit-testable (deterministic scripts against `px_interaction`, as both demos and `test_v06_interaction.c` do). Timing-delay composites and intent-strength expressions remain test-hostile.
 
 **Status:** See [continuous-intent-speculation.md](../speculation/continuous-intent-speculation.md) for the future-research marker. Planex does not currently commit to fixing this — it is documented as a known shared blind spot of all UI libraries.
 
@@ -247,19 +250,17 @@ Planex's Closure uses five discrete Intent kinds (`PX_INTENT_ASSERT/REQUEST/PROM
 
 ---
 
-## L12: Continuous interaction processes — prototype landed in v0.6 (canonical promotion pending)
+## L12: Multi-touch, scroll-position, and gesture recognition are not abstracted
 
-**Severity:** ~~High — affects 15/68 common UI patterns~~ **Partially closed in v0.6 (prototype).** The [ADR-0006](../../decisions/accepted/ADR-0006-continuous-interaction-deferred.md) evidence protocol completed: `hover_drag_4abs.c` measured the Estimate hack ("INTOLERABLE for complex gesture/touch UIs"), and [ADR-0016 (proposed)](../../decisions/proposed/ADR-0016-interaction-prototype-option-b.md) landed the Option-B prototype: `px_interaction` (process: begin → sample* → commit|cancel, inert hot path, transitions-only bridges to Closure/Estimate) + `px_region`/`px_afford_at` (intent compilation as an AFFORDS graph query) + `PX_EV_WHEEL` on all three real backends. Category D is NOT re-scored here — that is the promotion ADR's job; the canonical abstraction count remains 5.
+**Severity:** ~~High — affects 15/68 common UI patterns~~ **Partially closed in v0.7 (promoted).** [ADR-0018](../../decisions/accepted/ADR-0018-interaction-process-promotion.md) promoted the interaction process (`px_interaction`) and [ADR-0017](../../decisions/accepted/ADR-0017-intent-compilation-promotion.md) promoted intent compilation (`px_region`/AFFORDS/`px_afford_compile`) to canonical abstractions. The ADR-0006 evidence protocol completed end to end: `hover_drag_4abs.c` measured the Estimate hack, ADR-0016 landed the Option-B prototype in v0.6, and the v0.7 promotions landed on real-application evidence (`examples/palette_afford.c` — zero raw-coordinate callbacks).
 
-Per `ui-pattern-coverage.md` Category D: **0/15 continuous/transient interaction patterns are cleanly expressible** with the current 5 abstractions (the 4 original + `px_loop` from v0.4; `px_loop` adds closed-loop coupling but not continuous interaction primitives — see ADR-0006 for the deferral).
+Per the v0.7 corpus re-score: **7/15 continuous/transient interaction patterns are cleanly expressible** (P24–P28, P32, P36) with the 7-abstraction set. The patterns still grounded to this L-number:
 
-Affected patterns include:
-- Hover highlight (forced into Estimate — semantically wrong)
-- Drag preview / drag-drop reorder (forced — drag is multi-frame process, not state)
-- Mouse cursor position (forced — 60fps updates to Estimate = expensive + wrong)
-- Swipe gesture / pinch-to-zoom / knob rotation (❌ cannot express)
-- Scroll position (forced — high-frequency transient)
-- Tooltip with delay (forced — two transient dimensions)
+- Swipe gesture (P29: ⚠️ derivable from trajectory measures, but the touch input channel is NG-6)
+- Pinch-to-zoom (P30: ❌ simultaneous trajectories + cross-process arbitration missing)
+- Infinite scroll / scroll position (P34/P38: ⚠️ wheel events landed in v0.6, but position-as-transient-state has no abstraction)
+
+What remains for these: touch input (NG-6), multi-process arbitration, and a gesture recognizer stack — all recorded as future decisions, not commitments.
 - Autocomplete suggestions (forced — async list + temporary selection)
 
 **Root cause:** These patterns involve *continuous processes* — they have time dimension (like Estimate), can be cancelled (like Closure), but are NOT persistent state and NOT discrete intent. Forcing them into Estimate is semantically wrong — Estimate is "state with time + uncertainty", not "high-frequency transient input stream."
@@ -318,7 +319,8 @@ Action is situated — plans are post-hoc rationalizations, not action generator
 
 Affordance is a relation between world and actor, not a property. UI's essence includes "what actions the actor can take" — which requires actor presence in the API.
 
-- **Why deferred**: Planex's Relation is between things (Estimates, Closures); adding actor-to-thing relations would be a major API revision
+- **Partially addressed in v0.7** ([ADR-0017](../../decisions/accepted/ADR-0017-intent-compilation-promotion.md)): AFFORDS edges are now load-bearing — they drive interaction routing (`px_afford_compile` + `intent_graph`), so affordance-as-relation is implemented *between artifacts* (region affords closure). The actor-present half of Gibson's claim remains deferred: the edges carry no actor, so affordances cannot differ per user or per role.
+- **Why the remainder is deferred**: adding actor-to-thing relations (a `px_actor` endpoint or 3-place AFFORDS via `px_declare_for`) would be a major API revision with no current use-case pressure
 - **Source**: research/reports/05-phenomenology.md §7 (Gibson)
 
 ### D4. Breakdown (Heidegger-Winograd/Flores, 1986)
@@ -333,6 +335,22 @@ UI's essence includes the moment of breakdown — when the tool becomes present-
 Per essence-driven principle (ADR-0007): **a deferred essence candidate must remain acknowledged**. If Planex silently drops them, it commits the same over-claim that v2 corrected. Future revisions should pick these up when use cases demand, not when completeness anxiety demands.
 
 **Decision:** ADR-0007 acknowledges these as deferred essence. No implementation is planned until use-case pressure demands.
+
+---
+
+## L15: Intent compilation gaps — no keyboard affordances; drag-begin does not afford-route
+
+**Severity:** Medium for keyboard users; Low for drag-heavy apps — recorded at promotion time (v0.7, ADR-0017/0018)
+
+Two scoped gaps recorded by the promotion ADRs' Known-issues sections, kept here so the corpus of "not done yet" stays complete:
+
+### L15a. No keyboard affordances
+
+Regions are pointer geometry. Keyboard traversal (focus order, activation keys, shortcuts compiled to the same afforded closures) is not compiled — a keyboard user cannot be served by intent compilation. The pointer is currently the only channel with a compile step. Falsifiable retire path: a `px_afford_focus_next`-shaped query over the same AFFORDS graph (the graph already holds what is needed; the missing piece is focus-order data + key event compilation in `app.c`).
+
+### L15b. The drag-begin seam
+
+`intent_graph` compiles pointer-downs to closures for **discrete acts**. A drag (continuous intent) is begun by the app wiring `on_mouse_move`/`on_mouse_up` into a `px_interaction` — the begin step does not resolve through the afford graph, so a region's drag-ability is not graph data. `palette_afford.c` documents the boundary in place (its slider affords no closure). Retire path: an afford variant resolving a *process* rather than a closure — a joint ADR-0017/0018 obligation, requiring new evidence (an app whose drags must be data-driven, e.g. a designer-tool palette).
 
 ---
 

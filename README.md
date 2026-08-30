@@ -1,6 +1,6 @@
 # Planex
 
-> **Plane + X** — what if a UI library's core abstractions were Relation + Estimate + Closure + Perception + px_loop, directly mapping UI essence's five axes?
+> **Plane + X** — what if a UI library's core abstractions were Relation + Estimate + Closure + Perception + px_loop + intent compilation (px_region/px_afford) + px_interaction, directly mapping UI essence's axes?
 >
 > Per [ADR-0005](docs/decisions/accepted/ADR-0005-promote-perception-to-fourth-abstraction.md): Perception was promoted to a 4th first-class abstraction. Closure restructured from 7 stages to 5 stages (execution side). Per [ADR-0008](docs/decisions/accepted/ADR-0008-feedback-as-fifth-essence-category.md): `px_loop` was added as the 5th abstraction for the Feedback essence category (v0.4). See [UI Essence Layers](docs/concepts/background/ui-essence-layers.md) for the layered essence model.
 
@@ -28,15 +28,17 @@ That's it. Zero external dependencies. All three demos run stdout-only — no wi
 
 ## What is Planex?
 
-Planex is a UI library built on **five abstractions** (v0.4+; the 5th, `px_loop`, was added by [ADR-0008](docs/decisions/accepted/ADR-0008-feedback-as-fifth-essence-category.md) for the Feedback essence category). Each maps directly to an axis of UI essence (see [ui-essence-layers.md](docs/concepts/background/ui-essence-layers.md)):
+Planex is a UI library built on **seven abstractions** (v0.7; the 5th, `px_loop`, was added by [ADR-0008](docs/decisions/accepted/ADR-0008-feedback-as-fifth-essence-category.md) for the Feedback essence category; the 6th and 7th — intent compilation and `px_interaction` — were promoted by [ADR-0017](docs/decisions/accepted/ADR-0017-intent-compilation-promotion.md) and [ADR-0018](docs/decisions/accepted/ADR-0018-interaction-process-promotion.md)). Each maps directly to an axis of UI essence (see [ui-essence-layers.md](docs/concepts/background/ui-essence-layers.md)):
 
 1. **Estimate** — state space (state with time + uncertainty)
 2. **Relation** — state-state relationships (queryable graph, not a tree)
 3. **Closure** — intent space, execution side (5 stages: Goal → Intent → Action → Execution → Evaluation)
 4. **Perception** — machine → user direction (pure function denoting state — pixels, a11y, log, etc.)
 5. **px_loop** — feedback / closed-loop coupling (lifecycle + audit + interruption + replay; added in v0.4 by ADR-0008)
+6. **Intent compilation** — intent space, decode side (regions + AFFORDS graph query: what does this input denote?; promoted in v0.7 by ADR-0017)
+7. **px_interaction** — intent space, process side (trajectory + phase machine with inert hot path: what is the user doing over time?; promoted in v0.7 by ADR-0018)
 
-Every widget emerges from these five. No pre-defined component types. No inheritance. No callbacks.
+Every widget emerges from these seven. No pre-defined component types. No inheritance. No callbacks.
 
 ```c
 #include "planex/planex.h"

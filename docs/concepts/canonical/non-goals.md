@@ -51,7 +51,7 @@ This will change at v1.0, which will not happen until the matrix in `roadmap-mat
 
 ## NG-5: Component library / widget set
 
-Planex does not ship a "components" directory with `Button`, `Input`, `Select`, `Modal`, etc. The thesis is that widgets **emerge** from the five abstractions — see `docs/concepts/canonical/why-four-abstractions.md` (filename is historical; content covers all 5 since v0.4).
+Planex does not ship a "components" directory with `Button`, `Input`, `Select`, `Modal`, etc. The thesis is that widgets **emerge** from the seven abstractions — see `docs/concepts/canonical/why-four-abstractions.md` (filename is historical; content covers the original set, extended by ADR-0008/0017/0018).
 
 The `examples/` directory contains reference implementations of common widgets. These are demos, not a shipped component library. Copy them into your project if you want; they're MIT.
 
@@ -122,8 +122,8 @@ Planex assumes one process, one main window. Multi-window applications are suppo
 
 If you're considering a contribution, ask:
 
-1. **Does it touch the five abstractions?** If yes, it probably belongs in core — but write an ADR first.
-2. **Is it a new widget?** Add it to `examples/`, not core. Document how it emerges from the five abstractions.
+1. **Does it touch the seven abstractions?** If yes, it probably belongs in core — but write an ADR first.
+2. **Is it a new widget?** Add it to `examples/`, not core. Document how it emerges from the seven abstractions.
 3. **Is it a new backend?** Yes, please — but only if it doesn't compromise abstraction questions.
 4. **Is it AI / mobile / styling / networking / animation?** Out of scope. Fork the project, don't pull-request.
 

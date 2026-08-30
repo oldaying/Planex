@@ -1,6 +1,6 @@
 # Architecture Overview
 
-> **Applies to**: v0.4. How the source files relate to each other and to the core abstractions.
+> **Applies to**: v0.7. How the source files relate to each other and to the core abstractions (7 since the v0.7 promotions: the v0.4 five + intent compilation in `hit.c` + `px_interaction` in `interaction.c`).
 
 This document describes the module structure of Planex at a level above individual files — useful for understanding where to look when modifying or extending the library.
 

@@ -1,10 +1,10 @@
 # UI Pattern Corpus — Closed Falsifiability Set
 
-> **Status:** Canonical reference. Versioned at v0.5. Date: 2026-08-28.
+> **Status:** Canonical reference. Versioned at v0.5; re-scored at v0.7 by [ADR-0017](../decisions/accepted/ADR-0017-intent-compilation-promotion.md) + [ADR-0018](../decisions/accepted/ADR-0018-interaction-process-promotion.md). Date: 2026-08-30 (re-score).
 >
-> **Purpose:** Prerequisite 3 (falsifiability) Layer 3c — the closed UI-pattern corpus used to verify completeness of the 5-abstraction set. Each pattern is either (a) cleanly expressible (✅, exemplified in `examples/`), (b) forced (⚠️, documented as a limitation in [`limitations.md`](../concepts/state/limitations.md)), or (c) impossible (❌, documented as a non-goal in [`non-goals.md`](../concepts/canonical/non-goals.md) or as a structural limitation).
+> **Purpose:** Prerequisite 3 (falsifiability) Layer 3c — the closed UI-pattern corpus used to verify completeness of the abstraction set. Each pattern is either (a) cleanly expressible (✅, exemplified in `examples/`), (b) forced (⚠️, documented as a limitation in [`limitations.md`](../concepts/state/limitations.md)), or (c) impossible (❌, documented as a non-goal in [`non-goals.md`](../concepts/canonical/non-goals.md) or as a structural limitation).
 >
-> **Closing rule:** Adding, removing, or re-verdicting a pattern requires an ADR. The corpus is closed at **68 patterns** at v0.5; future revisions (extending the corpus, re-verdicting patterns after abstraction-level changes) are tracked as deferred Wave 4.3 work in `doc-organization.md`. The count `31 ✅ + 29 ⚠️ + 8 ❌ = 68` is an invariant — drift from this distribution is a CI failure surfaced by [`tests/test_completeness.c`](../../tests/test_completeness.c).
+> **Closing rule:** Adding, removing, or re-verdicting a pattern requires an ADR. The corpus is closed at **68 patterns**; the v0.7 re-score (Category D, per ADR-0017/0018) changed the distribution to **38 ✅ + 24 ⚠️ + 6 ❌ = 68**. The count is an invariant — drift from this distribution is a CI failure surfaced by [`tests/test_completeness.c`](../../tests/test_completeness.c).
 >
 > **Companion documents:**
 > - [`../concepts/state/ui-pattern-coverage.md`](../concepts/state/ui-pattern-coverage.md) — the qualitative coverage matrix this corpus distills (one row per pattern with per-abstraction verdict + notes).
@@ -21,7 +21,7 @@
 The corpus is **closed** at 68 patterns. This means:
 
 1. **Count invariant** — `tests/test_completeness.c` asserts the count is exactly 68. If a pattern is added (e.g. P69: "Undo via voice command") or removed (e.g. P4 dropdown subsumed by P7 tabs), the test fails until the corpus and the test agree.
-2. **Verdict-distribution invariant** — `31 ✅ + 29 ⚠️ + 8 ❌ = 68`. If a re-verdict happens (e.g. P20 Redo moves from ⚠️ to ✅ when L4 closes), both this corpus and the test must be updated in the same commit. A one-sided update is a CI failure.
+2. **Verdict-distribution invariant** — `38 ✅ + 24 ⚠️ + 6 ❌ = 68` (v0.7 re-score; was `31 + 29 + 8` at v0.5). If a re-verdict happens (e.g. P20 Redo moves from ⚠️ to ✅ when L4 closes), both this corpus and the test must be updated in the same commit. A one-sided update is a CI failure.
 3. **Grounding invariant** — every ✅ pattern grounds to either (a) a file in `examples/` or (b) the `CLAIM_ONLY` sentinel (for trivially expressible patterns where a separate demo would be redundant). Every ⚠️/❌ pattern grounds to either (a) a limitation L# in `limitations.md` or (b) a non-goal NG-# in `non-goals.md`. Patterns without grounding are CI failures.
 
 These invariants compose with the leak-budget mechanism ([`leak-budgets.md`](../concepts/canonical/leak-budgets.md)) to form the falsifiability contract: the leak-budget catches *quantitative* leaks in implemented abstractions, the corpus catches *completeness* gaps in the abstraction set as a whole.
@@ -44,7 +44,7 @@ Each row in the per-category tables below has these columns:
 
 ## Category A: Discrete State Manipulation (P1–P12)
 
-Planex's design center. All 12 patterns are ✅ — discrete state is what the 5 abstractions (Relation + Estimate + Closure + Perception + px_loop) were designed for; the first 4 carry the discrete-state load directly, `px_loop` provides the feedback loop the others run inside. Most patterns are `CLAIM_ONLY` because the implementation is a few lines of `px_estimate_set` + `px_closure_trigger` + a pure-function perception; demos that exercise multiple abstractions together are in `examples/`.
+Planex's design center. All 12 patterns are ✅ — discrete state is what the original abstraction set (Relation + Estimate + Closure + Perception + px_loop) was designed for; the first four carry the discrete-state load directly, `px_loop` provides the feedback loop the others run inside, and the v0.7 additions (intent compilation, `px_interaction`) sit on the input side. Most patterns are `CLAIM_ONLY` because the implementation is a few lines of `px_estimate_set` + `px_closure_trigger` + a pure-function perception; demos that exercise multiple abstractions together are in `examples/`.
 
 | ID | Pattern | Verdict | Grounding | Notes |
 |----|---------|---------|-----------|-------|
@@ -100,29 +100,29 @@ Relation graph's strength. Undo works cleanly; redo/time-travel are forced (need
 
 ## Category D: Continuous / Transient Interaction (P24–P38)
 
-The boundary zone. **0/15 patterns are clean.** All 15 are forced (⚠️) or impossible (❌). This is Planex's single biggest limitation — documented as L11 (multi-frame processes not abstracted) and L12 (continuous interaction processes not abstracted, confirmed by this very pattern analysis).
+The boundary zone, re-scored at v0.7. **7/15 patterns are clean** after the promotion of intent compilation (ADR-0017) and the interaction process (ADR-0018) to canonical abstractions. The remaining 8 are forced (⚠️) or impossible (❌) — dominated by multi-touch absence (NG-6), timing-delay patterns, and scroll-position transients.
 
 | ID | Pattern | Verdict | Grounding | Notes |
 |----|---------|---------|-----------|-------|
-| P24 | Hover highlight | ⚠️ forced | LIMITATION L12 | Hover is transient, not state — forcing into Estimate is semantic stretch |
-| P25 | Mouse cursor position | ⚠️ forced | LIMITATION L12 | 60fps updates to Estimate = expensive + wrong |
-| P26 | Pressed button visual | ⚠️ forced | LIMITATION L11 | Press-release is a process, not a state |
-| P27 | Drag preview (ghost image) | ⚠️ forced | LIMITATION L11 | Drag is multi-frame process, not discrete state |
-| P28 | Drag-drop reorder | ⚠️ forced | LIMITATION L11 | Commit via Closure (good); preview is hacky |
-| P29 | Swipe gesture (touch) | ❌ cannot | LIMITATION L12 | Continuous trajectory — no abstraction |
-| P30 | Pinch-to-zoom | ❌ cannot | LIMITATION L12 | Multi-touch continuous — no abstraction |
-| P31 | Tooltip on hover (delayed) | ⚠️ forced | LIMITATION L11 | Hover + time delay — two transient dimensions |
-| P32 | Context menu (right-click) | ⚠️ forced | LIMITATION L11 | Position context not in Estimate |
+| P24 | Hover highlight | ✅ clean | EXAMPLE hover_drag_interaction.c | Hover is a region query computed at render time — no estimate churn (ADR-0017) |
+| P25 | Mouse cursor position | ✅ clean | EXAMPLE hover_drag_interaction.c | Ambient sample stream (plain struct field), derived on demand — the 60fps-estimate hack retired (ADR-0017) |
+| P26 | Pressed button visual | ✅ clean | EXAMPLE hover_drag_interaction.c | Press-release = BEGAN→COMMITTED arc; publish_phase at transitions only (ADR-0018) |
+| P27 | Drag preview (ghost image) | ✅ clean | EXAMPLE hover_drag_interaction.c | Preview derived per frame from the trajectory — zero writes while dragging (ADR-0018) |
+| P28 | Drag-drop reorder | ✅ clean | EXAMPLE hover_drag_interaction.c | Trajectory + commit Closure + undo through the graph (ADR-0018) |
+| P29 | Swipe gesture (touch) | ⚠️ forced | LIMITATION L12 | Derivable from trajectory measures (velocity + displacement); touch input channel is NG-6 (ADR-0018) |
+| P30 | Pinch-to-zoom | ❌ cannot | LIMITATION L12 | Multi-touch continuous — needs simultaneous trajectories + arbitration (NG-6) |
+| P31 | Tooltip on hover (delayed) | ⚠️ forced | LIMITATION L11 | Hover is clean now; the time-delay dimension still needs on_tick timing hacks |
+| P32 | Context menu (right-click) | ✅ clean | EXAMPLE palette_afford.c | Button-3 compiles to px_pointer_intent with region label embedded — position context is in the intent value (ADR-0017) |
 | P33 | Autocomplete suggestions | ⚠️ forced | CLAIM_ONLY | Async list + temporary selection — doable but forced |
-| P34 | Infinite scroll | ⚠️ forced | LIMITATION L12 | Scroll position is transient + continuous |
-| P35 | Resizable panel (drag handle) | ⚠️ forced | LIMITATION L11 | Same as drag-drop preview |
-| P36 | Color picker (drag slider) | ⚠️ forced | LIMITATION L11 | Continuous value during drag |
-| P37 | Knob / rotary control | ❌ cannot | LIMITATION L12 | Continuous gesture — no abstraction |
-| P38 | Scroll position | ⚠️ forced | LIMITATION L12 | High-frequency transient |
+| P34 | Infinite scroll | ⚠️ forced | LIMITATION L12 | Scroll position is transient + continuous; wheel events landed but no scroll abstraction |
+| P35 | Resizable panel (drag handle) | ⚠️ forced | LIMITATION L11 | Drag mechanism exists (ADR-0018) but drag-begin affordance seam + no demo = forced |
+| P36 | Color picker (drag slider) | ✅ clean | EXAMPLE palette_afford.c | Live preview derived from trajectory, one committed estimate write (ADR-0017 + ADR-0018) |
+| P37 | Knob / rotary control | ⚠️ forced | CLAIM_ONLY | Rotary = drag process + app-side angle math — derivable but undemonstrated (ADR-0018) |
+| P38 | Scroll position | ⚠️ forced | LIMITATION L12 | High-frequency transient; wheel events land (v0.6) but position-as-state remains forced |
 
-**Category verdict: 0/15 ✅, 12/15 ⚠️, 3/15 ❌.**
+**Category verdict: 7/15 ✅, 7/15 ⚠️, 1/15 ❌.**
 
-The single biggest gap in the corpus. ADR-0006 (defer Continuous Interaction to v1.0+) documents the project's decision: do NOT add a 5th abstraction for continuous processes in v0.x; revisit only if `hover_drag_4abs.c` demo shows the hack is unbearable.
+The v0.7 re-score (ADRs [0017](../decisions/accepted/ADR-0017-intent-compilation-promotion.md) and [0018](../decisions/accepted/ADR-0018-interaction-process-promotion.md)) flipped P24–P28, P32, P36 from ⚠️/❌ to ✅ and downgraded P29/P37 from ❌ to ⚠️. What remains: multi-touch (NG-6), timing-delay composites, and scroll-position transients. ADR-0006's deferral protocol completed: the boundary-exposing demo measured the pain, the prototypes landed in v0.6, the promotions landed in v0.7 on real-application evidence.
 
 ---
 
@@ -205,7 +205,7 @@ Extension is a gap (Layer 6 — medium). Planex is a library, not a platform; pl
 | P65 | User scripting | ❌ cannot | NONGOAL NG-5 | Layer 6 (medium) — not in scope |
 | P66 | Theme system | ⚠️ forced | NONGOAL NG-8 | Styling/theming is explicitly out of scope |
 | P67 | Internationalization | ⚠️ forced | NONGOAL NG-9 | i18n is explicitly out of scope |
-| P68 | Custom widgets | ✅ clean | EXAMPLE integration_4abs.c | This is the thesis — widgets emerge from the 5 abstractions |
+| P68 | Custom widgets | ✅ clean | EXAMPLE integration_4abs.c | This is the thesis — widgets emerge from the abstraction set (7 since v0.7) |
 
 **Category verdict: 1/5 ✅, 2/5 ⚠️, 2/5 ❌.**
 
@@ -218,15 +218,15 @@ Extension is a gap (Layer 6 — medium). Planex is a library, not a platform; pl
 | A: Discrete state | 12 | 0 | 0 | 12 |
 | B: Animation & time | 6 | 0 | 0 | 6 |
 | C: Undo & history | 1 | 2 | 2 | 5 |
-| D: Continuous/transient interaction | 0 | 12 | 3 | 15 |
+| D: Continuous/transient interaction | 7 | 7 | 1 | 15 |
 | E: Layout & spatial | 2 | 4 | 0 | 6 |
 | F: Async & external data | 4 | 4 | 0 | 8 |
 | G: Multi-window | 2 | 2 | 1 | 5 |
 | H: Accessibility | 3 | 3 | 0 | 6 |
 | I: Extension | 1 | 2 | 2 | 5 |
-| **Total** | **31** | **29** | **8** | **68** |
+| **Total** | **38** | **24** | **6** | **68** |
 
-**Closed-corpus invariant:** `31 + 29 + 8 = 68`. The test `tests/test_completeness.c` recomputes these counts from its hardcoded pattern table and asserts the equality; any drift is a CI failure.
+**Closed-corpus invariant:** `38 + 24 + 6 = 68`. The test `tests/test_completeness.c` recomputes these counts from its hardcoded pattern table and asserts the equality; any drift is a CI failure. Re-scored at v0.7 by ADR-0017 + ADR-0018 (was `31 + 29 + 8` at v0.5).
 
 ---
 
@@ -234,24 +234,24 @@ Extension is a gap (Layer 6 — medium). Planex is a library, not a platform; pl
 
 The corpus exists to make Prerequisite 3 (falsifiability) Layer 3c falsifiable:
 
-1. **Forward direction** — if a UI pattern *cannot* be expressed in the 5 abstractions (i.e. verdict is `❌ cannot`), the abstraction set is *incomplete*. Currently 8/68 patterns are ❌ — these are the gaps the corpus names honestly:
+1. **Forward direction** — if a UI pattern *cannot* be expressed in the 7 abstractions (i.e. verdict is `❌ cannot`), the abstraction set is *incomplete*. Currently 6/68 patterns are ❌ — these are the gaps the corpus names honestly:
    - P22 Branching history → fork abstraction missing (L4)
    - P23 Collaborative editing → multi-writer / CRDT missing (NG-12)
-   - P29 Swipe gesture → continuous-intent abstraction missing (L12)
-   - P30 Pinch-to-zoom → continuous multi-touch abstraction missing (L12)
-   - P37 Knob / rotary → continuous gesture abstraction missing (L12)
+   - P30 Pinch-to-zoom → multi-touch trajectories + arbitration missing (L12, NG-6)
    - P53 Multi-window sync → cross-window Relation missing (NG-12)
    - P64 Plugin / extension → extension API missing (NG-5)
    - P65 User scripting → scripting API missing (NG-5)
 
-2. **Backward direction** — if an abstraction is *not exercised* by any ✅ pattern, the abstraction is *redundant*. Currently each of the 5 abstractions is exercised by at least one ✅ pattern:
+2. **Backward direction** — if an abstraction is *not exercised* by any ✅ pattern, the abstraction is *redundant*. Currently each of the 7 abstractions is exercised by at least one ✅ pattern:
    - **Estimate** — P1, P13, P17, P50, … (state + animation + confidence)
    - **Closure** — P1, P8, P12, P19, P45, P63, … (discrete intent + async lifecycle)
    - **Relation** — P1 (TRIGGERS), P3 (DEPENDS_ON), P10, P19 (graph), P39 (BESIDE/BELOW), …
    - **Perception** — P1, P58 (a11y), P59 (test snapshot), P63 (live region), …
    - **px_loop** — P19 (trigger→snapshot→re-render), P50 (optimistic + undo), … (closed-loop coupling)
+   - **Intent compilation** (ADR-0017) — P24, P25, P32, P36 (afford-routed clicks, region queries, context intents)
+   - **px_interaction** (ADR-0018) — P26, P27, P28, P36, P29⚠️ (phases, derived previews, drag-drop commits, gesture measures)
 
-The backward-direction check is qualitative (not enforced by `test_completeness.c` yet) — it lives in `ui-pattern-coverage.md`'s "What this reveals" section. A future Wave 4.3 follow-up could encode it as a CI assertion: "for each of the 5 abstractions, ≥1 ✅ pattern names it in the Coverage column."
+The backward-direction check is qualitative (not enforced by `test_completeness.c` yet) — it lives in `ui-pattern-coverage.md`'s "What this reveals" section. A future Wave 4.3 follow-up could encode it as a CI assertion: "for each of the 7 abstractions, ≥1 ✅ pattern names it in the Coverage column."
 
 ---
 
@@ -265,7 +265,7 @@ To add, remove, or re-verdict a pattern:
    - The rationale (what new abstraction? what new limitation? what new demo?).
    - The new count and verdict distribution (must still sum to 68, or the new total if extending).
 2. **Update this corpus** in the same commit — the table row(s) change here, the count in the Grand Summary changes, and the test's expected count is updated.
-3. **Update `tests/test_completeness.c`** — the hardcoded pattern table must match this corpus exactly. The test's `EXPECTED_TOTAL = 68`, `EXPECTED_CLEAN = 31`, `EXPECTED_FORCED = 29`, `EXPECTED_CANNOT = 8` constants must be updated.
+3. **Update `tests/test_completeness.c`** — the hardcoded pattern table must match this corpus exactly. The test's `EXPECTED_TOTAL = 68`, `EXPECTED_CLEAN = 38`, `EXPECTED_FORCED = 24`, `EXPECTED_CANNOT = 6` constants must be updated.
 4. **Update `ui-pattern-coverage.md`** — the per-abstraction matrix row(s) for the affected pattern(s) must change too. The two documents are paired; one-sided updates are drift.
 5. **Run `make check-completeness`** — the test must pass after the update. If it fails, the corpus, the test, or `ui-pattern-coverage.md` is still inconsistent.
 

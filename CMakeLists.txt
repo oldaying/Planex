@@ -156,6 +156,7 @@ set(STDOUT_DEMOS
     integration_4abs      # 4 abstractions working simultaneously
     confidence_demo       # confidence field in real use
     animation_demo        # time as first-class dimension
+    palette_afford        # v0.7 L1: afford-routed app, zero raw-coordinate clicks
     async_demo            # PROMISE/DECLARE/FAIL lifecycle
     v3_prototype_actor          # v3: 3-place Relation (actor parameter)
     v3_prototype_perlocution    # v3: Searle level 3 effect-of-utterance
@@ -231,6 +232,16 @@ add_test(NAME v05_retire_tests COMMAND test_v05_retire)
 add_executable(test_v06_interaction tests/test_v06_interaction.c)
 target_link_libraries(test_v06_interaction planex_lib)
 add_test(NAME v06_interaction_tests COMMAND test_v06_interaction)
+
+# v0.7 line-by-line verification suite — one section per v0.7-roadmap
+# line as it ships. Section A (Line 1): intent compilation routing —
+# px_afford_compile as the window-free compile step behind the app's
+# opt-in intent_graph path, the px_pointer_intent value contract
+# (embedded region label survives capture + replay), and the routing
+# semantics (afforded → closure trigger, unresolved → raw fallback).
+add_executable(test_v07 tests/test_v07.c)
+target_link_libraries(test_v07 planex_lib)
+add_test(NAME v07_line_tests COMMAND test_v07)
 
 # v3 prototype test suite — validates that the 4 new essence
 # categories (Interpretant, Perlocution, Breakdown, 3-place Relation)

@@ -13,6 +13,12 @@
  * the loop blits to the window. This is the ADR-0005 Phase 2
  * "perception-driven rendering" path.
  *
+ * v0.7 (Line 1): when desc->intent_graph is set, pointer-downs are
+ * COMPILED before dispatch — px_afford_compile resolves the topmost
+ * region against the graph's AFFORDS edges and the afforded closure
+ * triggers with a px_pointer_intent payload. Raw-coordinate dispatch
+ * (on_click) remains as the fallback for unresolved clicks.
+ *
  * Backward compat: if only desc->render is set (old API), use it.
  */
 #define _POSIX_C_SOURCE 200809L
@@ -120,6 +126,24 @@ int px_app_run(const px_app_desc* desc) {
 
             switch (ev.kind) {
                 case PX_EV_MOUSE_DOWN:
+                    /* v0.7 (Line 1): intent compilation first. When the
+                     * app opts in via intent_graph, the click resolves
+                     * against the region registry + AFFORDS edges, and
+                     * the afforded closure triggers with a semantic
+                     * payload. Unresolved clicks (empty space, regions
+                     * affording nothing) fall through to the raw-
+                     * coordinate callback — the fallback, not the path. */
+                    if (desc->intent_graph) {
+                        px_pointer_intent pi;
+                        px_closure* afforded = px_afford_compile(
+                            desc->intent_graph, (double)ev.x, (double)ev.y,
+                            ev.button, &pi);
+                        if (afforded) {
+                            px_closure_trigger(afforded, &pi, sizeof(pi));
+                            event_changed = true;
+                            break;
+                        }
+                    }
                     if (desc->on_click) {
                         if (desc->on_click(ev.x, ev.y, desc->user)) {
                             event_changed = true;

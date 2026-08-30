@@ -1,13 +1,13 @@
 # Planex Roadmap — Matrix View
 
-> **Applies to**: v0.4 forward-looking. Replaces the flat Stage 0-19 list. Each row = one abstraction. Each column = one maturity dimension.  
-> **Updated for v0.3: matrix is now ALL GREEN.**
+> **Applies to**: v0.7 (7-abstraction set; rows extended as promotions land). Replaces the flat Stage 0-19 list. Each row = one abstraction. Each column = one maturity dimension.
+> **v0.3: ALL GREEN for the original four. v0.4/v0.7 rows appended at promotion time.**
 
 This view is borrowed from research-grade projects that survived (seL4, Lean, Raph Levien's Xilem, Zig): track **per-abstraction completeness**, not stage count.
 
 ---
 
-## The Matrix (v0.3 — all green)
+## The Matrix (v0.3 core + v0.4/v0.7 promotions — all green)
 
 | Abstraction | Theory | Proof-of-concept | Engineering | Docs | Anti-pattern test |
 |---|---|---|---|---|---|
@@ -15,8 +15,11 @@ This view is borrowed from research-grade projects that survived (seL4, Lean, Ra
 | **Estimate** | ✅ Conal FRP + Friston | ✅ animation + derived (auto-update) | ✅ auto-sampling + dynamic derived | ✅ written | ✅ `antipattern_estimate` (3 anti-patterns) |
 | **Closure** | ✅ Norman + Winograd/Flores | ✅ 5-stage + promise/declare/fail | ✅ status machine + undo binding | ✅ written | ✅ `antipattern_closure` (5 anti-patterns) |
 | **Perception** | ✅ Conal denotative + Norman stages 5-6 | ✅ multi-denotation + pure fn + selective invoke | ✅ Phase 2 runtime + perception-driven window | ✅ written | ✅ `antipattern_perception` (4 anti-patterns) |
+| **`px_loop`** (v0.4, ADR-0008) | ✅ Hoare CSP + Harel statecharts | ✅ auditable loop + replay | ✅ budget API + audit fields (v0.6) | ✅ written | ✅ `test_feedback` (13 tests) |
+| **Intent compilation** (v0.7, ADR-0017) | ✅ Gibson affordances + CLIM presentation types | ✅ afford-routed real app (`palette_afford.c`) | ✅ `intent_graph` routing in `app.c`, opt-in | ✅ written (ADR-0017 + corpus re-score) | ✅ `test_v07.c` section A (7 tests) |
+| **`px_interaction`** (v0.7, ADR-0018) | ✅ Hoare CSP (prefix + choice) + Harel statecharts | ✅ drag/hover/cancel/gesture demos + real app | ✅ inert hot path + transitions-only bridges | ✅ written (ADR-0018 + corpus re-score) | ✅ `test_v06_interaction.c` (27 tests) |
 
-**All 20 cells green.** This is the v1.0 minimum bar — every abstraction is proven necessary and implemented.
+**All 35 cells green** (7 abstractions × 5 dimensions). This is the v1.0 minimum bar — every abstraction is proven necessary and implemented. The original four went green in v0.3; `px_loop` at v0.4 (ADR-0008); intent compilation and `px_interaction` at v0.7 (ADR-0017/0018).
 
 ---
 

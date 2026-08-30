@@ -1,0 +1,43 @@
+Planex palette_afford — Line 1 real-app evidence (v0.7)
+========================================================
+Zero raw-coordinate callbacks: every click routes through
+the AFFORDS query. px_app_desc.on_click is NULL by design.
+
+[1] click swatch-green (95, 34)...
+    selected: green (label-routed, zero coordinate branches)
+
+[2] click canvas twice (100,150) (150,160)...
+    dots: 2, color: green (x/y consumed as payload DATA)
+
+[3] right-click canvas (120, 140)...
+    context clear: dots=0 (button-3 discriminated in the
+    payload — the routing layer never branched on it)
+
+[4] undo (graph snapshot)...
+    dots restored: 2
+
+[5] drag slider 14 -> 75 (tap/drag split by measure)...
+    committed brightness: 75 (live preview reads: 40,
+    estimate writes during 40-sample drag: 1)
+
+[6] undo (brightness back to 50)...
+    brightness: 50
+
+[7] click reset (275, 34)...
+    state reset via closure (undoable like any act)
+
+[8] click empty space (40, 5)...
+    no-op: no region there, no fallback handler exists
+
+Final state: sel=0 brightness=50 dots=0
+Semantic estimate writes (whole session): 8
+Raw-coordinate callbacks defined: 0 (on_click == NULL)
+Unresolved clicks (no-op path): 1
+
+=== Line 1 evidence complete ===
+ADR-0017 admission bar (ADR-0011) — what this app shows:
+  1. Routing: 5 affordances, 1 rule, 0 coordinate branches
+  2. Value: px_pointer_intent survives capture + replay
+     (label embedded — see tests/test_v07.c a3)
+  3. Real-app shape: acts are closures, undo through the
+     graph, drag is a process with derived live preview

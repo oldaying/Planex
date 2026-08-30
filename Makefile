@@ -103,7 +103,8 @@ BACKEND_OBJS := $(patsubst $(SRC_DIR)/%.c,$(BUILD)/%.o,$(filter-out $(SRC_DIR)/a
 
 EXAMPLES_NO_X11 = counter_4abs multi_perception perception_smoke perception_phase2 \
 	          undo_via_graph antipattern_estimate antipattern_closure antipattern_perception \
-                  counter_denotative calculator_denotative editor_meaning hover_drag_interaction
+                  counter_denotative calculator_denotative editor_meaning hover_drag_interaction \
+		  palette_afford
 
 # All X11 demos work on all backends (public API is identical)
 EXAMPLES_WINDOWED = counter_perception_window counter_interactive hover_drag_4abs
@@ -124,10 +125,12 @@ TEST_V05       = $(BUILD)/test_v05_retire
 TEST_V05_SRC   = $(TST_DIR)/test_v05_retire.c
 TEST_V06       = $(BUILD)/test_v06_interaction
 TEST_V06_SRC   = $(TST_DIR)/test_v06_interaction.c
+TEST_V07       = $(BUILD)/test_v07
+TEST_V07_SRC   = $(TST_DIR)/test_v07.c
 TEST_COMP      = $(BUILD)/test_completeness
 TEST_COMP_SRC  = $(TST_DIR)/test_completeness.c
 
-.PHONY: all clean test test_ortho test_feedback test_v05 test_v06 check-completeness check-compression check-examples check-essence examples backends-info
+.PHONY: all clean test test_ortho test_feedback test_v05 test_v06 test_v07 check-completeness check-compression check-examples check-essence examples backends-info
 
 all: examples test
 
@@ -194,6 +197,12 @@ test_v06: $(TEST_V06)
 
 $(TEST_V06): $(TEST_V06_SRC) $(CORE_OBJS) | $(BUILD)
 	$(CC) $(CFLAGS) -I$(INC_DIR) $(TEST_V06_SRC) $(CORE_OBJS) -o $@ $(LDFLAGS)
+
+test_v07: $(TEST_V07)
+	./$(TEST_V07)
+
+$(TEST_V07): $(TEST_V07_SRC) $(CORE_OBJS) | $(BUILD)
+	$(CC) $(CFLAGS) -I$(INC_DIR) $(TEST_V07_SRC) $(CORE_OBJS) -o $@ $(LDFLAGS)
 
 # ============================================================
 # Completeness check — closed-corpus falsifiability test

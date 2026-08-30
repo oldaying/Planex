@@ -53,7 +53,7 @@ This prerequisite is satisfied *to the extent tradition is a substitute for proo
 
 **Failure mode and fallback.**
 
-If ontological stability breaks — i.e. if a tradition's essence is overturned by revision in its parent discipline, and Planex's abstraction turns out to have frozen a folk theory into architecture — abstraction degrades into *premature ossification*: the very thing essence-justified abstraction claims to avoid. The fallback form is **pattern language**: patterns can be replaced, can coexist with alternatives, and make no ontological claim. Planex would, in this scenario, rewrite its 5 abstractions as 5 documented patterns with no claim to exclusivity or completeness — closer to the GoF or microservice-patterns style.
+If ontological stability breaks — i.e. if a tradition's essence is overturned by revision in its parent discipline, and Planex's abstraction turns out to have frozen a folk theory into architecture — abstraction degrades into *premature ossification*: the very thing essence-justified abstraction claims to avoid. The fallback form is **pattern language**: patterns can be replaced, can coexist with alternatives, and make no ontological claim. Planex would, in this scenario, rewrite its 7 abstractions as 7 documented patterns with no claim to exclusivity or completeness — closer to the GoF or microservice-patterns style.
 
 ---
 
@@ -113,7 +113,7 @@ The honest gap remains at the *epistemic* layer: ADR-0010 admits the v4 framing 
 
 **Failure mode and fallback.**
 
-If falsifiability is not built — i.e. if the engineering mechanisms remain missing and the abstractions accrete without any way to detect or retire a wrong one — abstraction degrades into *architectural dogma*: the failure mode of every enterprise framework that promised essences and delivered ceremony. The fallback form is **component library**: components make no ontological claim, retire cheaply, and are falsifiable by construction. Planex would, in this scenario, stop claiming the 5 abstractions are essences and recast them as 5 opinionated components — closer to the GLib or libuv style.
+If falsifiability is not built — i.e. if the engineering mechanisms remain missing and the abstractions accrete without any way to detect or retire a wrong one — abstraction degrades into *architectural dogma*: the failure mode of every enterprise framework that promised essences and delivered ceremony. The fallback form is **component library**: components make no ontological claim, retire cheaply, and are falsifiable by construction. Planex would, in this scenario, stop claiming the 7 abstractions are essences and recast them as 7 opinionated components — closer to the GLib or libuv style.
 
 ---
 

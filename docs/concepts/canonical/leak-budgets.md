@@ -135,7 +135,7 @@ Leaks are categorized into two tiers because not all leaks are equally damaging 
 **Verification scenario for the L2 leak:**
 - `px_closure_bind_graph` ordering: create a closure, do NOT call `bind_graph`, declare a relation `c → estimate`, trigger the closure. Assert the relation is not visible to the closure's action (the action fires but cannot reach the estimate). The leak is that the type system permitted this sequence.
 
-**Honest assessment:** L2 = 8% is the best among the 5 abstractions. Closure's denotational claim (typed intent as value) is mostly preserved. The L1 leaks (void* everywhere) are intrinsic to C closures. Retire target for Closure L2: 0 / 12 by v0.5 — make `bind_graph` part of `closure_new` (compile-time enforcement) or split into `px_closure_new_unbound` / `px_closure_new_with_graph`.
+**Honest assessment:** L2 = 8% is the best among the 5 abstractions. <!-- stale-allow: v0.4-era assessment snapshot inside the historical per-abstraction section; the shipping set is 7 since v0.7 (see the v0.7 promotion summary below) --> Closure's denotational claim (typed intent as value) is mostly preserved. The L1 leaks (void* everywhere) are intrinsic to C closures. Retire target for Closure L2: 0 / 12 by v0.5 — make `bind_graph` part of `closure_new` (compile-time enforcement) or split into `px_closure_new_unbound` / `px_closure_new_with_graph`.
 
 ### 4. Perception — `src/perception.c`
 
@@ -207,7 +207,7 @@ Wait — there are 11 operations, not 9. Let me recount: from the section output
 
 ---
 
-## Aggregate (v0.5 shipping 5 abstractions)
+## Aggregate (v0.5 shipping 5 abstractions) <!-- stale-allow: version-pinned historical table; the current aggregate is the v0.7 promotion summary below -->
 
 | Abstraction | Total ops | L1 leaks | L2 leaks | Total leak % | L2 leak % | Worst L2 |
 |---|---|---|---|---|---|---|
@@ -344,6 +344,46 @@ The ordering dependency itself remains (L2 stays 1/12 pending the constructor sp
 | **Total (v0.6)** | **59** | **17** | **1** | **1.7%** (was 3.8%) |
 
 Aggregate L2 = 1/59 = **1.7%**. The single remaining L2 (Closure `bind_graph` ordering) is loud at runtime and scheduled for the constructor-split retire.
+
+---
+
+## v0.7 promotion summary (2026-08-30)
+
+ADR-0017 (intent compilation) and ADR-0018 (px_interaction) promoted two prototypes to canonical abstractions. Budgets for both, first audit:
+
+### Intent compilation (ADR-0017) — 8 ops
+
+| Op class | Ops | L1 | L2 |
+|---|---|---|---|
+| Region lifecycle + data | `px_region_new/free/rect/label/set_rect` | 1 (`label` returns borrowed `const char*` — lifetime tied to the region) | 0 |
+| Registry + graph queries | `px_region_at`, `px_afford_at`, `px_afford_compile` | 1 (afford queries return a borrowed closure pointer) | 0 |
+
+**L2 = 0/8 = 0%.** No operation exists because the abstraction is incomplete; the multi-edge resolution rule (last-declared AFFORDS wins) is a specified semantic pinned by `test_v07.c` a7, not a seam. Known gaps (keyboard affordances, drag-begin seam) are capability gaps recorded as `limitations.md` L15 — they are absent features, not leaking operations.
+
+### px_interaction (ADR-0018) — 22 ops
+
+| Op class | Ops | L1 | L2 |
+|---|---|---|---|
+| Lifecycle + phase machine | `new/free/name/begin/sample/commit/cancel/phase/phase_str/cancel_reason` | 0 | 0 |
+| Trajectory queries (pure) | `last/at/stored/total/duration_ms/displacement/path_length/velocity` | 1 (`last`/`at` return borrowed sample pointers — the ring owns them) | 0 |
+| Bridges (transitions-only) | `on_phase/on_commit/on_cancel/publish_phase` | 1 (`on_commit` copies the payload at bind time — documented lifetime rule) | 0 |
+
+**L2 = 0/22 = 0%.** The denotational contract (inert samples, transitions-only seams) is enforced by `test_v06_interaction.c` section D; `publish_phase` is the *named sanctioned seam* to Estimate, not an incompleteness leak. Terminal phases (re-arm required) and absent multi-process arbitration are recorded capability gaps (L12/NG-6), not op leaks.
+
+### Aggregate (v0.7, promotion state)
+
+| Abstraction | Total ops | L1 | L2 | L2 leak % |
+|---|---|---|---|---|
+| Relation | 7 | 5 | 0 | **0%** |
+| Estimate (+advance/predict/surprise) | 20 | 4 | **0** | **0%** |
+| Closure | 12 | 6 | 1 | **8%** (loud; constructor split is the v0.7 Line 5 target) |
+| Perception (+set_free_fn) | 7 | 1 | **0** | **0%** |
+| `px_loop` (+budget ops) | 13 | 1 | **0** | **0%** |
+| **Intent compilation (new)** | **8** | **2** | **0** | **0%** |
+| **`px_interaction` (new)** | **22** | **2** | **0** | **0%** |
+| **Total (v0.7)** | **89** | **21** | **1** | **1.1%** |
+
+Aggregate L2 = 1/89 = **1.1%**. The single remaining L2 (Closure `bind_graph` ordering) is unchanged from v0.6 and is the v0.7 Line 5 retire target (constructor split → aggregate L2 = 0%).
 
 ---
 

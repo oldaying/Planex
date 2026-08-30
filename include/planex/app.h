@@ -90,6 +90,18 @@ typedef struct {
      * After this returns, render() will be called once. */
     void  (*on_resize)(int width, int height, void* user);
 
+    /* v0.7 (Line 1): opt-in intent compilation for pointer-downs.
+     * When set, each PX_EV_MOUSE_DOWN is compiled BEFORE dispatch:
+     * the topmost region at (x, y) is resolved against this graph's
+     * AFFORDS edges, and the afforded closure is triggered with a
+     * px_pointer_intent payload (see planex.h) — the app's closure
+     * receives WHERE-in-semantics (region label), not WHERE-in-
+     * pixels as a routing key. Clicks that resolve to no afforded
+     * closure fall back to on_click unchanged. NULL (the default)
+     * keeps raw-coordinate dispatch exactly as before — the path is
+     * opt-in per ADR-0016's evidence-gathering posture. */
+    px_graph*   intent_graph;
+
     void*       user;
 } px_app_desc;
 

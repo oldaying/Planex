@@ -1,5 +1,6 @@
 /*
- * hit.c — Region + affordance query (v0.6 prototype: intent compilation)
+ * hit.c — Region + affordance query (v0.6 prototype: intent compilation;
+ * v0.7 Line 1 gains the routing-side compile step, px_afford_compile)
  *
  * The missing compile step between PHYSICAL events and SEMANTIC intents.
  *
@@ -45,7 +46,8 @@
 #define px_strdup strdup
 #endif
 
-#define PX_REGION_LABEL_MAX 64
+/* Label capacity is public since v0.7 (px_pointer_intent embeds it);
+ * defined in planex.h as PX_REGION_LABEL_MAX. */
 
 struct px_region {
     px_rect rect;
@@ -156,4 +158,32 @@ px_closure* px_afford_at(px_graph* g, double x, double y) {
     }
     px_node_list_free(&list);
     return result;
+}
+
+/* v0.7 Line 1: the routing-side compile step. Same resolution as
+ * px_afford_at, but produces the full semantic payload the app
+ * loop triggers the closure with. The label is EMBEDDED (not
+ * pointed to) so the resulting intent is a value: it survives
+ * px_closure_last_intent capture and px_closure_replay even if
+ * the region is freed in between. Out is zeroed on miss so a
+ * stale payload can never leak through the fallback path. */
+px_closure* px_afford_compile(px_graph* g, double x, double y,
+                              int button, px_pointer_intent* out) {
+    if (out) memset(out, 0, sizeof(*out));
+    if (!g || !out) return NULL;
+
+    px_closure* c = px_afford_at(g, x, y);
+    if (!c) return NULL;
+
+    px_region* top = px_region_at(x, y);
+    if (!top) return NULL; /* unreachable given afford_at's contract;
+                            * kept defensive: registry could change
+                            * between the two scans in a hostile caller */
+
+    out->x = x;
+    out->y = y;
+    out->button = button;
+    strncpy(out->region, px_region_label(top), PX_REGION_LABEL_MAX - 1);
+    out->region[PX_REGION_LABEL_MAX - 1] = 0;
+    return c;
 }

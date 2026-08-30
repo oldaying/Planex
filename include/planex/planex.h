@@ -1095,6 +1095,43 @@ px_region*  px_region_at(double x, double y);
  * if none. The caller triggers it with a semantic payload. */
 px_closure* px_afford_at(px_graph* g, double x, double y);
 
+/* ============================================================
+ * v0.7 (Line 1) — compiled pointer intents (app-level routing)
+ *
+ * px_afford_compile is the routing half of intent compilation:
+ * the window-free step px_app_run runs when a px_app_desc sets
+ * `intent_graph`. A pointer-down at (x, y) resolves against the
+ * region registry + the graph's AFFORDS edges; if it lands on an
+ * afforded closure, that closure triggers with a px_pointer_intent
+ * payload — the app never sees a raw coordinate.
+ *
+ * The payload is a VALUE by construction: the region label is
+ * embedded (not pointed to), so the intent survives capture,
+ * serialization, and px_closure_replay. x/y/button ride along as
+ * context for the closure's action — they are payload, not the
+ * routing key (the routing key was the region).
+ * ============================================================ */
+
+/* Matches the label capacity of px_region (see hit.c). */
+#define PX_REGION_LABEL_MAX 64
+
+typedef struct {
+    double x;     /* pointer x at the event — context, not routing key */
+    double y;     /* pointer y at the event — context, not routing key */
+    int    button;/* 1=left 2=middle 3=right — meaning is the closure's */
+    char   region[PX_REGION_LABEL_MAX]; /* topmost region's label, embedded */
+} px_pointer_intent;
+
+/* Compile a pointer-down into (closure, payload). Returns the
+ * afforded closure and fills *out; returns NULL (and zeroes *out)
+ * when the position hits no region or the region affords nothing
+ * — the caller then falls back to raw-coordinate dispatch.
+ * Window-free and backend-free by design: the compile step is a
+ * pure function of (registry, graph, x, y), so it is testable
+ * without a display (tests/test_v07.c section A). */
+px_closure* px_afford_compile(px_graph* g, double x, double y,
+                              int button, px_pointer_intent* out);
+
 #ifdef __cplusplus
 }
 #endif

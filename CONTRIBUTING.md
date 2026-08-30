@@ -1,4 +1,4 @@
-# CONTRIBUTING.md — Updated for v0.5 (5-abstraction era; Feedback + leak-budget retire + essence-justified admission)
+# CONTRIBUTING.md — Updated for v0.7 (7-abstraction era; Feedback + leak-budget retire + essence-justified admission + intent-compilation/interaction promotions)
 
 > This document records the rules learned from this session's mistakes.
 > Each rule has a "LESSON" — a concrete failure that caused it.
@@ -72,7 +72,7 @@
 **Good demo purposes**:
 - "Prove abstraction X is necessary" (anti-pattern test)
 - "Measure hack pain for a boundary" (hover_drag_4abs)
-- "Show 5 abstractions working together" (future integration demo)
+- "Show 7 abstractions working together" (future integration demo)
 - "Validate an ADR decision" (counter_denotative validated ADR-0005)
 
 **Bad demo purposes**:

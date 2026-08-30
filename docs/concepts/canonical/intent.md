@@ -44,15 +44,17 @@ A contribution that breaks any of these three pillars is not a Planex contributi
 
 ---
 
-## The five abstractions (v0.4 shipping set)
+## The seven abstractions (v0.7 shipping set)
 
-| # | Abstraction | Constitutive question | Essence tradition | v0.4 evidence |
+| # | Abstraction | Constitutive question | Essence tradition | Evidence |
 |---|---|---|---|---|
 | 1 | **[Estimate](../../reference/glossary.md#estimate)** | What will the world be? | Elliott's denotative FRP; Friston's predictive coding | `px_estimate_new/set/animate/confidence` — time + uncertainty first-class |
 | 2 | **[Closure](../../reference/glossary.md#closure)** | What completed? | Searle's illocutionary act; Winograd/Flores' speech acts | 5-stage closure (Goal/Intent/Action/Execution/Evaluation) + replay |
 | 3 | **[Perception](../../reference/glossary.md#perception)** | What is the world? | Peirce's percept; Norman's stages 5-6 | pure-function denotations, multi-channel, parallel (visual / a11y / JSON / log) |
 | 4 | **[Relation](../../reference/glossary.md#relation)** | What is connected to what? | Heidegger's Mitsein; Simmel; Alexander's "not a tree" | `px_declare/px_query` — TRIGGERS / DEPENDS_ON / BESIDE / AFFORDS, undo-via-graph |
 | 5 | **`px_loop`** | When does control yield? | Hoare's CSP; Harel's statecharts | `px_loop_new(closure, perception) / px_loop_step` — first-class loop, auditable + replayable |
+| 6 | **Intent compilation** | What does this input denote? | Gibson's affordances; CLIM presentation types | `px_region` + AFFORDS edges + `px_afford_compile` — `px_pointer_intent` as a replayable value; app-level `intent_graph` routing ([ADR-0017](../../decisions/accepted/ADR-0017-intent-compilation-promotion.md)) |
+| 7 | **`px_interaction`** | What is the user doing over time? | Hoare's CSP (prefix + choice); Harel's statecharts | begin → sample* → commit\|cancel with inert hot path; transitions-only bridges ([ADR-0018](../../decisions/accepted/ADR-0018-interaction-process-promotion.md)) |
 
 v4 design proposal (clean-room, not shipping): adds **Interpretant** (Peirce's interpretant), **Perlocution** (Searle's perlocutionary act), **Breakdown** (Heidegger's Zuhandenheit, Winograd/Flores). Pressure-tested by ADR-0012; not yet promoted.
 

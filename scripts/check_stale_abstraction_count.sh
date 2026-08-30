@@ -154,11 +154,26 @@ for f in "${md_files[@]}"; do
                     print file ":" FNR ": stale 4/four-abstractions reference: " $0
                     next
                 }
+                # Pattern 1b: 5/five abstractions (stale since the v0.7
+                # promotions, ADR-0017/ADR-0018 — the set is 7 now).
+                if (tolower(line) ~ /(^|[^a-z0-9])(5|five) abstractions([^a-z0-9]|$)/) {
+                    if (line ~ /<!-- stale-allow:/) next
+                    print file ":" FNR ": stale 5/five-abstractions reference (7 since v0.7): " $0
+                    next
+                }
                 # Pattern 2: missing-px_loop form.
                 if (line ~ /Relation \+ Estimate \+ Closure \+ Perception/) {
                     if (line ~ /\+ px_loop/) next
                     if (line ~ /<!-- stale-allow:/) next
                     print file ":" FNR ": missing px_loop in abstraction list: " $0
+                    next
+                }
+                # Pattern 2b: enumeration stopping at px_loop (stale since
+                # v0.7 — the full list names intent compilation + px_interaction).
+                if (line ~ /Relation \+ Estimate \+ Closure \+ Perception \+ px_loop/) {
+                    if (line ~ /\+ intent compilation/) next
+                    if (line ~ /<!-- stale-allow:/) next
+                    print file ":" FNR ": abstraction list stops at px_loop (v0.7 added intent compilation + px_interaction): " $0
                     next
                 }
             }
@@ -171,18 +186,20 @@ if [[ ${#violations[@]} -gt 0 ]]; then
     echo "check_stale_abstraction_count: ${#violations[@]} stale reference(s) in v0.5-current docs:"
     printf '  %s\n' "${violations[@]}"
     echo
-    echo "v0.5-current docs must say \"5 abstractions\" and list"
-    echo "\"Relation + Estimate + Closure + Perception + px_loop\" (with px_loop)."
+    echo "v0.7-current docs must say \"7 abstractions\" and list"
+    echo "\"Relation + Estimate + Closure + Perception + px_loop + intent"
+    echo "compilation + px_interaction\" (the v0.7 set per ADR-0017/0018)."
     echo "If the reference is intentional (historical quotation, link text"
     echo "matching the why-four-abstractions.md filename, description of a"
-    echo "v0.4 snapshot file), add an inline marker on the same line:"
+    echo "v0.4/v0.5 snapshot file), add an inline marker on the same line:"
     echo "  <!-- stale-allow: reason -->"
     echo
     echo "See: CONTRIBUTING.md rule 5 (Documentation sync) for the manual"
     echo "grep this script automates."
-    echo "See: ADR-0008 (added px_loop as 5th abstraction, v0.4)."
+    echo "See: ADR-0008 (added px_loop as 5th abstraction, v0.4); ADR-0017 +"
+    echo "ADR-0018 (promoted intent compilation + px_interaction, v0.7)."
 else
-    echo "check_stale_abstraction_count: no stale 4-abstraction references in v0.5-current docs."
+    echo "check_stale_abstraction_count: no stale abstraction-count references in v0.7-current docs."
 fi
 
 if [[ "$mode" == "report" ]]; then

@@ -65,29 +65,29 @@ These patterns are what Planex was designed for. All should be ✅.
 
 ---
 
-## Category D: Continuous / Transient Interaction (the boundary zone)
+## Category D: Continuous / Transient Interaction (re-scored at v0.7)
 
-These patterns involve state that is temporary, continuous, or contextual — not cleanly expressible as discrete Estimates.
+These patterns involve state that is temporary, continuous, or contextual. **Re-scored at v0.7** after the promotion of intent compilation (ADR-0017) and the interaction process (ADR-0018): 7/15 are now clean — the transient/continuous patterns that the 4/5-abstraction set forced into Estimate are expressible as region queries, compiled pointer intents, and inert-trajectory processes. This table is the v0.4-era snapshot updated per the corpus amendment; the corpus (`reference/ui-pattern-corpus.md`) is the canonical verdict set.
 
 | # | UI Pattern | Estimate | Closure | Relation | Perception | Verdict | Notes |
 |---|---|---|---|---|---|---|---|
-| 24 | Hover highlight | ⚠️ can use Estimate but semantically wrong | — | — | ⚠️ needs mouse pos | ⚠️ | hover is transient, not "state" — forcing it into Estimate is semantic stretch |
-| 25 | Mouse cursor position | ⚠️ could be Estimate but updates 60fps = expensive | — | — | ⚠️ needs pos input | ⚠️ | high-frequency transient state — Estimate overkill |
-| 26 | Pressed button visual | ⚠️ can use Estimate but it's transient | ✅ mouse_down/up | — | ⚠️ needs pressed flag | ⚠️ | press-release is a process, not a state |
-| 27 | Drag preview (ghost image) | ⚠️ drag_state as Estimate | ✅ drag start/end | — | ⚠️ needs drag offset | ⚠️ | drag is multi-frame process, not discrete state |
-| 28 | Drag-drop reorder | ⚠️ reorder in progress as Estimate | ✅ drag end = commit | ✅ TRIGGERS | ⚠️ needs drag visual | ⚠️ | commit goes through Closure (good), preview is hacky |
-| 29 | Swipe gesture (touch) | ❌ gesture is continuous trajectory | ❌ no gesture Closure | — | ❌ | ❌ | gesture = continuous intent, no abstraction |
-| 30 | Pinch-to-zoom | ❌ multi-touch continuous | ❌ no gesture | — | ❌ | ❌ | same as swipe |
-| 31 | Tooltip on hover (delayed) | ⚠️ timer as Estimate | — | — | ⚠️ needs hover + delay | ⚠️ | hover + time delay — two transient dimensions |
-| 32 | Context menu (right-click) | ⚠️ menu_visible as Estimate | ✅ REQUEST | — | ⚠️ needs click position | ⚠️ | position context not in Estimate |
+| 24 | Hover highlight | — (no estimate needed) | — | ✅ region query | ✅ computed at render time | ✅ | hover = region query at render time — no estimate churn (ADR-0017; hover_drag_interaction.c) |
+| 25 | Mouse cursor position | — (ambient sample field) | — | — | ✅ derived on demand | ✅ | pointer is a plain sample stream, read at render time (ADR-0017; hover_drag_interaction.c) |
+| 26 | Pressed button visual | ✅ phase via publish_phase | ✅ commit/cancel triggers | — | ✅ renders from phase | ✅ | press-release = BEGAN→COMMITTED arc, transitions only (ADR-0018; hover_drag_interaction.c) |
+| 27 | Drag preview (ghost image) | — (derived from trajectory) | — | — | ✅ derived per frame | ✅ | preview computed from trajectory, zero writes while dragging (ADR-0018) |
+| 28 | Drag-drop reorder | ✅ committed state | ✅ drag end = commit | ✅ TRIGGERS + AFFORDS | ✅ | ✅ | trajectory + commit closure + undo through the graph (ADR-0018) |
+| 29 | Swipe gesture (touch) | — | ✅ commit payload | — | — | ⚠️ | derivable from velocity/displacement measures; touch input is NG-6 (ADR-0018) |
+| 30 | Pinch-to-zoom | ❌ multi-touch | ❌ | — | ❌ | ❌ | simultaneous trajectories + arbitration missing (NG-6) |
+| 31 | Tooltip on hover (delayed) | ⚠️ timer hack | — | — | ⚠️ | ⚠️ | hover is clean now; the time-delay dimension still needs on_tick hacks |
+| 32 | Context menu (right-click) | ✅ menu state | ✅ compiled REQUEST | ✅ AFFORDS | ✅ | ✅ | button-3 compiles to px_pointer_intent; region label embedded (ADR-0017; palette_afford.c) |
 | 33 | Autocomplete suggestions | ⚠️ suggestions as Estimate | ✅ PROMISE (async fetch) | ✅ DEPENDS_ON | ⚠️ needs selection state | ⚠️ | async list + temporary selection — doable but forced |
 | 34 | Infinite scroll | ⚠️ page as Estimate | ✅ PROMISE (fetch next) | — | ⚠️ needs scroll position | ⚠️ | scroll position is transient + continuous |
-| 35 | Resizable panel (drag handle) | ⚠️ size as Estimate | ✅ drag start/end | — | ⚠️ needs drag visual | ⚠️ | same as drag-drop preview |
-| 36 | Color picker (drag slider) | ⚠️ color as Estimate | ✅ REQUEST | — | ⚠️ needs drag | ⚠️ | continuous value during drag |
-| 37 | Knob / rotary control | ❌ rotation is continuous gesture | ❌ no gesture | — | ❌ | ❌ | same as swipe |
-| 38 | Scroll position | ⚠️ can be Estimate but updates per-frame | — | — | ⚠️ needs scroll | ⚠️ | high-frequency, transient |
+| 35 | Resizable panel (drag handle) | ✅ size | ✅ drag end = commit | ✅ AFFORDS possible | ✅ | ⚠️ | drag mechanism exists (ADR-0018) but drag-begin affordance seam + no demo = forced |
+| 36 | Color picker (drag slider) | ✅ committed value | ✅ commit closure | ✅ AFFORDS region | ✅ live preview derived | ✅ | live preview from trajectory, one committed write (ADR-0017 + 0018; palette_afford.c) |
+| 37 | Knob / rotary control | ✅ value | ✅ commit | ✅ AFFORDS possible | ✅ | ⚠️ | rotary = drag process + app-side angle math — derivable, undemonstrated (ADR-0018) |
+| 38 | Scroll position | ⚠️ can be Estimate but updates per-frame | — | — | ⚠️ needs scroll | ⚠️ | high-frequency, transient; wheel events landed (v0.6), no scroll abstraction |
 
-**Summary: 0/15 ✅, 12 ⚠️, 3 ❌.** This is the boundary zone. All transient/continuous interactions are FORCED — they can be hacked into Estimate but it's semantically wrong.
+**Summary: 7/15 ✅, 7 ⚠️, 1 ❌ (v0.7 re-score; was 0/12/3).** The boundary zone moved: what the 4/5-abstraction set forced into Estimate is now split between region queries (hover/position), compiled intents (context menus, slider commits), and inert-trajectory processes (drag previews, reorder, pressed states). What remains is multi-touch (NG-6), timing-delay composites, and scroll-position transients.
 
 ---
 
@@ -187,15 +187,15 @@ These patterns involve state that is temporary, continuous, or contextual — no
 
 ### 1. Planex's strength: discrete state (Category A) + animation (B) + a11y (H)
 
-31/68 patterns are cleanly expressible. These are all in Planex's design center — discrete state manipulation, animation, and multi-denotation.
+38/68 patterns are cleanly expressible (v0.7 re-score; was 31/68 at v0.5). These are all in Planex's design center — discrete state manipulation, animation, and multi-denotation.
 
 ### 2. Planex's boundary: continuous/transient interaction (Category D)
 
-**0/15 patterns in Category D are clean.** All 15 are forced (⚠️) or impossible (❌). This is the single biggest gap.
+**7/15 patterns in Category D are clean (v0.7 re-score; was 0/15).** The 7 clean patterns are the ones the two v0.7 abstractions own: hover/position as region queries (ADR-0017), pressed/drag-preview/reorder/slider as inert-trajectory processes (ADR-0018), context menus and compiled intents as afford-routed values (both). The remaining 8 are still forced or impossible — multi-touch (NG-6), timing-delay composites, scroll-position transients.
 
-The root cause: **hover, drag, gesture, scroll are continuous processes, not discrete states.** Forcing them into Estimate is semantically wrong — Estimate is "state with time + uncertainty", not "high-frequency transient input stream."
+The historical root cause (v0.4-era): **hover, drag, gesture, scroll are continuous processes, not discrete states.** Forcing them into Estimate was semantically wrong — Estimate is "state with time + uncertainty", not "high-frequency transient input stream." The v0.7 promotions are the structural fix: process is now an abstraction (trajectory + outcome), so the forcing is no longer needed where a bounded process exists.
 
-This validates the `continuous-intent-speculation.md` observation: **intent is modeled as discrete events, but real interaction is continuous.**
+This validates the `continuous-intent-speculation.md` observation: **intent is modeled as discrete events, but real interaction is continuous** — the continuous half now has canonical machinery; the *gradient* half (intent strength, decay) remains speculation.
 
 ### 3. Planex's secondary gaps
 
