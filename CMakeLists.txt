@@ -46,6 +46,7 @@ set(CORE_SOURCES
     src/breakdown.c    # v3 prototype (essence derivation v3 / Path B)
     src/interaction.c  # v0.6 prototype (ADR-0016: continuous interaction process)
     src/hit.c          # v0.6 prototype (ADR-0016: region + affordance query)
+    src/a11y_bridge_atspi.c  # v0.7 L4: AT-SPI2 adapter behind the a11y query-side contract (PX_A11Y_ATSPI)
 )
 
 # ============================================================

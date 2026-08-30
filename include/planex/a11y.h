@@ -101,6 +101,37 @@ void     px_a11y_set_value(px_a11y* a, const char* value);
  * from each call site's printf. */
 void     px_a11y_set_value_estimate(px_a11y* a, const px_estimate* e);
 
+/* ============================================================
+ * v0.7 (Line 4) — the AT-SPI2 bridge (Linux): a replaceable
+ * adapter behind this query-side contract, not an ontology
+ * commitment (the Lisp-machine lesson: never bet the abstractions
+ * on a host condition that can die).
+ *
+ * Build with -DPX_A11Y_ATSPI (needs atk + atk-bridge headers):
+ *   make CFLAGS_EXTRA="-DPX_A11Y_ATSPI $(pkg-config --cflags atk atk-bridge-2.0)"
+ *
+ * Without the flag, attach() returns NULL after a one-time notice —
+ * the v0.6 logging/query-side default, unchanged. The mirror is
+ * deliberately minimal (root + current element + alert); known
+ * limits (values ride in the description; flat tree) are documented
+ * in src/a11y_bridge_atspi.c, not hidden.
+ * ============================================================ */
+
+typedef struct px_a11y_bridge px_a11y_bridge;
+
+/* Attach an AT-SPI2 bridge to this query-side context. Returns NULL
+ * when the bridge is not compiled in (or allocation fails). */
+px_a11y_bridge* px_a11y_bridge_atspi_attach(px_a11y* a,
+                                            const char* app_name);
+
+/* Sync the query side onto the AT-SPI2 mirror: role/name/value/state
+ * of the current element + drain the announcement ring into the
+ * alert object. Call after property changes (or once per frame). */
+void            px_a11y_bridge_atspi_flush(px_a11y_bridge* b);
+
+/* Tear the bridge down and drop the D-Bus export. */
+void            px_a11y_bridge_atspi_detach(px_a11y_bridge* b);
+
 /* Set the state flags (bitmask of px_a11y_state). */
 void     px_a11y_set_state(px_a11y* a, unsigned state);
 

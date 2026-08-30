@@ -1,7 +1,16 @@
 # Platform Support Status
 
-> Last updated: Stage 9 (2026-08-22)
+> Last updated: v0.7 (2026-08-30)
 > This document tracks which features work on which backend.
+
+## Accessibility (v0.7 Line 4)
+
+The v0.6 query-side contract (getters, announcement ring, `set_verbose`, `px_a11y_set_value_estimate`) is stable and platform-free. On top of it, v0.7 ships `src/a11y_bridge_atspi.c` — an AT-SPI2 adapter for Linux:
+
+- **Build:** `make CFLAGS_EXTRA="-DPX_A11Y_ATSPI $(pkg-config --cflags atk atk-bridge-2.0)"` (needs `libatk1.0-dev` + the atk-bridge headers; the CI `a11y-atspi-bridge` job compile-probes this path on every push).
+- **Without the flag:** the bridge is a stub — `attach()` returns NULL, everything else is unchanged. No dependency, no regression.
+- **Verified:** compile-probe in CI (API drift is caught); orca end-to-end navigation is the remaining external condition — tracked as partial in the [v0.7 roadmap conditions ledger](docs/concepts/state/v0.7-roadmap.md).
+- **Windows (UIA) / macOS (NSAccessibility):** follow the same adapter pattern once the AT-SPI2 shape is proven; currently stubs.
 
 ## Backend Maturity
 
@@ -32,7 +41,7 @@
 | Clipboard | ❌ | ❌ | ❌ | ❌ |
 | Drag & drop | ❌ | ❌ | ❌ | ❌ |
 | HiDPI / Retina | ✅ Stage 15 | N/A | ✅ Stage 15 code | ✅ Stage 15 code |
-| Accessibility (Stage 16) | ⚠️ API + logging | ⚠️ | ⚠️ API stub | ⚠️ API stub |
+| Accessibility (Stage 16) | ✅ AT-SPI2 bridge behind `PX_A11Y_ATSPI` (v0.7) + query side | ⚠️ query side | ⚠️ API stub | ⚠️ API stub |
 
 ## Demos by Backend
 

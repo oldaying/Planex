@@ -89,3 +89,35 @@ jobs:
         run: make test_v06
       - name: Run v0.7 line verification tests
         run: make test_v07
+
+  a11y-atspi-bridge:
+    # v0.7 Line 4: compile-probe the AT-SPI2 adapter against real atk
+    # headers. A PROBE, not a gate for the condition: if the headers
+    # are absent the step reports "condition unmet" and exits 0 (the
+    # ledger row stays partial per v0.7-roadmap Line 4); if they are
+    # present, the compile MUST pass (API drift is a real failure).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install atk headers
+        run: sudo apt-get update && sudo apt-get install -y libatk1.0-dev at-spi2-atk
+      - name: Compile-probe the AT-SPI2 bridge
+        run: |
+          set -eu
+          if [ ! -f /usr/include/atk-1.0/atk/atk.h ] && ! pkg-config --exists atk; then
+            echo "condition unmet: atk headers absent — bridge ships behind the flag; ledger row stays partial"
+            exit 0
+          fi
+          BRIDGE_HDR=""
+          for h in /usr/include/atk-bridge-2.0/atk-bridge.h /usr/include/at-spi2/atk-bridge/atk-bridge.h; do
+            if [ -f "$h" ]; then BRIDGE_HDR="$h"; fi
+          done
+          if [ -z "$BRIDGE_HDR" ]; then
+            echo "condition unmet: atk-bridge headers absent — bridge ships behind the flag; ledger row stays partial"
+            exit 0
+          fi
+          CFLAGS_ATK="$(pkg-config --cflags atk 2>/dev/null || echo -I/usr/include/atk-1.0)"
+          echo "probing bridge against $BRIDGE_HDR with $CFLAGS_ATK"
+          cc -std=c17 -Wall -Wextra -I include $CFLAGS_ATK -DPX_A11Y_ATSPI \
+             -c src/a11y_bridge_atspi.c -o /tmp/a11y_bridge_atspi.o
+          echo "bridge compile probe: PASS"

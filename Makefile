@@ -35,7 +35,7 @@ LDFLAGS += $(FREETYPE_LIBS) $(FONTCONFIG_LIBS)
 CORE_SRCS = $(SRC_DIR)/relation.c $(SRC_DIR)/estimate.c $(SRC_DIR)/closure.c \
 	    $(SRC_DIR)/perception.c $(SRC_DIR)/undo.c $(SRC_DIR)/feedback.c \
             $(SRC_DIR)/fb.c $(SRC_DIR)/font.c $(SRC_DIR)/a11y.c $(SRC_DIR)/layout.c \
-            $(SRC_DIR)/interaction.c $(SRC_DIR)/hit.c
+            $(SRC_DIR)/interaction.c $(SRC_DIR)/hit.c $(SRC_DIR)/a11y_bridge_atspi.c
 CORE_OBJS = $(patsubst $(SRC_DIR)/%.c,$(BUILD)/%.o,$(CORE_SRCS))
 
 # ============================================================

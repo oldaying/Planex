@@ -17,6 +17,9 @@
  *      kind-aware assertions, kind-default denotation, custom print,
  *      kind-aware equality, and the a11y value-naming seam.
  *
+ *   D. Line 4 — the a11y AT-SPI2 bridge: the stub contract when the
+ *      flag is absent (the real adapter compile-probes in CI).
+ *
  * Build (or: make test_v07):
  *   cc -std=c17 -I include tests/test_v07.c \
  *      src/relation.c src/estimate.c src/closure.c src/perception.c \
@@ -617,6 +620,38 @@ static void test_c4_a11y_reads_the_schema(void) {
 }
 
 /* ============================================================
+ * D. Line 4 — the a11y bridge stub contract (flag not set here)
+ * ============================================================ */
+
+static void test_d1_bridge_stub_contract(void) {
+    /* This suite builds WITHOUT -DPX_A11Y_ATSPI, so the bridge must
+     * be an honest stub: attach returns NULL (after a one-time
+     * notice on stderr — visible once in this suite's output), and
+     * flush/detach accept anything without crashing. The query-side
+     * contract itself is unchanged (the v0.6 tests i1/i2 + c4 cover
+     * it). The REAL bridge compiles under the flag in CI's
+     * a11y-atspi-bridge probe job. */
+    px_a11y* a = px_a11y_new(NULL);
+    px_a11y_set_verbose(a, false);
+    assert(a);
+
+    px_a11y_bridge* b = px_a11y_bridge_atspi_attach(a, "probe");
+    assert(b == NULL);
+
+    /* NULL-safe no-ops. */
+    px_a11y_bridge_atspi_flush(NULL);
+    px_a11y_bridge_atspi_detach(NULL);
+    px_a11y_bridge_atspi_flush(b);
+    px_a11y_bridge_atspi_detach(b);
+
+    /* The query side is untouched by the bridge's absence. */
+    px_a11y_set_name(a, "ok");
+    assert(strcmp(px_a11y_get_name(a), "ok") == 0);
+
+    px_a11y_free(a);
+}
+
+/* ============================================================
  * Main
  * ============================================================ */
 
@@ -625,7 +660,8 @@ int main(void) {
     printf("=============================\n");
     printf("A. Line 1 — intent compilation routing (afford/region).\n");
     printf("B. Line 2 — budget as contract.\n");
-    printf("C. Line 3 — Estimate schema.\n\n");
+    printf("C. Line 3 — Estimate schema.\n");
+    printf("D. Line 4 — a11y bridge stub contract.\n\n");
 
     printf("[A] Intent compilation routing\n");
     TEST(a1_compile_resolves_region_to_closure);
@@ -648,6 +684,9 @@ int main(void) {
     TEST(c3_kind_aware_equality);
     TEST(c4_a11y_reads_the_schema);
 
+    printf("\n[D] a11y bridge stub contract (Line 4)\n");
+    TEST(d1_bridge_stub_contract);
+
     printf("\n----------------\n");
     printf("%d/%d passed\n", g_tests_pass, g_tests_run);
     printf("\nWhat this suite closes (v0.7-roadmap Line 1):\n");
@@ -665,5 +704,7 @@ int main(void) {
     printf("  - Estimate schema: kind-aware assertions, describe()\n");
     printf("    defaults + custom print, kind-aware equality, and the\n");
     printf("    a11y value-naming seam (set_value_estimate)\n");
+    printf("  - a11y bridge: honest stub without the flag (attach NULL,\n");
+    printf("    NULL-safe no-ops); real adapter compiled by the CI probe\n");
     return (g_tests_pass == g_tests_run) ? 0 : 1;
 }

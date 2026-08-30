@@ -198,15 +198,18 @@ This means:
 
 ---
 
-## L9: Accessibility is logging-only
+## L9: Accessibility — AT-SPI2 bridge landed behind a build flag (v0.7); orca verification pending; Windows/macOS still stubs
 
 **Severity:** Medium — affects users with disabilities
 
-`include/planex/a11y.h` and `src/a11y.c` provide an accessibility API: roles, states, announcements, focus management. But the current implementation only logs to stdout — there is **no bridge to actual screen readers** (AT-SPI on Linux, UIAutomation on Windows, NSAccessibility on macOS).
+**Partially resolved in v0.7 (Line 4):** `src/a11y_bridge_atspi.c` is a real AT-SPI2 adapter (ATK + atk-bridge provider path) behind `-DPX_A11Y_ATSPI`, adapting the stable v0.6 query-side contract — roles, states, names, values, and the announcement ring map onto an AtkObject mirror exported over D-Bus. Without the flag the bridge is an honest stub (no dependency, no regression). Known limits, recorded in the bridge source: values ride in the accessible description until a value-carrying AtkObject subclass exists; the mirror tree is flat (root + current element + alert); identical consecutive announcements announce once.
 
-**Implication:** Planex UIs are not currently usable by visually impaired users relying on screen readers.
+**Still open:**
 
-**Status:** See `PLATFORMS.md` — accessibility is marked "logging-only" for all platforms.
+- **End-to-end verification with a real screen reader (orca) on the x11 backend** — the v0.7 roadmap's Line 4 success criterion; the CI job compile-probes the adapter, but no automated orca test exists. The conditions ledger row stays *partial* until this lands.
+- **Windows (UIAutomation) and macOS (NSAccessibility)** remain stubs — they follow the same adapter pattern once the AT-SPI2 shape is proven.
+
+**Implication (narrowed):** a Planex app built with the flag on Linux is *plausibly* navigable by AT-SPI2 clients (the mirror speaks the protocol); until the orca pass, "usable by visually impaired users" remains a claim, not a verified fact.
 
 ---
 

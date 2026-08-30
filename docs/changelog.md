@@ -22,6 +22,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Corpus Category D re-scored (same-commit amendment): P24–P28, P32, P36 flip to ✅ CLEAN (EXAMPLE-grounded); P29/P37 downgrade ❌→⚠️. Distribution 31/29/8 → **38/24/6**; test_completeness constants updated (75/75 checks).
 - Abstraction count 5 → 7 across all non-exempt docs; `check_stale_abstraction_count.sh` now enforces the 7-count (stale 5/five pattern + stops-at-px_loop enumeration pattern).
 
+### Added — v0.7: a11y AT-SPI2 bridge behind the query-side contract (Line 4)
+
+- `src/a11y_bridge_atspi.c`: the Linux adapter (ATK + atk-bridge provider path) — a replaceable adapter behind the v0.6 query-side contract, not an ontology commitment. The mirror is minimal (application root + current element + alert): roles/states/names/values sync on flush; the announcement ring drains into the alert object (orca reads alert name changes). Known limits recorded in-source: values ride in the description (no AtkValue on no-op objects), flat tree, identical consecutive announcements fire once.
+- `px_a11y_bridge_atspi_attach/flush/detach` (a11y.h): without `-DPX_A11Y_ATSPI` the bridge is an honest stub — attach returns NULL, no-ops are NULL-safe (test_v07 d1); zero dependency, zero regression.
+- CI gains the `a11y-atspi-bridge` compile-probe job: installs atk headers and compiles the adapter under the flag — absent headers report "condition unmet" (row stays partial); present headers make the compile blocking (API drift is caught).
+- `PLATFORMS.md`: Linux accessibility flips from "API + logging" to "AT-SPI2 bridge behind PX_A11Y_ATSPI + query side". `limitations.md` L9 partial-resolution: orca end-to-end verification remains the open external condition.
+
 ### Added — v0.7: Estimate schema — the describable value contract (Line 3)
 
 - `px_estimate_schema` (kind + name + optional print/equal) beside the value: opt-in via `px_estimate_set_schema` (borrowed pointer, app-owned static const; zero cost when unset). Not a type system — a describable contract: tests assert "this estimate is INT and equals 3" (`px_estimate_schema_of` + `px_value_kind_name`), values denotate kind-aware (`px_estimate_describe` — INT/DOUBLE/PERCENT/BOOL defaults or custom print), equality is kind-aware (`px_estimate_value_equal` — exact for discrete kinds, 1e-9 for DOUBLE).
