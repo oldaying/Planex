@@ -1,16 +1,16 @@
 # Platform Support Status
 
-> Last updated: v0.7 (2026-08-30)
+> Last updated: v0.8 (2026-08-30)
 > This document tracks which features work on which backend.
 
-## Accessibility (v0.7 Line 4)
+## Accessibility (v0.7 Line 4 — verified end-to-end in v0.8 Cross-cutting A)
 
 The v0.6 query-side contract (getters, announcement ring, `set_verbose`, `px_a11y_set_value_estimate`) is stable and platform-free. On top of it, v0.7 ships `src/a11y_bridge_atspi.c` — an AT-SPI2 adapter for Linux:
 
-- **Build:** `make CFLAGS_EXTRA="-DPX_A11Y_ATSPI $(pkg-config --cflags atk atk-bridge-2.0)"` (needs `libatk1.0-dev` + `libatk-bridge2.0-dev`; the source includes `<atk-bridge.h>` bare — pkg-config resolves the distro-dependent header layout, found by the CI probe's first real compile). The CI `a11y-atspi-bridge` job compile-probes this path on every push.
+- **Build:** `make CFLAGS_EXTRA="-DPX_A11Y_ATSPI $(pkg-config --cflags atk atk-bridge-2.0)"` (needs `libatk1.0-dev` + `libatk-bridge2.0-dev`; the source includes `<atk-bridge.h>` bare — pkg-config resolves the distro-dependent header layout, found by the CI probe's first real compile). The CI `a11y-atspi-bridge` job compile-probes this path on every push. **The full compile line — every src translation unit — is owned by `scripts/verify_orca_e2e.sh`.**
 - **Without the flag:** the bridge is a stub — `attach()` returns NULL, everything else is unchanged. No dependency, no regression.
-- **Verified:** compile-probe in CI (API drift is caught); orca end-to-end navigation is the remaining external condition — tracked as partial in the [v0.8 roadmap conditions ledger](docs/concepts/state/v0.8-roadmap.md).
-- **Windows (UIA) / macOS (NSAccessibility):** follow the same adapter pattern once the AT-SPI2 shape is proven; currently stubs.
+- **Verified (v0.8 Cross-cutting A, 2026-08-30): the observed orca pass on x11** — `scripts/verify_orca_e2e.sh` drives XTEST keys through Xvfb into a Planex app (`examples/a11y_orca_demo.c`) whose focus ring is derived from the AFFORDS graph, and asserts orca's speech log (window, focus moves with values, activation announcements) against the app's stdout ground truth. Observed with orca 48.1 / at-spi2-core 2.56 / Debian 13. Known limits (documented in the bridge source, not hidden): values ride in the accessible description; region objects materialize on focus; the app must flush() regularly; detach leaves the app registered on the accessibility bus until process exit (the GTK exit semantic — atk-bridge's cleanup path is unsafe for non-GTK embedders with a live client).
+- **Windows (UIA) / macOS (NSAccessibility):** follow the same adapter pattern — the AT-SPI2 shape is now proven end-to-end; the deferral is capacity, not shape. Currently stubs.
 
 ## Backend Maturity
 

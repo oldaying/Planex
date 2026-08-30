@@ -198,18 +198,19 @@ This means:
 
 ---
 
-## L9: Accessibility — AT-SPI2 bridge landed behind a build flag (v0.7); orca verification pending; Windows/macOS still stubs
+## L9: Accessibility — AT-SPI2 bridge verified end-to-end with orca (v0.8); Windows/macOS still stubs
 
 **Severity:** Medium — affects users with disabilities
 
-**Partially resolved in v0.7 (Line 4):** `src/a11y_bridge_atspi.c` is a real AT-SPI2 adapter (ATK + atk-bridge provider path) behind `-DPX_A11Y_ATSPI`, adapting the stable v0.6 query-side contract — roles, states, names, values, and the announcement ring map onto an AtkObject mirror exported over D-Bus. Without the flag the bridge is an honest stub (no dependency, no regression). Known limits, recorded in the bridge source: values ride in the accessible description until a value-carrying AtkObject subclass exists; the mirror tree is flat (root + current element + alert); identical consecutive announcements announce once.
+**Partially resolved in v0.7 (Line 4):** `src/a11y_bridge_atspi.c` is a real AT-SPI2 adapter (ATK + atk-bridge provider path) behind `-DPX_A11Y_ATSPI`, adapting the stable v0.6 query-side contract — roles, states, names, values, and the announcement ring map onto an AtkObject mirror exported over D-Bus. Without the flag the bridge is an honest stub (no dependency, no regression). Known limits, recorded in the bridge source: values ride in the accessible description until a value-carrying AtkObject subclass exists; region objects materialize on focus; the app must call flush() regularly (the flush pumps the bridge's D-Bus traffic); detach leaves the application registered on the accessibility bus until process exit (the GTK exit semantic — atk-bridge's own cleanup path is unsafe for non-GTK embedders with a live client, found by the orca run).
+
+**RESOLVED in v0.8 (Cross-cutting A): the observed orca pass.** `scripts/verify_orca_e2e.sh` + `examples/a11y_orca_demo.c` are the end-to-end harness: XTEST keys → Xvfb → the x11 backend → `px_app_run`'s focus ring (derived from the AFFORDS edges, ADR-0020) → `on_focus` → the a11y query side → the bridge mirror → atk-bridge → D-Bus → orca → the `SPEECH OUTPUT` lines in its debug log — asserted against the app's own stdout trace (the semantic ground truth). The observed pass (orca 48.1, at-spi2-core 2.56, Xvfb, Debian 13, 2026-08-30): the window, every later focus move (three, with values), and both activation announcements are spoken; the first focus move is documented as racing client attachment. The pass drove twelve rounds of real fixes into the bridge — the AtkUtil root provider, the D-Bus pump, the frame/active-window projection, the mirror subclass, per-region objects, the announcement signal, the focus-gated materialization, the defunct teardown — each annotated in the source; a compile probe cannot see any of them, which is exactly why the observed pass was the roadmap's success criterion. The conditions ledger row flips to ready.
 
 **Still open:**
 
-- **End-to-end verification with a real screen reader (orca) on the x11 backend** — the v0.7 roadmap's Line 4 success criterion; the CI job compile-probes the adapter, but no automated orca test exists. The conditions ledger row stays *partial* until this lands.
-- **Windows (UIAutomation) and macOS (NSAccessibility)** remain stubs — they follow the same adapter pattern once the AT-SPI2 shape is proven.
+- **Windows (UIAutomation) and macOS (NSAccessibility)** remain stubs — they follow the same adapter pattern as the now-proven AT-SPI2 shape.
 
-**Implication (narrowed):** a Planex app built with the flag on Linux is *plausibly* navigable by AT-SPI2 clients (the mirror speaks the protocol); until the orca pass, "usable by visually impaired users" remains a claim, not a verified fact.
+**Implication (narrowed):** a Planex app built with the flag on Linux is **navigable by AT-SPI2 clients — verified**, not claimed: orca reads the graph-derived focus ring and the announcements on x11, and the harness is in-repo and re-runnable. What remains platform-conditional is the same bridge on Windows/macOS, not the Linux claim.
 
 ---
 

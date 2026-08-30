@@ -113,14 +113,17 @@ void     px_a11y_set_value_estimate(px_a11y* a, const px_estimate* e);
  * commitment (the Lisp-machine lesson: never bet the abstractions
  * on a host condition that can die).
  *
- * Build with -DPX_A11Y_ATSPI (needs atk + atk-bridge headers):
- *   make CFLAGS_EXTRA="-DPX_A11Y_ATSPI $(pkg-config --cflags atk atk-bridge-2.0)"
+ * Build with -DPX_A11Y_ATSPI (needs atk + atk-bridge headers);
+ * scripts/verify_orca_e2e.sh owns the full compile line and the
+ * observed end-to-end run (v0.8 Cross-cutting A: a Planex app
+ * navigable by orca — focus moves and announcements are spoken).
  *
  * Without the flag, attach() returns NULL after a one-time notice —
  * the v0.6 logging/query-side default, unchanged. The mirror is
- * deliberately minimal (root + current element + alert); known
- * limits (values ride in the description; flat tree) are documented
- * in src/a11y_bridge_atspi.c, not hidden.
+ * deliberately minimal (root + frame + one object per region that
+ * has held focus + alert); apps should call flush() REGULARLY (the
+ * bridge pumps its D-Bus traffic there); known limits are
+ * documented in src/a11y_bridge_atspi.c, not hidden.
  * ============================================================ */
 
 typedef struct px_a11y_bridge px_a11y_bridge;
@@ -131,11 +134,21 @@ px_a11y_bridge* px_a11y_bridge_atspi_attach(px_a11y* a,
                                             const char* app_name);
 
 /* Sync the query side onto the AT-SPI2 mirror: role/name/value/state
- * of the current element + drain the announcement ring into the
- * alert object. Call after property changes (or once per frame). */
+ * of the current element + drain the announcement ring onto the
+ * alert. Call after property changes AND regularly — the flush also
+ * pumps the bridge's D-Bus traffic, so an app that stops flushing
+ * stops answering its clients (the demo flushes ~60 Hz from
+ * on_tick). */
 void            px_a11y_bridge_atspi_flush(px_a11y_bridge* b);
 
-/* Tear the bridge down and drop the D-Bus export. */
+/* Tear the bridge down: every mirror object is marked defunct (the
+ * GTK widget-destruction signal — the bridge deregisters each one)
+ * and the mirror is freed. The APPLICATION stays registered on the
+ * accessibility bus until process exit — the GTK exit semantic: atk-
+ * bridge's own cleanup path is unsafe for non-GTK embedders with a
+ * live client (found by the orca run; two upstream defects, see the
+ * bridge source), so detach does not call it. Single bridge per
+ * process; re-attaching after detach is not supported. */
 void            px_a11y_bridge_atspi_detach(px_a11y_bridge* b);
 
 /* Set the state flags (bitmask of px_a11y_state). */

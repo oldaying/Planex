@@ -107,7 +107,7 @@ EXAMPLES_NO_X11 = counter_4abs multi_perception perception_smoke perception_phas
 		  palette_afford designer_tools
 
 # All X11 demos work on all backends (public API is identical)
-EXAMPLES_WINDOWED = counter_perception_window counter_interactive hover_drag_4abs
+EXAMPLES_WINDOWED = counter_perception_window counter_interactive hover_drag_4abs a11y_orca_demo
 
 ifeq ($(BACKEND),headless)
   EXAMPLES = $(EXAMPLES_NO_X11)

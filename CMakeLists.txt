@@ -179,6 +179,7 @@ set(WINDOWED_DEMOS
     counter_perception_window  # Phase 2 capstone — perception-driven window
     counter_interactive       # (c) route prototype with real window (2 tests)
     hover_drag_4abs          # boundary demo: hover+drag with 7 hacks (ADR-0006)
+    a11y_orca_demo           # v0.8 Cross-cutting A: orca end-to-end evidence app
 )
 
 foreach(demo ${WINDOWED_DEMOS})

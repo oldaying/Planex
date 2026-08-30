@@ -87,6 +87,12 @@ A palette painter (swatches, brightness slider, canvas, reset) whose click handl
 
 A designer-tool palette whose **drags are data-driven**: three chips and a slider afford `px_interaction` processes through the SAME `PX_REL_AFFORDS` relation, and `px_afford_compile_process` resolves a pointer-down to the process — zero hand-wired begins, zero region branches in the router. The dual-form chip (process + closure) arbitrates tap-vs-drag **by measure** at commit: a small-displacement commit re-compiles the press through the closure form, a drag drops a dot at the release point. The slider's second drag runs on the same process object (`px_interaction_reset` — the AFFORDS edge points at a stable target). Ran in CI via `make check-examples`.
 
+### Orca End-to-End Demo (`a11y_orca_demo.c`)
+
+**The evidence app for the observed orca pass (v0.8 Cross-cutting A — the a11y bridge verified end-to-end).**
+
+Three color swatches + reset, all four regions on the AFFORDS graph: the focus ring Tab walks and the a11y mirror are BOTH derived from the same edges — the keyboard channel and the screen reader read one graph (the A6 claim, projected onto AT-SPI2). Pointer and key activate through one closure (the handler never asks which channel); selection lives in ONE estimate the mirror derives from on every flush; the per-frame flush pumps the bridge's D-Bus traffic. Windowed set (x11 backend); the bridge attaches only under `-DPX_A11Y_ATSPI` — **`scripts/verify_orca_e2e.sh` owns the full compile line and the observed run** (XTEST keys → orca's speech log, asserted against this app's stdout trace). Not in `make check-examples` (it needs a display); the harness is its verification.
+
 ---
 
 ## Tier 3 — Smoke tests (in build, validate API surface)
