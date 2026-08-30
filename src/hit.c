@@ -142,18 +142,26 @@ px_closure* px_afford_at(px_graph* g, double x, double y) {
 
     /* The affordance query: which closures does this region afford?
      * px_query matches both edge directions, so a (region AFFORDS
-     * closure) declaration is found from either endpoint. */
+     * closure) declaration is found from either endpoint.
+     *
+     * v0.8 (Line 2): targets are FILTERED BY KIND. AFFORDS edges
+     * may target closures (discrete acts) or interactions (drag
+     * processes) — the closure form resolves only closure targets,
+     * by px_is_closure identity. This also makes the code match
+     * what its comment always claimed ("first closure wins"): the
+     * pre-v0.8 code cast the first non-NULL target blindly, a
+     * latent type confusion the process form would have tripped
+     * over. Non-closure, non-interaction targets (an estimate on
+     * an odd declaration) resolve nothing — safer than v0.8 too. */
     px_node_list list = px_query(g, top, PX_REL_AFFORDS);
     px_closure* result = NULL;
-    if (list.count > 0 && list.items) {
-        /* Prefer targets that are closures; a reversed declaration
-         * (closure AFFORDS region) surfaces the region itself, which
-         * callers can filter out by convention. First closure wins. */
-        for (int i = 0; i < list.count; i++) {
-            if (list.items[i]) {
-                result = (px_closure*)list.items[i];
-                break;
-            }
+    for (int i = 0; i < list.count; i++) {
+        if (list.items[i] && px_is_closure(list.items[i])) {
+            /* px_query returns edges newest-first (px_declare
+             * prepends), so the first closure target found is the
+             * LAST declared — the pinned last-declared-first rule. */
+            result = (px_closure*)list.items[i];
+            break;
         }
     }
     px_node_list_free(&list);
@@ -202,15 +210,20 @@ px_closure* px_afford_compile(px_graph* g, double x, double y,
  * ============================================================ */
 
 /* Does this region afford at least one closure in `g`?
- * Same filtering rule as px_afford_at: first closure on a
- * (region AFFORDS closure) edge wins; non-closure endpoints of
- * reversed declarations are skipped. */
+ * v0.8 (Line 2): KIND-FILTERED — a region affording only a process
+ * (the slider) is NOT focusable: Enter/Space compile closures, and
+ * keyboard process-activation does not exist yet (recorded in
+ * ADR-0021 CAVEATS). The Line 1 ring semantics are pinned by
+ * tests/test_v08.c a4 and unchanged by the process form. */
 static bool region_is_focusable(px_graph* g, px_region* r) {
     if (!g || !r) return false;
     px_node_list list = px_query(g, r, PX_REL_AFFORDS);
     bool focusable = false;
     for (int i = 0; i < list.count; i++) {
-        if (list.items[i]) { focusable = true; break; }
+        if (list.items[i] && px_is_closure(list.items[i])) {
+            focusable = true;
+            break;
+        }
     }
     px_node_list_free(&list);
     return focusable;
@@ -297,10 +310,11 @@ px_closure* px_afford_compile_focus(px_graph* g, px_region* focused,
     px_node_list list = px_query(g, focused, PX_REL_AFFORDS);
     px_closure* result = NULL;
     /* px_query returns edges newest-first (px_declare prepends),
-     * so the FIRST closure in the list is the LAST declared —
-     * the same last-declared-first rule px_afford_at applies. */
+     * so the FIRST closure target is the LAST declared — the same
+     * last-declared-first rule px_afford_at applies (v0.8 Line 2:
+     * kind-filtered; process targets never resolve as closures). */
     for (int i = 0; i < list.count; i++) {
-        if (list.items[i]) {
+        if (list.items[i] && px_is_closure(list.items[i])) {
             result = (px_closure*)list.items[i];
             break;
         }
@@ -310,6 +324,72 @@ px_closure* px_afford_compile_focus(px_graph* g, px_region* focused,
 
     out->key = key;
     strncpy(out->region, px_region_label(focused), PX_REGION_LABEL_MAX - 1);
+    out->region[PX_REGION_LABEL_MAX - 1] = 0;
+    return result;
+}
+
+/* ============================================================
+ * v0.8 (Line 2) — the process form: drag-begin afford
+ *
+ * The SAME relation, the SECOND resolution form: an AFFORDS edge
+ * whose target is a px_interaction resolves a pointer-down to a
+ * PROCESS (the inert-trajectory machine), not to a one-shot
+ * closure. Drag-ability becomes graph data — the L15b retire.
+ *
+ * The dual-form rule: when a region affords BOTH closures and a
+ * process, the PROCESS owns the down. The press is genuinely
+ * ambiguous (tap vs drag); only the trajectory resolves it — the
+ * tap is a small-displacement COMMIT, and the process's own
+ * bridges reach the discrete act. Regions affording only closures
+ * keep the v0.7 immediate-trigger semantics, byte-for-byte.
+ * ============================================================ */
+
+bool px_region_affords_process(px_graph* g, const px_region* r) {
+    if (!g || !r) return false;
+    px_node_list list = px_query(g, (void*)r, PX_REL_AFFORDS);
+    bool affords = false;
+    for (int i = 0; i < list.count; i++) {
+        if (list.items[i] && px_is_interaction(list.items[i])) {
+            affords = true;
+            break;
+        }
+    }
+    px_node_list_free(&list);
+    return affords;
+}
+
+px_interaction* px_afford_compile_process(px_graph* g, double x, double y,
+                                          int button, px_drag_intent* out) {
+    if (out) memset(out, 0, sizeof(*out));
+    if (!g || !out) return NULL;
+
+    px_region* top = px_region_at(x, y);
+    if (!top) return NULL;
+
+    /* Same registry + graph + rule as the closure form, with the
+     * kind filter flipped: the last-declared AFFORDS edge whose
+     * target is a px_interaction wins. */
+    px_node_list list = px_query(g, top, PX_REL_AFFORDS);
+    px_interaction* result = NULL;
+    for (int i = 0; i < list.count; i++) {
+        if (list.items[i] && px_is_interaction(list.items[i])) {
+            result = (px_interaction*)list.items[i];
+            break;
+        }
+    }
+    px_node_list_free(&list);
+    if (!result) return NULL;
+
+    /* The value contract, same construction as the pointer and key
+     * intents: the label is EMBEDDED, so the compile product is a
+     * value — it survives capture and replay after the region is
+     * freed. The press position and button are CONTEXT (they seed
+     * the first trajectory sample in px_app_run), never routing
+     * keys — the routing key was the region. */
+    out->x = x;
+    out->y = y;
+    out->button = button;
+    strncpy(out->region, px_region_label(top), PX_REGION_LABEL_MAX - 1);
     out->region[PX_REGION_LABEL_MAX - 1] = 0;
     return result;
 }

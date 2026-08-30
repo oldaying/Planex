@@ -27,6 +27,21 @@
  * path as a pointer-down, same last-declared-first resolution. Keys
  * that compile to nothing fall back to on_key unchanged.
  *
+ * v0.8 (Line 2): the process form — drag-begin afford. A down on a
+ * region that affords a PROCESS (an AFFORDS edge targeting a
+ * px_interaction) compiles to that process instead of a closure:
+ * reset + begin + the press becomes the first trajectory sample.
+ * While the compiled process is active, moves SAMPLE it (the inert
+ * hot path — preview is derived per frame from the trajectory, the
+ * palette_afford pattern) and the release COMMITS it; on_mouse_move
+ * / on_mouse_up do not fire (the process owns the gesture). An
+ * app-side cancel (its hook, its on_key) is honored: a move/up that
+ * finds the process terminal clears it and falls through to normal
+ * routing. A new press while a process is active cancels it
+ * ("superseded by a new press") and routes normally. Regions
+ * affording only closures keep the v0.7 immediate-trigger semantics,
+ * byte-for-byte — the process form never runs for them.
+ *
  * Backward compat: if only desc->render is set (old API), use it.
  */
 #define _POSIX_C_SOURCE 200809L
@@ -131,6 +146,11 @@ int px_app_run(const px_app_desc* desc) {
      * interaction state scoped to this run, not registry state. */
     px_region* focus = NULL;
 
+    /* v0.8 (Line 2): the active compiled process, if a drag is
+     * underway. Loop-local for the same reason as focus. NULL when
+     * no gesture owns the pointer stream. */
+    px_interaction* active = NULL;
+
     while (running && !px_window_should_close(win)) {
         /* Drain all pending events (non-blocking) */
         bool event_changed = false;
@@ -140,13 +160,57 @@ int px_app_run(const px_app_desc* desc) {
 
             switch (ev.kind) {
                 case PX_EV_MOUSE_DOWN:
-                    /* v0.7 (Line 1): intent compilation first. When the
-                     * app opts in via intent_graph, the click resolves
-                     * against the region registry + AFFORDS edges, and
-                     * the afforded closure triggers with a semantic
-                     * payload. Unresolved clicks (empty space, regions
-                     * affording nothing) fall through to the raw-
-                     * coordinate callback — the fallback, not the path. */
+                    /* v0.8 (Line 2): the process form FIRST. A region
+                     * affording a process owns the down: the press is
+                     * genuinely ambiguous (tap vs drag), and only the
+                     * trajectory resolves it — the tap is a
+                     * small-displacement COMMIT, the process's own
+                     * bridges reach the discrete act. Dual-form
+                     * regions therefore begin the process here; the
+                     * closure form below never runs for them. */
+                    if (desc->intent_graph) {
+                        px_drag_intent di;
+                        px_interaction* proc = px_afford_compile_process(
+                            desc->intent_graph, (double)ev.x, (double)ev.y,
+                            ev.button, &di);
+                        if (proc) {
+                            /* A press during an active process ends it:
+                             * one pointer, one gesture at a time. The
+                             * cancel fires the app's bridges first so
+                             * it can settle state before the new
+                             * gesture begins. */
+                            if (active) {
+                                px_interaction_cancel(
+                                    active, "superseded by a new press");
+                                active = NULL;
+                            }
+                            /* Rearm (terminal outcomes are final — the
+                             * stable edge target must survive its
+                             * second drag), then begin + the press as
+                             * the first trajectory sample. The compile
+                             * product seeds the sample: the position
+                             * and button are payload context, never
+                             * routing keys. */
+                            px_interaction_reset(proc);
+                            px_interaction_begin(proc);
+                            px_int_sample press = {
+                                px_now_ms(), di.x, di.y, 0.0,
+                                di.button, ev.modifiers
+                            };
+                            px_interaction_sample(proc, &press);
+                            active = proc;
+                            event_changed = true;
+                            break;
+                        }
+                    }
+                    /* v0.7 (Line 1): intent compilation — the closure
+                     * form. When the app opts in via intent_graph,
+                     * the click resolves against the region registry
+                     * + AFFORDS edges, and the afforded closure
+                     * triggers with a semantic payload. Unresolved
+                     * clicks (empty space, regions affording nothing)
+                     * fall through to the raw-coordinate callback —
+                     * the fallback, not the path. */
                     if (desc->intent_graph) {
                         px_pointer_intent pi;
                         px_closure* afforded = px_afford_compile(
@@ -165,6 +229,28 @@ int px_app_run(const px_app_desc* desc) {
                     }
                     break;
                 case PX_EV_MOUSE_MOVE:
+                    /* v0.8 (Line 2): an active compiled process owns
+                     * the move stream — samples are inert (no observer
+                     * fan-out); the app derives preview per frame from
+                     * the trajectory, not per event from a callback. A
+                     * process the app itself cancelled is terminal:
+                     * drop it and fall through to normal routing (the
+                     * gesture ended without an up). */
+                    if (active) {
+                        px_int_phase ph = px_interaction_phase(active);
+                        if (ph == PX_INT_COMMITTED ||
+                            ph == PX_INT_CANCELLED) {
+                            active = NULL;
+                        } else {
+                            px_int_sample move = {
+                                px_now_ms(), (double)ev.x, (double)ev.y,
+                                0.0, 0, ev.modifiers
+                            };
+                            px_interaction_sample(active, &move);
+                            event_changed = true;
+                            break;
+                        }
+                    }
                     if (desc->on_mouse_move) {
                         if (desc->on_mouse_move(ev.x, ev.y, desc->user)) {
                             event_changed = true;
@@ -172,6 +258,27 @@ int px_app_run(const px_app_desc* desc) {
                     }
                     break;
                 case PX_EV_MOUSE_UP:
+                    /* v0.8 (Line 2): the release resolves the active
+                     * process — the release position is the last
+                     * sample, COMMIT fires the app's bridges (the
+                     * hook decides tap-vs-drag by measure). If the
+                     * app already cancelled it, just drop it. Either
+                     * way the pointer stream is released. */
+                    if (active) {
+                        px_int_phase ph = px_interaction_phase(active);
+                        if (ph != PX_INT_COMMITTED &&
+                            ph != PX_INT_CANCELLED) {
+                            px_int_sample release = {
+                                px_now_ms(), (double)ev.x, (double)ev.y,
+                                0.0, ev.button, ev.modifiers
+                            };
+                            px_interaction_sample(active, &release);
+                            px_interaction_commit(active);
+                        }
+                        active = NULL;
+                        event_changed = true;
+                        break;
+                    }
                     if (desc->on_mouse_up) {
                         if (desc->on_mouse_up(ev.x, ev.y, desc->user)) {
                             event_changed = true;

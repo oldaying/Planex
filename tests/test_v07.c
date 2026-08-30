@@ -755,9 +755,14 @@ static void test_f2_undeclare_spares_siblings(void) {
 }
 
 static void test_f3_dangling_edge_regression(void) {
-    /* The CI regression pinned: retire-then-free keeps px_afford_at
-     * naming the LIVE process across a rebuild, independent of
-     * allocator layout. Region is process-global — freed at the end. */
+    /* The CI regression pinned: retire-then-free keeps the AFFORDS
+     * edge naming the LIVE process across a rebuild, independent of
+     * allocator layout. Region is process-global — freed at the end.
+     *
+     * v0.8 (Line 2) note: this test originally verified through
+     * px_afford_at, which cast the process pointer as a closure —
+     * the pre-v0.8 kind-blind resolver. The SPIRIT is unchanged;
+     * the vehicle is now the honest process-form reader. */
     px_graph* g = px_graph_new();
     px_region* r = px_region_new(px_rect_make(20, 40, 280, 32), "item");
     px_interaction* drag = px_interaction_new("drag", 8);
@@ -769,8 +774,14 @@ static void test_f3_dangling_edge_regression(void) {
     drag = px_interaction_new("drag-2", 8);
     px_declare(g, r, PX_REL_AFFORDS, drag);
 
-    px_closure* afforded = px_afford_at(g, 100, 50);
+    /* The edge names the LIVE process — verified through the
+     * process form (kind-filtered); the closure form now misses
+     * honestly instead of miscasting the process pointer. */
+    px_drag_intent di;
+    px_interaction* afforded = px_afford_compile_process(g, 100, 50, 1, &di);
     assert((void*)afforded == (void*)drag);      /* the LIVE process */
+    assert(strcmp(di.region, "item") == 0);
+    assert(px_afford_at(g, 100, 50) == NULL);    /* kind-honest miss */
     assert(px_has_relation(g, r, PX_REL_AFFORDS, drag));
 
     px_undeclare(g, r, PX_REL_AFFORDS, drag);

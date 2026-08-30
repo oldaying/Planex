@@ -81,6 +81,12 @@ Counterpart of `hover_drag_4abs.c` (the boundary-EXPOSING demo per ADR-0006). Sa
 
 A palette painter (swatches, brightness slider, canvas, reset) whose click handling has **zero raw-coordinate callbacks** — every pointer-down compiles through `px_afford_compile`; the afforded closure triggers with a `px_pointer_intent` payload (region label embedded, replay-safe). Button-3 compiles to the same shape (context-clear in the payload). The slider is a drag process: 40 samples, live preview derived per frame, one committed estimate write. Undo through the graph. Ran in CI via `make check-examples`.
 
+### Designer Tools with Drag-Begin Afford (`designer_tools.c`)
+
+**The real-application evidence for the process form of intent compilation (v0.8 Line 2, ADR-0021).**
+
+A designer-tool palette whose **drags are data-driven**: three chips and a slider afford `px_interaction` processes through the SAME `PX_REL_AFFORDS` relation, and `px_afford_compile_process` resolves a pointer-down to the process — zero hand-wired begins, zero region branches in the router. The dual-form chip (process + closure) arbitrates tap-vs-drag **by measure** at commit: a small-displacement commit re-compiles the press through the closure form, a drag drops a dot at the release point. The slider's second drag runs on the same process object (`px_interaction_reset` — the AFFORDS edge points at a stable target). Ran in CI via `make check-examples`.
+
 ---
 
 ## Tier 3 — Smoke tests (in build, validate API surface)

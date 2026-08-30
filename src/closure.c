@@ -86,6 +86,31 @@ static const char* const k_intent_names[] = {
     "COUNT",        /* PX_INTENT_COUNT     */
 };
 
+/* v0.8 (Line 2): process-global registry of live closures — the
+ * regions/perceptions/interactions precedent. Consumer: px_is_closure,
+ * the kind predicate the afford compile uses to filter AFFORDS
+ * targets (pointer identity, no type punning on void* nodes).
+ * Before this, px_afford_at cast the FIRST non-NULL target to
+ * px_closure* — a latent type confusion the process form would
+ * have tripped over (region AFFORDS interaction). */
+typedef struct px_clo_node {
+    px_closure*         c;
+    struct px_clo_node* next;
+} px_clo_node;
+
+static px_clo_node* g_closures = NULL;
+
+bool px_is_closure(const void* node) {
+    /* Pointer identity against the live registry — the node is never
+     * dereferenced, so an estimate, an interaction, a region, a freed
+     * closure, or NULL all answer false without any type punning. */
+    if (!node) return false;
+    for (px_clo_node* n = g_closures; n; n = n->next) {
+        if ((const void*)n->c == node) return true;
+    }
+    return false;
+}
+
 px_closure* px_closure_new(
     const char*      goal,
     px_intent_kind   intent_kind,
@@ -111,6 +136,17 @@ px_closure* px_closure_new(
     c->last_payload = NULL;
     c->last_evaluated = false;
     c->undo_graph  = NULL;  /* not bound by default */
+
+    /* v0.8 (Line 2): register (see the registry block above). */
+    px_clo_node* node = (px_clo_node*)calloc(1, sizeof(px_clo_node));
+    if (!node) {
+        free(c->goal);
+        free(c);
+        return NULL;
+    }
+    node->c = c;
+    node->next = g_closures;
+    g_closures = node;
     return c;
 }
 
@@ -149,6 +185,16 @@ void px_closure_bind_graph(px_closure* c, px_graph* g) {
 
 void px_closure_free(px_closure* c) {
     if (!c) return;
+    px_clo_node** pp = &g_closures;
+    while (*pp) {
+        if ((*pp)->c == c) {
+            px_clo_node* dead = *pp;
+            *pp = dead->next;
+            free(dead);
+            break;
+        }
+        pp = &((*pp)->next);
+    }
     free(c->goal);
     free(c->last_payload);
     free(c);

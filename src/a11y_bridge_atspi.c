@@ -181,14 +181,26 @@ void px_a11y_bridge_atspi_flush(px_a11y_bridge* b) {
     const char* value = px_a11y_get_value(b->a);
     atk_object_set_role(b->element, map_role(px_a11y_get_role(b->a)));
     atk_object_set_name(b->element, name ? name : "");
+    /* VALUES ride in the description (the documented known limit —
+     * atk_no_op_object_new accepts no AtkValue interface). v0.8
+     * (Line 2): DRAGGABLE rides there too — the atk AtkStateType
+     * enum has no draggable state (verified against atk 2.x; the
+     * AT-SPI2 D-Bus StateType does, but the bridge mirror is built
+     * from AtkStateTypes), so the bit the graph derived
+     * (px_region_affords_process -> PX_A11Y_STATE_DRAGGABLE) is
+     * surfaced honestly as text until a value/state-carrying
+     * AtkObject subclass lands (the same posture as values). */
     char desc[160];
-    snprintf(desc, sizeof(desc), "value: %s", value ? value : "");
+    unsigned state = px_a11y_get_state(b->a);
+    snprintf(desc, sizeof(desc), "value: %s%s",
+             value ? value : "",
+             (state & PX_A11Y_STATE_DRAGGABLE) ? " draggable" : "");
     atk_object_set_description(b->element, desc);
 
     /* 2. State delta (notify events only for changed bits). */
     static unsigned s_prev = 0; /* single bridge per process — like
                                   * the rest of Planex, single-app */
-    push_states(b->element, px_a11y_get_state(b->a), &s_prev);
+    push_states(b->element, state, &s_prev);
 
     /* 3. Drain the announcement ring: the newest message that has
      *    not been announced becomes the alert's name — orca reads

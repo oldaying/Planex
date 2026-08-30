@@ -1,0 +1,68 @@
+Planex designer_tools — Line 2 real-app evidence (v0.8)
+========================================================
+Drags are data-driven: what drags is decided by the
+AFFORDS graph. The router is ONE rule, zero region
+branches, zero hand-wired begins.
+
+[1] drag chip-red (30,22) -> canvas (150,120)...
+    red dot at (150,120) — routed by the graph, dropped
+    by the commit hook's own region query
+
+[2] drag chip-green (80,22) -> canvas (200,140)...
+    green dot at (200,140) — the SAME process, the SAME
+    rule; the chip is read from the trajectory
+
+[3] TAP chip-blue (135,22) — no movement...
+    tap -> select fired blue (small-displacement commit
+    re-compiled through the CLOSURE form — the graph
+    decided, the measure arbitrated)
+
+[4] drag chip-blue (135,22) -> canvas (100,160)...
+    blue dot at (100,160) — the SAME region, the SAME
+    process, a different MEASURE: one region, two acts,
+    zero mode flags
+
+[5] click swatch (290,22) — closure-only region...
+    select fired on the DOWN (v0.7 semantics, kept
+    byte-for-byte for closure-only regions)
+
+[6] drag slider 14 -> 78...
+    committed brightness: 78 (preview reads: 40,
+    estimate writes during the 42-sample drag: 1)
+
+[7] drag slider 250 -> 70 (the SECOND drag)...
+    committed brightness: 70 — the SAME process
+    object served its second gesture (the AFFORDS
+    edge points at a stable target; reset rearmed it)
+
+[8] press empty space (5,200)...
+    no-op: no region there, no handler exists
+
+[9] drag chip-red -> empty space (5,200)...
+    gesture committed, no dot — the drop query in the
+    commit hook found no canvas under the release
+
+[10] mid-drag cancel (app-side, e.g. an ESC handler)...
+    cancelled mid-gesture: no dot, no write, the
+    stream released on the next event (reason: "app escape")
+
+Final state: sel=red brightness=70 dots=3
+Semantic estimate writes (whole session): 7
+Hand-wired begins (px_interaction_* outside the router): 0
+Begins compiled through the graph: 8
+Raw-coordinate handlers defined: 0 (on_click == NULL)
+Unresolved presses (no-op path): 1
+
+=== Line 2 evidence complete ===
+ADR-0017/0018 joint obligation (L15b) — what this app shows:
+  1. Drags route through the afford graph: 5 regions, 2
+     processes, 1 closure, ONE routing rule, 0 region
+     branches, 0 hand-wired begins
+  2. The begin seam is gone: a down on a process-affording
+     region compiles to the process (px_drag_intent embeds
+     the label — the value contract, tests/test_v08.c e4)
+  3. One graph, two forms: the closure form still serves
+     the swatch on the down; the dual chip resolves tap vs
+     drag by MEASURE at commit (see tests/test_v08.c f2)
+  4. Process reuse: the slider's second drag runs on the
+     same object (px_interaction_reset — the stable target)

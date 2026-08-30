@@ -24,6 +24,22 @@
  *      the same region to the same closure with different payload
  *      types — the A6 mechanism judge.
  *
+ *   E. Line 2 — the process compile: px_afford_compile_process
+ *      resolves a pointer-down to a px_interaction (the L15b
+ *      retire); the px_drag_intent value contract; the pure
+ *      drag-ability query.
+ *
+ *   F. Line 2 — form orthogonality: ONE relation, TWO resolution
+ *      forms (closure + process) that never type-confuse; the
+ *      dual-form rule (the process owns the down); the kind
+ *      predicates; the Line 1 focus-ring pins holding.
+ *
+ *   G. Line 2 — process reuse + app-level routing: reset as the
+ *      rearm (a stable edge target survives its second drag); the
+ *      exact px_app_run pointer decision (down compiles the
+ *      process, moves sample it, the release commits it); the
+ *      supersede and app-cancel contracts.
+ *
  * Build (or: make test_v08):
  *   cc -std=c17 -I include tests/test_v08.c \
  *      src/relation.c src/estimate.c src/closure.c src/perception.c \
@@ -478,6 +494,589 @@ static void test_d1_one_graph_two_channels_one_closure(void) {
 }
 
 /* ============================================================
+ * E. Line 2 — the process compile (px_afford_compile_process)
+ *
+ * The L15b retire: a pointer-down on a region that affords a
+ * PROCESS (an AFFORDS edge targeting a px_interaction) compiles
+ * to that process — drag-ability becomes graph data.
+ * ============================================================ */
+
+/* A three-region drag fixture:
+ *   chip    (0,0,60,24)    DUAL form   — select closure + chip_drag
+ *   slider  (0,40,60,24)   process only — slider_drag (no closure)
+ *   button  (0,80,60,24)   closure only — the v0.7 control
+ * Creation order: chip > slider > button. */
+typedef struct {
+    px_graph*       g;
+    px_region*      chip;
+    px_region*      slider;
+    px_region*      button;
+    px_interaction* chip_drag;
+    px_interaction* slider_drag;
+    px_closure*     select;
+    px_closure*     click;
+    int             sel_fires;
+    int             clk_fires;
+    int             begins;
+    int             commits;
+    int             cancels;
+} Drag3;
+
+static void on_count_fire(px_intent i, void* u) {
+    (void)i;
+    (*(int*)u)++;
+}
+
+static void drag_phase_counter(px_interaction* it, px_int_phase ph, void* u) {
+    (void)it;
+    Drag3* f = (Drag3*)u;
+    if (ph == PX_INT_BEGAN)          f->begins++;
+    else if (ph == PX_INT_COMMITTED) f->commits++;
+    else if (ph == PX_INT_CANCELLED) f->cancels++;
+}
+
+static void drag3_new(Drag3* f) {
+    memset(f, 0, sizeof(*f));
+    f->g = px_graph_new();
+    f->chip   = px_region_new(px_rect_make(0, 0, 60, 24), "chip");
+    f->slider = px_region_new(px_rect_make(0, 40, 60, 24), "brightness");
+    f->button = px_region_new(px_rect_make(0, 80, 60, 24), "button");
+
+    f->select = px_closure_new("select", PX_INTENT_REQUEST,
+                               on_count_fire, eval_true, &f->sel_fires);
+    f->click  = px_closure_new("click", PX_INTENT_REQUEST,
+                               on_count_fire, eval_true, &f->clk_fires);
+
+    f->chip_drag   = px_interaction_new("chip drag", 32);
+    f->slider_drag = px_interaction_new("slider drag", 32);
+    px_interaction_on_phase(f->chip_drag,   drag_phase_counter, f);
+    px_interaction_on_phase(f->slider_drag, drag_phase_counter, f);
+
+    /* Declaration order matters for the last-declared-first pins:
+     * the process edges are declared AFTER the closure edges, so a
+     * kind-blind resolver (the pre-v0.8 code) would miscast the
+     * process pointer as a closure. The kind filter must hold. */
+    px_declare(f->g, f->chip,   PX_REL_AFFORDS, f->select);
+    px_declare(f->g, f->chip,   PX_REL_AFFORDS, f->chip_drag);
+    px_declare(f->g, f->slider, PX_REL_AFFORDS, f->slider_drag);
+    px_declare(f->g, f->button, PX_REL_AFFORDS, f->click);
+}
+
+static void drag3_free(Drag3* f) {
+    px_region_free(f->chip);
+    px_region_free(f->slider);
+    px_region_free(f->button);
+    px_interaction_free(f->chip_drag);
+    px_interaction_free(f->slider_drag);
+    px_closure_free(f->select);
+    px_closure_free(f->click);
+    px_graph_free(f->g);
+}
+
+static void test_e1_compile_process_resolves_region_to_process(void) {
+    Drag3 f;
+    drag3_new(&f);
+
+    /* The press on the slider compiles to its process — the begin
+     * seam is gone: which regions drag is a graph query, not app
+     * branching. The payload embeds the label, position, button. */
+    px_drag_intent di;
+    px_interaction* p = px_afford_compile_process(f.g, 30, 52, 1, &di);
+    assert(p == f.slider_drag);
+    assert(strcmp(di.region, "brightness") == 0);
+    assert(di.x == 30 && di.y == 52 && di.button == 1);
+
+    /* The chip (dual form) compiles to its process too. */
+    px_interaction* p2 = px_afford_compile_process(f.g, 30, 12, 1, &di);
+    assert(p2 == f.chip_drag);
+    assert(strcmp(di.region, "chip") == 0);
+
+    drag3_free(&f);
+}
+
+static void test_e2_compile_process_miss_zeroes_payload(void) {
+    Drag3 f;
+    drag3_new(&f);
+
+    /* Empty space: no region, no compile. */
+    px_drag_intent di;
+    memset(&di, 'x', sizeof(di));   /* stale garbage */
+    px_interaction* p = px_afford_compile_process(f.g, 300, 300, 1, &di);
+    assert(p == NULL);
+    assert(di.region[0] == 0 && di.x == 0 && di.y == 0 && di.button == 0);
+
+    /* The button affords only a closure: the process form misses,
+     * zeroed payload — a stale value can never leak through the
+     * fallback (the same contract as the pointer/key compiles). */
+    memset(&di, 'x', sizeof(di));
+    p = px_afford_compile_process(f.g, 30, 92, 1, &di);
+    assert(p == NULL);
+    assert(di.region[0] == 0 && di.x == 0 && di.y == 0 && di.button == 0);
+
+    drag3_free(&f);
+}
+
+static void test_e3_multi_edge_last_declared_first(void) {
+    px_graph* g = px_graph_new();
+    px_region* r = px_region_new(px_rect_make(0, 0, 60, 24), "multi");
+    px_interaction* p1 = px_interaction_new("p1", 8);
+    px_interaction* p2 = px_interaction_new("p2", 8);
+
+    /* Two process edges on one region: the LAST declared wins — the
+     * same resolution rule the closure form pins (test_v07 a7);
+     * one graph, one rule, two forms. */
+    px_declare(g, r, PX_REL_AFFORDS, p1);
+    px_declare(g, r, PX_REL_AFFORDS, p2);
+
+    px_drag_intent di;
+    assert(px_afford_compile_process(g, 30, 12, 1, &di) == p2);
+
+    px_region_free(r);
+    px_interaction_free(p1);
+    px_interaction_free(p2);
+    px_graph_free(g);
+}
+
+static void test_e4_intent_survives_region_free(void) {
+    Drag3 f;
+    drag3_new(&f);
+
+    /* The value contract: the label is EMBEDDED, so the compile
+     * product survives the region's death — same construction as
+     * px_pointer_intent (test_v07 a3) and px_key_intent (b3). */
+    px_drag_intent di;
+    assert(px_afford_compile_process(f.g, 30, 52, 1, &di) == f.slider_drag);
+    px_drag_intent copy = di;
+
+    px_region_free(f.slider);   /* the label's owner dies */
+    f.slider = NULL;
+
+    assert(strcmp(copy.region, "brightness") == 0);
+
+    /* The registry is unaffected: the process is still itself. */
+    assert(px_is_interaction(f.slider_drag));
+
+    drag3_free(&f);
+}
+
+static void test_e5_region_affords_process_query(void) {
+    Drag3 f;
+    drag3_new(&f);
+
+    /* Drag-ability as a pure graph query — the reader the a11y
+     * projection (PX_A11Y_STATE_DRAGGABLE) and the corpus evidence
+     * use. */
+    assert(px_region_affords_process(f.g, f.chip));    /* dual     */
+    assert(px_region_affords_process(f.g, f.slider));  /* process  */
+    assert(!px_region_affords_process(f.g, f.button)); /* closure  */
+    assert(!px_region_affords_process(f.g, NULL));     /* nowhere  */
+    assert(!px_region_affords_process(NULL, f.chip));  /* no graph */
+
+    drag3_free(&f);
+}
+
+static int g_raw_clicks = 0;
+static int g_raw_moves = 0;
+static int g_raw_ups = 0;
+
+static bool on_raw_click(int x, int y, void* u) {
+    (void)x; (void)y; (void)u;
+    g_raw_clicks++;
+    return true;
+}
+static bool on_raw_move(int x, int y, void* u) {
+    (void)x; (void)y; (void)u;
+    g_raw_moves++;
+    return true;
+}
+static bool on_raw_up(int x, int y, void* u) {
+    (void)x; (void)y; (void)u;
+    g_raw_ups++;
+    return true;
+}
+
+#define APP_PTR_DOWN(desc, x_, y_, btn)                                     \
+    do {                                                                    \
+        if ((desc)->intent_graph) {                                         \
+            px_drag_intent _di;                                             \
+            px_interaction* _p = px_afford_compile_process(                 \
+                (desc)->intent_graph, (double)(x_), (double)(y_),           \
+                (btn), &_di);                                               \
+            if (_p) {                                                       \
+                if (active) {                                               \
+                    px_interaction_cancel(active,                           \
+                                          "superseded by a new press");     \
+                    active = NULL;                                          \
+                }                                                           \
+                px_interaction_reset(_p);                                   \
+                px_interaction_begin(_p);                                   \
+                px_int_sample _s = { px_now_ms(), _di.x, _di.y, 0.0,        \
+                                     _di.button, 0 };                       \
+                px_interaction_sample(_p, &_s);                             \
+                active = _p;                                                \
+                break;                                                      \
+            }                                                               \
+            px_pointer_intent _pi;                                          \
+            px_closure* _c = px_afford_compile(                             \
+                (desc)->intent_graph, (double)(x_), (double)(y_),           \
+                (btn), &_pi);                                               \
+            if (_c) {                                                       \
+                px_closure_trigger(_c, &_pi, sizeof(_pi));                  \
+                break;                                                      \
+            }                                                               \
+        }                                                                   \
+        if ((desc)->on_click) (desc)->on_click((x_), (y_), (desc)->user);   \
+    } while (0)
+
+#define APP_PTR_MOVE(desc, x_, y_)                                          \
+    do {                                                                    \
+        if (active) {                                                       \
+            px_int_phase _ph = px_interaction_phase(active);                \
+            if (_ph == PX_INT_COMMITTED || _ph == PX_INT_CANCELLED) {       \
+                active = NULL;                                              \
+            } else {                                                        \
+                px_int_sample _s = { px_now_ms(), (double)(x_),             \
+                                     (double)(y_), 0.0, 0, 0 };             \
+                px_interaction_sample(active, &_s);                         \
+                break;                                                      \
+            }                                                               \
+        }                                                                   \
+        if ((desc)->on_mouse_move)                                          \
+            (desc)->on_mouse_move((x_), (y_), (desc)->user);                \
+    } while (0)
+
+#define APP_PTR_UP(desc, x_, y_)                                            \
+    do {                                                                    \
+        if (active) {                                                       \
+            px_int_phase _ph = px_interaction_phase(active);                \
+            if (_ph != PX_INT_COMMITTED && _ph != PX_INT_CANCELLED) {       \
+                px_int_sample _s = { px_now_ms(), (double)(x_),             \
+                                     (double)(y_), 0.0, 0, 0 };             \
+                px_interaction_sample(active, &_s);                         \
+                px_interaction_commit(active);                              \
+            }                                                               \
+            active = NULL;                                                  \
+            break;                                                          \
+        }                                                                   \
+        if ((desc)->on_mouse_up) (desc)->on_mouse_up((x_), (y_), (desc)->user); \
+    } while (0)
+
+/* ============================================================
+ * F. Line 2 — form orthogonality (one graph, two forms)
+ * ============================================================ */
+
+static void test_f1_closure_compile_skips_process_targets(void) {
+    Drag3 f;
+    drag3_new(&f);
+
+    /* The chip's AFFORDS edges: [select (closure), chip_drag
+     * (process)] — newest-first, the PROCESS edge is on top. The
+     * closure form must resolve select anyway: kind-filtered, the
+     * forms never type-confuse. (The pre-v0.8 resolver cast the
+     * first non-NULL target — exactly this layout would have
+     * handed back the process pointer as a px_closure*.) */
+    px_pointer_intent pi;
+    assert(px_afford_compile(f.g, 30, 12, 1, &pi) == f.select);
+    assert(strcmp(pi.region, "chip") == 0);
+
+    /* And the process form resolves the process on the SAME edges. */
+    px_drag_intent di;
+    assert(px_afford_compile_process(f.g, 30, 12, 1, &di) == f.chip_drag);
+
+    /* The slider affords ONLY a process: the closure form misses —
+     * NULL, not a miscast process pointer. This is the slider's
+     * pre-v0.8 "unresolved click" boundary, now precise. */
+    assert(px_afford_at(f.g, 30, 52) == NULL);
+
+    /* Odd declarations (an estimate on an AFFORDS edge) resolve
+     * nothing in either form — safer than the blind cast too. */
+    px_estimate* est = px_estimate_new(0, 1.0);
+    px_declare(f.g, f.button, PX_REL_AFFORDS, est);
+    px_closure* c = px_afford_compile(f.g, 30, 92, 1, &pi);
+    assert(c == f.click);   /* the estimate edge is skipped, the
+                             * closure edge still resolves */
+    assert(px_afford_compile_process(f.g, 30, 92, 1, &di) == NULL);
+
+    px_estimate_free(est);
+    drag3_free(&f);
+}
+
+static void test_f2_dual_form_process_owns_the_down(void) {
+    Drag3 f;
+    drag3_new(&f);
+
+    px_app_desc d = {0};
+    d.intent_graph = f.g;
+    px_interaction* active = NULL;   /* the loop-local state */
+
+    /* The v0.7 control FIRST: the button affords only a closure —
+     * the down triggers it immediately, no process ever begins. */
+    APP_PTR_DOWN(&d, 30, 92, 1);
+    assert(f.clk_fires == 1);
+    assert(f.begins == 0 && active == NULL);
+
+    /* The dual-form chip: the process owns the down. The press is
+     * genuinely ambiguous (tap vs drag); only the trajectory
+     * resolves it — the closure does NOT fire on the down. */
+    APP_PTR_DOWN(&d, 30, 12, 1);
+    assert(active == f.chip_drag);
+    assert(f.begins == 1);
+    assert(f.sel_fires == 0);   /* reachable via the commit bridge,
+                                 * not via the down */
+
+    drag3_free(&f);
+}
+
+static void test_f3_kind_predicates_discriminate(void) {
+    Drag3 f;
+    drag3_new(&f);
+
+    /* Registry-backed identity: no type punning, no dereference. */
+    assert(px_is_interaction(f.chip_drag));
+    assert(px_is_interaction(f.slider_drag));
+    assert(!px_is_interaction(f.select));       /* a closure is not  */
+    assert(!px_is_interaction(NULL));
+    assert(!px_is_interaction(f.g));            /* a graph is not    */
+
+    assert(px_is_closure(f.select));
+    assert(px_is_closure(f.click));
+    assert(!px_is_closure(f.chip_drag));        /* a process is not  */
+    assert(!px_is_closure(NULL));
+
+    /* Estimates and regions are neither kind. */
+    px_estimate* est = px_estimate_new(0, 1.0);
+    assert(!px_is_interaction(est) && !px_is_closure(est));
+    assert(!px_is_interaction(f.chip) && !px_is_closure(f.chip));
+
+    /* Freed objects leave the registry: no stale identity. */
+    px_interaction* tmp = px_interaction_new("tmp", 4);
+    assert(px_is_interaction(tmp));
+    px_interaction_free(tmp);
+    assert(!px_is_interaction(tmp));
+
+    px_estimate_free(est);
+    drag3_free(&f);
+}
+
+static void test_f4_focus_ring_pins_hold_under_process_edges(void) {
+    Drag3 f;
+    drag3_new(&f);
+
+    /* Line 1's pinned semantics, unchanged by the process form:
+     * focusable = affords at least one CLOSURE. The slider
+     * (process-only) stays off the ring — keyboard
+     * process-activation does not exist yet (ADR-0021 CAVEATS). */
+    assert(px_afford_focus_first(f.g) == f.chip);   /* creation order */
+    assert(px_afford_focus_next(f.g, f.chip) == f.button);
+    assert(px_afford_focus_next(f.g, f.button) == f.chip);  /* wrap,
+                                        slider skipped by the ring */
+
+    /* The ring is [chip, button]: walk it and confirm. */
+    px_region* ring[2] = { f.chip, f.button };
+    px_region* cur = NULL;
+    for (int i = 0; i < 4; i++) {
+        cur = px_afford_focus_next(f.g, cur);
+        assert(cur == ring[i % 2]);
+    }
+
+    drag3_free(&f);
+}
+
+/* ============================================================
+ * G. Line 2 — process reuse + app-level routing
+ *
+ * The exact decision px_app_run runs on pointer events when
+ * intent_graph is set (v0.8 Line 2), replicated macro-for-macro:
+ * the process form first (reset + begin + press sample), moves
+ * sample the active process, the release commits it, and the
+ * raw callbacks (on_click / on_mouse_move / on_mouse_up) are the
+ * fallback — the fallback, not the path.
+ * ============================================================ */
+
+/* A generic phase counter for the reuse tests (user = PhaseCount). */
+typedef struct { int begins, commits, cancels; } PhaseCount;
+
+static void phase_count_hook(px_interaction* it, px_int_phase p, void* u) {
+    (void)it;
+    PhaseCount* c = (PhaseCount*)u;
+    if (p == PX_INT_BEGAN)          c->begins++;
+    else if (p == PX_INT_COMMITTED) c->commits++;
+    else if (p == PX_INT_CANCELLED) c->cancels++;
+}
+
+static void test_g1_reset_rearms_after_terminal(void) {
+    /* A process that AFFORDS a region is a stable edge target — the
+     * slider must survive its second drag. begin() on a terminal
+     * process is a no-op (the outcome is final); reset is the
+     * rearm, and it KEEPS everything bound. */
+    PhaseCount pc = {0, 0, 0};
+    int bridge_fires = 0;
+    px_interaction* it = px_interaction_new("reusable", 8);
+    px_closure* bridge = px_closure_new("commit bridge", PX_INTENT_REQUEST,
+                                        on_count_fire, eval_true,
+                                        &bridge_fires);
+
+    px_interaction_on_phase(it, phase_count_hook, &pc);
+    px_interaction_on_commit(it, bridge, NULL, 0);
+
+    px_int_sample s1 = { 100.0, 10, 10, 0, 1, 0 };
+    px_int_sample s2 = { 110.0, 20, 10, 0, 0, 0 };
+    px_interaction_sample(it, &s1);          /* auto-begins */
+    px_interaction_sample(it, &s2);
+    px_interaction_commit(it);
+    assert(px_interaction_phase(it) == PX_INT_COMMITTED);
+    assert(px_interaction_stored(it) == 2);
+    assert(bridge_fires == 1);
+    assert(pc.begins == 1 && pc.commits == 1);
+
+    /* Terminal is final: begin is a no-op on COMMITTED. */
+    px_interaction_begin(it);
+    assert(px_interaction_phase(it) == PX_INT_COMMITTED);
+
+    /* The rearm: IDLE, trajectory cleared, bindings kept. */
+    px_interaction_reset(it);
+    assert(px_interaction_phase(it) == PX_INT_IDLE);
+    assert(px_interaction_stored(it) == 0);
+    assert(px_interaction_total(it) == 0);
+
+    /* The second gesture works on the SAME object — and the commit
+     * bridge survived the reset (bound at bind time, not per
+     * gesture). */
+    px_interaction_begin(it);
+    assert(px_interaction_phase(it) == PX_INT_BEGAN);
+    assert(pc.begins == 2);          /* the hook survived the reset */
+    px_interaction_sample(it, &s1);
+    px_interaction_sample(it, &s2);
+    px_interaction_commit(it);
+    assert(px_interaction_phase(it) == PX_INT_COMMITTED);
+    assert(px_interaction_stored(it) == 2);
+    assert(bridge_fires == 2);   /* the bridge fired again */
+    assert(pc.commits == 2);
+
+    /* Reset also clears a cancel reason. */
+    px_interaction_reset(it);
+    px_interaction_begin(it);
+    px_interaction_cancel(it, "escape");
+    assert(strcmp(px_interaction_cancel_reason(it), "escape") == 0);
+    px_interaction_reset(it);
+    assert(px_interaction_cancel_reason(it)[0] == 0);  /* cleared,
+                                          not NULL — the reason array
+                                          lives with the process */
+
+    px_closure_free(bridge);
+    px_interaction_free(it);
+}
+
+static void test_g2_app_routing_down_move_up(void) {
+    Drag3 f;
+    drag3_new(&f);
+    g_raw_clicks = g_raw_moves = g_raw_ups = 0;
+
+    px_app_desc d = {0};
+    d.intent_graph   = f.g;
+    d.on_click       = on_raw_click;
+    d.on_mouse_move  = on_raw_move;
+    d.on_mouse_up    = on_raw_up;
+    px_interaction* active = NULL;
+
+    /* The press on the slider compiles to the process: reset +
+     * begin + the press is the first trajectory sample. */
+    APP_PTR_DOWN(&d, 30, 52, 1);
+    assert(active == f.slider_drag);
+    assert(px_interaction_phase(f.slider_drag) == PX_INT_ACTIVE);
+    assert(px_interaction_stored(f.slider_drag) == 1);
+    const px_int_sample* first =
+        px_interaction_at(f.slider_drag, 0);
+    assert(first->x == 30 && first->y == 52 && first->button == 1);
+
+    /* Moves SAMPLE the process — the inert hot path. The raw move
+     * callback does not fire: the process owns the gesture. */
+    APP_PTR_MOVE(&d, 40, 52);
+    APP_PTR_MOVE(&d, 50, 52);
+    assert(px_interaction_stored(f.slider_drag) == 3);
+    assert(g_raw_moves == 0);
+
+    /* The release: last sample + COMMIT — the app's bridges fire
+     * once, with the whole trajectory readable. */
+    APP_PTR_UP(&d, 60, 52);
+    assert(px_interaction_phase(f.slider_drag) == PX_INT_COMMITTED);
+    assert(px_interaction_stored(f.slider_drag) == 4);
+    assert(px_interaction_last(f.slider_drag)->x == 60.0);
+    assert(f.commits >= 1);       /* the phase hook saw the commit */
+    assert(active == NULL);        /* the stream is released       */
+    assert(g_raw_ups == 0 && g_raw_clicks == 0);
+
+    /* After the gesture, plain moves take the raw path again. */
+    APP_PTR_MOVE(&d, 70, 52);
+    assert(g_raw_moves == 1);
+
+    drag3_free(&f);
+}
+
+static void test_g3_superseded_press_cancels_active(void) {
+    Drag3 f;
+    drag3_new(&f);
+
+    px_app_desc d = {0};
+    d.intent_graph = f.g;
+    px_interaction* active = NULL;
+
+    /* A drag begins on the slider... */
+    APP_PTR_DOWN(&d, 30, 52, 1);
+    assert(active == f.slider_drag);
+    APP_PTR_MOVE(&d, 40, 52);
+
+    /* ...and a new press lands mid-gesture: one pointer, one
+     * gesture — the active process is CANCELLED with the reason,
+     * its bridges fire, and the new press routes normally. */
+    APP_PTR_DOWN(&d, 30, 12, 1);
+    assert(px_interaction_phase(f.slider_drag) == PX_INT_CANCELLED);
+    assert(strcmp(px_interaction_cancel_reason(f.slider_drag),
+                  "superseded by a new press") == 0);
+    assert(active == f.chip_drag);   /* the new gesture owns the
+                                      * pointer stream now */
+
+    drag3_free(&f);
+}
+
+static void test_g4_app_cancel_releases_the_stream(void) {
+    Drag3 f;
+    drag3_new(&f);
+    g_raw_moves = g_raw_ups = 0;
+
+    px_app_desc d = {0};
+    d.intent_graph  = f.g;
+    d.on_mouse_move = on_raw_move;
+    d.on_mouse_up   = on_raw_up;
+    px_interaction* active = NULL;
+
+    /* The app owns the process object: it may cancel from its own
+     * key handler, its timer, wherever. The framework's contract:
+     * a move/up that finds the process terminal drops it and falls
+     * through to normal routing — no zombie capture. */
+    APP_PTR_DOWN(&d, 30, 52, 1);
+    assert(active == f.slider_drag);
+
+    px_interaction_cancel(f.slider_drag, "app escape");
+    assert(px_interaction_phase(f.slider_drag) == PX_INT_CANCELLED);
+
+    /* The next move sees the terminal process, releases the
+     * stream, and takes the raw path (both moves below). */
+    APP_PTR_MOVE(&d, 40, 52);
+    APP_PTR_MOVE(&d, 50, 52);
+    assert(g_raw_moves == 2);
+    assert(px_interaction_phase(f.slider_drag) == PX_INT_CANCELLED);
+
+    /* The up is raw too — no double terminal on a cancelled
+     * process. */
+    APP_PTR_UP(&d, 60, 52);
+    assert(g_raw_ups == 1);
+    assert(px_interaction_phase(f.slider_drag) == PX_INT_CANCELLED);
+
+    drag3_free(&f);
+}
+
+/* ============================================================
  * main
  * ============================================================ */
 
@@ -510,6 +1109,25 @@ int main(void) {
 
     printf("\nD. channel orthogonality (A6 at mechanism level)\n");
     TEST(d1_one_graph_two_channels_one_closure);
+
+    printf("\nE. the process compile (px_afford_compile_process)\n");
+    TEST(e1_compile_process_resolves_region_to_process);
+    TEST(e2_compile_process_miss_zeroes_payload);
+    TEST(e3_multi_edge_last_declared_first);
+    TEST(e4_intent_survives_region_free);
+    TEST(e5_region_affords_process_query);
+
+    printf("\nF. form orthogonality (one graph, two forms)\n");
+    TEST(f1_closure_compile_skips_process_targets);
+    TEST(f2_dual_form_process_owns_the_down);
+    TEST(f3_kind_predicates_discriminate);
+    TEST(f4_focus_ring_pins_hold_under_process_edges);
+
+    printf("\nG. process reuse + app-level pointer routing\n");
+    TEST(g1_reset_rearms_after_terminal);
+    TEST(g2_app_routing_down_move_up);
+    TEST(g3_superseded_press_cancels_active);
+    TEST(g4_app_cancel_releases_the_stream);
 
     printf("\n--------------------------------\n");
     printf("%d/%d passed\n", g_tests_pass, g_tests_run);

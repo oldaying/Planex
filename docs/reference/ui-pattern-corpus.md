@@ -124,6 +124,8 @@ The boundary zone, re-scored at v0.7. **7/15 patterns are clean** after the prom
 
 The v0.7 re-score (ADRs [0017](../decisions/accepted/ADR-0017-intent-compilation-promotion.md) and [0018](../decisions/accepted/ADR-0018-interaction-process-promotion.md)) flipped P24–P28, P32, P36 from ⚠️/❌ to ✅ and downgraded P29/P37 from ❌ to ⚠️. What remains: multi-touch (NG-6), timing-delay composites, and scroll-position transients. ADR-0006's deferral protocol completed: the boundary-exposing demo measured the pain, the prototypes landed in v0.6, the promotions landed in v0.7 on real-application evidence.
 
+The v0.8 Line 2 landing ([ADR-0021](../decisions/accepted/ADR-0021-v08-drag-begin-afford.md)) changed no verdicts: P28 and P36 were already ✅ on hand-wired-begin evidence — their *begin* evidence upgraded to graph-routed (`designer_tools.c`: drags compile through `px_afford_compile_process`), which strengthens the verdicts without re-scoring them (the closing rule requires an ADR to change a verdict; this is a recorded evidence upgrade, not a change).
+
 ---
 
 ## Category E: Layout & Spatial (P39–P44)

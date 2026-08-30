@@ -137,6 +137,7 @@ void px_a11y_set_state(px_a11y* a, unsigned state) {
             if (state & PX_A11Y_STATE_PRESSED)   fprintf(stderr, "pressed ");
             if (state & PX_A11Y_STATE_EXPANDED)  fprintf(stderr, "expanded ");
             if (state & PX_A11Y_STATE_SELECTED)  fprintf(stderr, "selected ");
+            if (state & PX_A11Y_STATE_DRAGGABLE) fprintf(stderr, "draggable ");
             fprintf(stderr, "\n");
         }
     }

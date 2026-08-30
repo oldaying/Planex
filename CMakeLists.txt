@@ -158,6 +158,7 @@ set(STDOUT_DEMOS
     confidence_demo       # confidence field in real use
     animation_demo        # time as first-class dimension
     palette_afford        # v0.7 L1: afford-routed app, zero raw-coordinate clicks
+    designer_tools        # v0.8 L2: drag-begin afford — drags decided by the graph
     async_demo            # PROMISE/DECLARE/FAIL lifecycle
     v3_prototype_actor          # v3: 3-place Relation (actor parameter)
     v3_prototype_perlocution    # v3: Searle level 3 effect-of-utterance

@@ -8,6 +8,29 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — v0.8: the drag-begin afford, the process form (Line 2, ADR-0021 — L15b retired)
+
+- `px_afford_compile_process(g, x, y, button, out)`: the process form of intent compilation — an AFFORDS edge targeting a `px_interaction` resolves a pointer-down to the PROCESS (the inert-trajectory machine), not to a closure. Same relation (`PX_REL_AFFORDS`), second resolution form; same last-declared-first rule; window-free, backend-free; miss zeroes the payload. **Drag-ability becomes graph data — the begin seam is gone.**
+- `px_drag_intent`: the drag-begin value — region label embedded (replay-safe after the region is freed, the same value contract as `px_pointer_intent`/`px_key_intent`); press x/y/button ride along as context (they seed the first trajectory sample), never as routing keys.
+- `px_region_affords_process(g, r)`: drag-ability as a pure graph query — the reader the a11y projection and the corpus evidence use.
+- `px_is_interaction(node)` / `px_is_closure(node)`: registry-backed kind predicates over void* AFFORDS targets — pointer identity, no type punning. Interactions and closures are process-global registered objects (the regions/perceptions precedent).
+- `px_interaction_reset(it)`: the rearm — an AFFORDS edge points at a stable target that must survive its second drag. Terminal outcomes stay final; reset returns the machine to IDLE (trajectory + cancel reason cleared) and KEEPS everything bound (hook, commit/cancel bridges, phase estimate). No transition fires.
+- `px_app_run` process routing (opt-in `intent_graph`): the down tries the process form first — a region affording both a closure and a process resolves the down to the process (the press is genuinely ambiguous; the trajectory arbitrates — a tap is a small-displacement commit whose bridge re-enters through the closure form). While active, moves SAMPLE the process (preview derived per frame from the trajectory; `on_mouse_move`/`on_mouse_up` do not fire — the process owns the gesture) and the release COMMITS it. A new press supersedes (cancels) the active process; an app-side cancel is honored — the next move/up releases the stream. Closure-only regions keep v0.7 semantics byte-for-byte.
+- `PX_A11Y_STATE_DRAGGABLE`: the query-side state bit, derived from `px_region_affords_process` (never hand-set). The AT-SPI2 bridge surfaces it in the element description — atk's `AtkStateType` enum has no draggable state, so the bit rides as text beside values (the bridge's documented posture).
+- `examples/designer_tools.c`: the Line 2 real-application evidence — a designer-tool palette whose drags are data-driven (three chips + slider afford processes; ONE routing rule, zero region branches, zero hand-wired begins). Ten-step script: three graph-routed drags, the dual-form chip's tap AND drag on the same region (arbitration by measure), the closure-only control, two slider drags on one process object (the reset pin), empty-space no-ops, a mid-drag cancel.
+- `tests/test_v08.c` sections E–G (suite 18 → 31): the process compile + value contract (E), form orthogonality — the closure form skips process targets and vice versa, the kind predicates, the Line 1 focus-ring pins holding (F), and process reuse + the app-level pointer routing decision verbatim (G).
+- `docs/decisions/accepted/ADR-0021-v08-drag-begin-afford.md`: the decision record — one relation/two forms vs a second affordance vocabulary, process-owns-the-down vs dual-fire, registry predicates vs struct tags, reset vs per-gesture allocation.
+
+### Changed — v0.8: L15b retired; P28/P36 evidence upgraded (no verdict changes)
+
+- `limitations.md` L15b RESOLVED (ADR-0021) — **L15 closed entire**: every channel and every action form Planex serves now routes through the AFFORDS graph.
+- `ui-pattern-corpus.md`: no re-scores — P28 (drag-drop) and P36 (drag slider) stay ✅; their begin evidence upgrades from hand-wired to graph-routed (`designer_tools.c`), recorded in the Category D note (ADR-0021). Distribution stays **39/23/6**.
+- `tests/test_v07.c` f3 (the dangling-edge regression): its verification vehicle is now the process-form reader — the pre-v0.8 `px_afford_at` blind cast was load-bearing in the test; the spirit (the edge names the LIVE process across a rebuild) is unchanged and now also asserts the kind-honest miss.
+
+### Fixed — v0.8: the latent px_afford_at type confusion
+
+- `px_afford_at` / `px_afford_compile` / `px_afford_compile_focus` / the focus-ring scan now FILTER AFFORDS targets by kind (`px_is_closure`): the pre-v0.8 code cast the first non-NULL target to `px_closure*` — its comment claimed "first closure wins" but nothing checked. An AFFORDS edge to an interaction or an estimate resolves nothing in the closure form (and vice versa) — safer for every declaration shape, and the prerequisite that made the process form possible without type confusion.
+
 ### Added — v0.8: the keyboard channel (Line 1, ADR-0020 — L15a retired)
 
 - `px_afford_focus_first / next / prev(g, from)`: the DERIVED focus ring — a region is focusable iff it affords at least one closure; ring order is region creation order (the registry read forward; the z-order scan is the same registry read backward). Wraparound both directions; NULL/freed/unfocusable `from` is "nowhere" and resolves to the ring head; empty ring returns NULL.

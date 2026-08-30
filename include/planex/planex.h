@@ -1161,6 +1161,15 @@ void            px_interaction_sample(px_interaction* it, const px_int_sample* s
 void            px_interaction_commit(px_interaction* it);
 void            px_interaction_cancel(px_interaction* it, const char* reason);
 
+/* Rearm a process for its next gesture (v0.8 Line 2). begin() on a
+ * terminal process is a no-op by design — the outcome is decided —
+ * so a process that AFFORDS a region (a stable edge target) needs an
+ * explicit rearm: phase -> IDLE, trajectory cleared, cancel reason
+ * cleared. KEEPS everything bound: name, capacity, the phase hook,
+ * the commit/cancel closures + payload, the phase estimate. Fires no
+ * transition (rearm is not an outcome). Idempotent on IDLE. */
+void            px_interaction_reset(px_interaction* it);
+
 /* Pure queries. */
 px_int_phase        px_interaction_phase(const px_interaction* it);
 const char*         px_interaction_cancel_reason(const px_interaction* it);
@@ -1328,6 +1337,81 @@ px_region* px_afford_focus_prev(px_graph* g, px_region* from);
  * to the raw-key callback. Window-free by design. */
 px_closure* px_afford_compile_focus(px_graph* g, px_region* focused,
                                     int key, px_key_intent* out);
+
+/* ============================================================
+ * v0.8 (Line 2) — the process form: drag-begin afford
+ *
+ * L15b (the drag-begin seam), recorded at v0.7 promotion time
+ * by ADR-0017/0018: the afford graph compiled pointer-downs to
+ * CLOSURES for discrete acts, while a drag was begun by the app
+ * hand-wiring on_mouse_move/on_mouse_up into a px_interaction.
+ * A region's drag-ability was not graph data.
+ *
+ * The retire: the SAME relation serves a second resolution form.
+ * An AFFORDS edge whose target is a px_interaction —
+ *
+ *     px_declare(g, slider_region, PX_REL_AFFORDS, slider_drag);
+ *
+ * — resolves a pointer-down to a PROCESS (the inert-trajectory
+ * machine), not to a one-shot closure. One relation, two forms:
+ * the target's kind selects the form, so there is no second
+ * affordance vocabulary (Gibson's affordance is one concept;
+ * discrete-vs-process is a property of the afforded action, not
+ * of the relation).
+ *
+ * Kind discrimination is registry-backed: interactions and
+ * closures are process-global registered objects (like regions
+ * and perceptions), and px_is_interaction / px_is_closure answer
+ * by pointer identity — no type punning on void* nodes.
+ *
+ * Dual-form regions: a region affording BOTH closures and a
+ * process resolves the DOWN to the process. The press is
+ * genuinely ambiguous (tap vs drag); only the trajectory
+ * resolves it — the tap is a small-displacement COMMIT, and the
+ * process's own bridges (on_commit / the phase hook) reach the
+ * discrete act. Regions affording only closures keep the v0.7
+ * immediate-trigger semantics, unchanged.
+ * ============================================================ */
+
+/* The drag-begin intent value — the compile product of the
+ * process form. Same value contract as px_pointer_intent /
+ * px_key_intent: the region label is EMBEDDED so the intent
+ * survives capture and replay after the region is freed. The
+ * press position and button ride along as context — they are
+ * payload, not routing keys (the routing key was the region). */
+typedef struct {
+    char   region[PX_REGION_LABEL_MAX]; /* pressed region's label, embedded */
+    double x;     /* press x — context (seeds the first trajectory sample) */
+    double y;     /* press y — context                                   */
+    int    button;/* press button — context; the process's begin hook may
+                   * cancel on it (button policy is the app's, not the
+                   * framework's)                                        */
+} px_drag_intent;
+
+/* Compile a pointer-down into (process, payload) — the process
+ * form of intent compilation. Resolves the topmost containing
+ * region's last-declared AFFORDS edge whose target is a
+ * px_interaction. Returns the afforded process and fills *out;
+ * returns NULL (and zeroes *out) when the position hits no
+ * region or the region affords no process. Window-free and
+ * backend-free by design (tests/test_v08.c section E). */
+px_interaction* px_afford_compile_process(px_graph* g, double x, double y,
+                                          int button, px_drag_intent* out);
+
+/* Does this region afford a process in `g`? The pure graph
+ * query behind drag-ability-as-data — the reader the a11y
+ * projection (PX_A11Y_STATE_DRAGGABLE) and the corpus evidence
+ * use. A region affording only closures answers false (its acts
+ * are discrete; the down keeps v0.7 semantics). */
+bool px_region_affords_process(px_graph* g, const px_region* r);
+
+/* Kind predicates over void* graph nodes — registry-backed
+ * (pointer identity against the live interaction / closure
+ * registries), so they never dereference the node and never
+ * type-pun. False for NULL, freed objects, regions, estimates,
+ * graphs, and anything else that is not the asked kind. */
+bool px_is_interaction(const void* node);
+bool px_is_closure(const void* node);
 
 #ifdef __cplusplus
 }

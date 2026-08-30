@@ -36,6 +36,7 @@ ADR-0015 is permanently reserved by `tests/synthetic_adr_0015.md` — the delibe
 | ADR-0018 | [Promote px_interaction (interaction process) to the 7th canonical abstraction](accepted/ADR-0018-interaction-process-promotion.md) | accepted |
 | ADR-0019 | [v0.7 leak-budget retire — Closure constructor split takes aggregate L2 to zero](accepted/ADR-0019-v07-leak-budget-retire.md) | accepted |
 | ADR-0020 | [The keyboard channel — derived focus ring + key-intent compile (L15a retire)](accepted/ADR-0020-v08-keyboard-channel.md) | accepted |
+| ADR-0021 | [The drag-begin afford — the process form of intent compilation (L15b retire)](accepted/ADR-0021-v08-drag-begin-afford.md) | accepted |
 | ADR-0001 | [Perception is currently a no-op placeholder](superseded/ADR-0001-perception-currently-noop.md) | superseded |
 
 ## Templates and rules

@@ -67,6 +67,12 @@ typedef enum {
     PX_A11Y_STATE_PRESSED   = 1 << 3,
     PX_A11Y_STATE_EXPANDED  = 1 << 4,
     PX_A11Y_STATE_SELECTED  = 1 << 5,
+    /* v0.8 (Line 2): the element affords a drag process — derived
+     * from the graph (px_region_affords_process), never hand-set
+     * from app bookkeeping. The AT-SPI2 mirror rides this bit in
+     * the element description (the atk enum has no draggable
+     * state; see a11y_bridge_atspi.c). */
+    PX_A11Y_STATE_DRAGGABLE = 1 << 6,
 } px_a11y_state;
 
 /* ============================================================

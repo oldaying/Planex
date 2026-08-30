@@ -104,7 +104,7 @@ BACKEND_OBJS := $(patsubst $(SRC_DIR)/%.c,$(BUILD)/%.o,$(filter-out $(SRC_DIR)/a
 EXAMPLES_NO_X11 = counter_4abs multi_perception perception_smoke perception_phase2 \
 	          undo_via_graph antipattern_estimate antipattern_closure antipattern_perception \
                   counter_denotative calculator_denotative editor_meaning hover_drag_interaction \
-		  palette_afford
+		  palette_afford designer_tools
 
 # All X11 demos work on all backends (public API is identical)
 EXAMPLES_WINDOWED = counter_perception_window counter_interactive hover_drag_4abs

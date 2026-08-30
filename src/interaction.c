@@ -53,6 +53,21 @@
 #define PX_INT_DEFAULT_CAPACITY 32
 #define PX_INT_REASON_MAX 96
 
+/* v0.8 (Line 2): process-global registry of live interactions — the
+ * regions/perceptions precedent for named objects that participate
+ * in the graph. Two consumers: px_is_interaction (kind predicate
+ * over void* AFFORDS targets — pointer identity, no type punning)
+ * and the afford-process compile (hit.c). Registry nodes are a few
+ * bytes; an interaction never freed stays registered until process
+ * teardown, the same contract px_region_free carries. */
+typedef struct px_int_node {
+    px_interaction*        it;
+    struct px_int_node*    next;
+} px_int_node;
+
+static px_int_node* g_interactions = NULL;
+static int          g_interaction_count = 0;
+
 struct px_interaction {
     char*         name;
 
@@ -126,15 +141,50 @@ px_interaction* px_interaction_new(const char* name, int capacity) {
     it->stored     = 0;
     it->total      = 0;
     it->cancel_reason[0] = 0;
+
+    /* v0.8 (Line 2): register (see the registry block above). */
+    px_int_node* node = (px_int_node*)calloc(1, sizeof(px_int_node));
+    if (!node) {
+        free(it->samples);
+        free(it->name);
+        free(it);
+        return NULL;
+    }
+    node->it = it;
+    node->next = g_interactions;
+    g_interactions = node;
+    g_interaction_count++;
     return it;
 }
 
 void px_interaction_free(px_interaction* it) {
     if (!it) return;
+    px_int_node** pp = &g_interactions;
+    while (*pp) {
+        if ((*pp)->it == it) {
+            px_int_node* dead = *pp;
+            *pp = dead->next;
+            free(dead);
+            g_interaction_count--;
+            break;
+        }
+        pp = &((*pp)->next);
+    }
     free(it->samples);
     free(it->commit_payload);
     free(it->name);
     free(it);
+}
+
+bool px_is_interaction(const void* node) {
+    /* Pointer identity against the live registry — the node is never
+     * dereferenced, so an estimate, a region, a freed interaction,
+     * or NULL all answer false without any type punning. */
+    if (!node) return false;
+    for (px_int_node* n = g_interactions; n; n = n->next) {
+        if ((const void*)n->it == node) return true;
+    }
+    return false;
 }
 
 const char* px_interaction_name(const px_interaction* it) {
@@ -220,6 +270,23 @@ void px_interaction_cancel(px_interaction* it, const char* reason) {
         it->cancel_reason[PX_INT_REASON_MAX - 1] = 0;
     }
     transition(it, PX_INT_CANCELLED);
+}
+
+void px_interaction_reset(px_interaction* it) {
+    /* v0.8 (Line 2): the rearm. begin() on a terminal process is a
+     * no-op (the outcome is decided), but a process that AFFORDS a
+     * region is a stable edge target — the slider must survive its
+     * second drag. Reset returns the machine to IDLE with the
+     * trajectory and cancel reason cleared and EVERYTHING bound
+     * kept (hook, commit/cancel closures + payload, phase estimate).
+     * No transition fires: rearm is not an outcome, so the bridges
+     * stay silent — the app hears the next begin like a first one. */
+    if (!it) return;
+    it->phase            = PX_INT_IDLE;
+    it->head             = 0;
+    it->stored           = 0;
+    it->total            = 0;
+    it->cancel_reason[0] = 0;
 }
 
 /* ============================================================

@@ -382,11 +382,20 @@ int main(void) {
      * process pointer on every allocator layout (no address-reuse
      * luck involved); it tightened from the old two-way assert,
      * whose second arm (commit_reorder) was never an AFFORDS
-     * target and only ever matched by accident. */
-    px_closure* afforded = px_afford_at(app.graph, 160, ITEM_Y_START + 3 * ITEM_H + 5);
+     * target and only ever matched by accident.
+     *
+     * v0.8 (Line 2): the check reads through the PROCESS form —
+     * px_afford_at is kind-filtered now (a process target is not a
+     * closure; the pre-v0.8 blind cast is what this line used to
+     * lean on). Same discipline, honest vehicle. */
+    px_drag_intent di;
+    px_interaction* afforded = px_afford_compile_process(
+        app.graph, 160, ITEM_Y_START + 3 * ITEM_H + 5, 1, &di);
     printf("  afford_at(slot 3):  %s\n",
            afforded ? "found (drag process)" : "NULL");
     assert((void*)afforded == (void*)app.drag);
+    assert(px_afford_at(app.graph, 160,
+                        ITEM_Y_START + 3 * ITEM_H + 5) == NULL);
 
     /* ---- cleanup -------------------------------------------------- */
     px_interaction_free(app.drag);
