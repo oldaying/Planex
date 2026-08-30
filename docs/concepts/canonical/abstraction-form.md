@@ -161,6 +161,14 @@ The standing is: **the form is correctly chosen, the prerequisites are correctly
 
 ---
 
+## Host separability (the Path C posture, v0.7)
+
+The 60-year Path C record ([path-C-lineage.md](../background/path-C-lineage.md)) reads as condition misjudgments, not idea errors: Lisp-machine presentation types lost an economic war with their host, not an argument. The lesson this form commitment absorbs: **the 7 canonical abstractions are invariants; C17 is the first host, not the ontology.**
+
+Concretely, the abstractions are host-portable by construction — Estimate (a double + confidence + time), Closure (a copied payload + a function pointer), Relation (an adjacency list + kinds), Perception (a pure function over inputs), `px_loop` (a turn counter + audit ring), intent compilation (a registry + a graph query), `px_interaction` (a sample ring + a phase enum). None of these requires C to *exist*; C is what makes them zero-dependency and embeddable. If the embeddability bet fails — if the world never wants a C UI framework — **the ideas move hosts rather than die with one**: the same seven questions re-express in Rust, Zig, or whatever host the conditions favor. What would NOT move: the leak budgets, the corpus, the admission bar (ADR-0011) — the falsifiability machinery is host-independent by design (it is documents and tests, not code).
+
+The inverse commitment (see the [v0.7 roadmap](../state/v0.7-roadmap.md) Cross-cutting B) holds too: **no ecosystem-rewrite demands.** Every v0.7 feature is opt-in and embeddable without asking any toolchain to change — the schema is opt-in, the a11y bridge hides behind a build flag, the default budget has an explicit opt-out. The adoption wedge stays a zero-dependency drop-in; the demand that killed Intentional Programming (requiring the ecosystem to abandon its standard interfaces) is structurally refused.
+
 ## What this document is not
 
 - **Not a proof that abstraction is best.** It is a conditional defense. The condition is the three prerequisites; the defense is valid only while the prerequisites hold.

@@ -58,6 +58,8 @@ A contribution that breaks any of these three pillars is not a Planex contributi
 
 v4 design proposal (clean-room, not shipping): adds **Interpretant** (Peirce's interpretant), **Perlocution** (Searle's perlocutionary act), **Breakdown** (Heidegger's Zuhandenheit, Winograd/Flores). Pressure-tested by ADR-0012; not yet promoted.
 
+**Host separability (stated property, v0.7):** the abstractions are portable invariants; C17 is the first host, not the ontology. Each abstraction's core is host-independent data + a question (see [abstraction-form.md](abstraction-form.md) § Host separability); if the embeddability bet fails, the ideas move hosts rather than die with one — the falsifiability machinery (leak budgets, corpus, admission bar) is documents and tests, not C code. The inverse holds: no ecosystem-rewrite demands — every feature is opt-in and drop-in (the adoption wedge the Path C record demands).
+
 ---
 
 ## The core loop (ASCII diagram)

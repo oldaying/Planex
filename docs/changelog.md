@@ -22,6 +22,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Corpus Category D re-scored (same-commit amendment): P24–P28, P32, P36 flip to ✅ CLEAN (EXAMPLE-grounded); P29/P37 downgrade ❌→⚠️. Distribution 31/29/8 → **38/24/6**; test_completeness constants updated (75/75 checks).
 - Abstraction count 5 → 7 across all non-exempt docs; `check_stale_abstraction_count.sh` now enforces the 7-count (stale 5/five pattern + stops-at-px_loop enumeration pattern).
 
+### Added — v0.7: Path C adoption posture (Cross-cutting B)
+
+- Host separability is now a **stated property**: `abstraction-form.md` and `intent.md` each gain a section — the 7 canonical abstractions are portable invariants; C17 is the first host, not the ontology; if the embeddability bet fails the ideas move hosts rather than die with one (the falsifiability machinery — leak budgets, corpus, admission bar — is documents and tests, not code). The inverse is recorded with it: no ecosystem-rewrite demands — every v0.7 feature is opt-in and drop-in (the wedge the 60-year Path C failure record demands; the Intentional-Programming demand is structurally refused).
+
 ### Changed — v0.7: Closure constructor split retires the last L2 (Line 5, ADR-0019)
 
 - `px_closure_new_with_graph(goal, kind, action, evaluation, user, graph)`: the undo graph arrives with the closure — the bind-before-trigger ordering rule is deleted from the API's grammar (the mistake is unwritable). `px_closure_bind_graph` is **deprecated** (registry entry; removal candidate v1.0), still functional through the window; the v0.6 one-time warning now guards only deliberate unbound use.
