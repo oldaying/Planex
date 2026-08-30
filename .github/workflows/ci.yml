@@ -101,10 +101,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install atk headers
         # Ubuntu 24.04 (noble) removed the at-spi2-atk package: ATK and
-        # the bridge were folded into at-spi2-core, and libatk1.0-dev
-        # (built from at-spi2-core since 23.04) carries the atk headers
-        # — and the atk-bridge header where the distro ships it at all.
-        run: sudo apt-get update && sudo apt-get install -y libatk1.0-dev
+        # the bridge were folded into at-spi2-core. The split dev
+        # packages are libatk1.0-dev (atk/*.h) and libatk-bridge2.0-dev
+        # (atk-bridge-2.0/atk-bridge.h) — both are needed for the probe
+        # to compile the adapter against real headers.
+        run: sudo apt-get update && sudo apt-get install -y libatk1.0-dev libatk-bridge2.0-dev
       - name: Compile-probe the AT-SPI2 bridge
         run: |
           set -eu

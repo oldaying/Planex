@@ -46,7 +46,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - `px_undeclare(g, a, kind, b)`: retires the first edge matching (a, kind, b) — the edge-lifecycle counterpart of `px_has_relation`, symmetric predicate, propagation-accounted. **Edge-lifecycle contract** stated at the declaration site: edges name endpoints by pointer, nothing cascades, the declarer retires before freeing the endpoint.
 - `hover_drag_interaction.c`: the re-arm sequence now retires → frees → recreates → re-declares; the assertion tightens to the live process pointer (no address-reuse luck involved) — its second arm (`commit_reorder`) was never an AFFORDS target.
 - `tests/test_v07.c` section F (3 tests): retirement semantics, sibling-edge sparing, and the dangling-edge regression pinned as the discipline.
-- **CI `a11y-atspi-bridge`**: `at-spi2-atk` no longer exists on Ubuntu 24.04 (folded into at-spi2-core); the probe installs `libatk1.0-dev` only — the probe's absent-header branch still reports "condition unmet" honestly where a distro ships no bridge header.
+- **CI `a11y-atspi-bridge`**: `at-spi2-atk` no longer exists on Ubuntu 24.04 (folded into at-spi2-core); the probe installs the split dev packages `libatk1.0-dev` (atk headers) + `libatk-bridge2.0-dev` (the bridge header) — with both present the probe compiles the adapter against real headers, so ATK API drift is blocking; the absent-header branch still reports "condition unmet" honestly where a distro ships no bridge header.
 
 ### Added — v0.7: Estimate schema — the describable value contract (Line 3)
 
