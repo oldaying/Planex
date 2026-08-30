@@ -30,6 +30,8 @@
 #ifndef PLANEX_A11Y_H
 #define PLANEX_A11Y_H
 
+#include "planex/planex.h"
+
 #include "planex/window.h"
 
 #ifdef __cplusplus
@@ -91,6 +93,13 @@ void     px_a11y_set_name(px_a11y* a, const char* name);
 
 /* Set the value of the current element (as a string). */
 void     px_a11y_set_value(px_a11y* a, const char* value);
+
+/* v0.7 Line 3: set the value string FROM an estimate's schema —
+ * kind-aware denotation through px_estimate_describe() instead of a
+ * hand-formatted string. This is the seam the platform bridges
+ * (Line 4) read: the value's meaning comes from the contract, not
+ * from each call site's printf. */
+void     px_a11y_set_value_estimate(px_a11y* a, const px_estimate* e);
 
 /* Set the state flags (bitmask of px_a11y_state). */
 void     px_a11y_set_state(px_a11y* a, unsigned state);

@@ -22,6 +22,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Corpus Category D re-scored (same-commit amendment): P24–P28, P32, P36 flip to ✅ CLEAN (EXAMPLE-grounded); P29/P37 downgrade ❌→⚠️. Distribution 31/29/8 → **38/24/6**; test_completeness constants updated (75/75 checks).
 - Abstraction count 5 → 7 across all non-exempt docs; `check_stale_abstraction_count.sh` now enforces the 7-count (stale 5/five pattern + stops-at-px_loop enumeration pattern).
 
+### Added — v0.7: Estimate schema — the describable value contract (Line 3)
+
+- `px_estimate_schema` (kind + name + optional print/equal) beside the value: opt-in via `px_estimate_set_schema` (borrowed pointer, app-owned static const; zero cost when unset). Not a type system — a describable contract: tests assert "this estimate is INT and equals 3" (`px_estimate_schema_of` + `px_value_kind_name`), values denotate kind-aware (`px_estimate_describe` — INT/DOUBLE/PERCENT/BOOL defaults or custom print), equality is kind-aware (`px_estimate_value_equal` — exact for discrete kinds, 1e-9 for DOUBLE).
+- `px_a11y_set_value_estimate`: the a11y query side reads the schema for value naming — the seam the Line 4 platform bridges adapt.
+- Leak-budget: the void* L1 entry gains its retirement path — the **contract half** closes (the schema declares what the value means); the **pointer half** (void* user in callbacks) stays as documented permanent C17 host cost. Estimate section re-enumerated: 27 ops, L1 4, L2 0.
+
 ### Added — v0.7: budget as contract (Line 2)
 
 - `PX_LOOP_DEFAULT_BUDGET_MS` (16ms): every `px_loop` ships with a deadline — the feedback axiom's "instantly visible" given a number. `px_loop_set_budget(loop, 0)` is the explicit opt-out. Overruns are loud: warn-once on stderr in all builds, abort under `-DPX_DEBUG_BUDGET` strict mode; `px_loop_budget_overruns()` counts.

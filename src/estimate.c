@@ -27,6 +27,7 @@
 #include "planex/planex.h"
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 
 #ifdef _WIN32
@@ -106,6 +107,11 @@ struct px_estimate {
      * re-entrant call returns early, breaking the cycle. See
      * docs/concepts/leak-budgets.md §2 for the L2 leak this retires. */
     bool        recomputing;
+
+    /* v0.7 Line 3: the describable value contract. BORROWED pointer
+     * (app-owned, typically static const); NULL when undeclared —
+     * zero cost for estimates that never opt in. */
+    const px_estimate_schema* schema;
 };
 
 /* ============================================================
@@ -251,6 +257,97 @@ void px_estimate_predict(px_estimate* e, double expected, double tolerance) {
  * set). Pure query. */
 double px_estimate_surprise(const px_estimate* e) {
     return e ? e->last_surprise : 0.0;
+}
+
+/* ============================================================
+ * v0.7 Line 3 — Estimate schema: the describable value contract
+ * ============================================================ */
+
+void px_estimate_set_schema(px_estimate* e, const px_estimate_schema* s) {
+    if (!e) return;
+    e->schema = s;
+}
+
+const px_estimate_schema* px_estimate_schema_of(const px_estimate* e) {
+    return e ? e->schema : NULL;
+}
+
+const char* px_value_kind_name(px_value_kind k) {
+    switch (k) {
+        case PX_VAL_INT:     return "INT";
+        case PX_VAL_DOUBLE:  return "DOUBLE";
+        case PX_VAL_PERCENT: return "PERCENT";
+        case PX_VAL_BOOL:    return "BOOL";
+        case PX_VAL_TEXT:    return "TEXT";
+        case PX_VAL_NONE:
+        default:             return "NONE";
+    }
+}
+
+/* Kind-default denotation (used when schema->print is NULL). */
+static void kind_default_print(px_value_kind kind, double v,
+                               char* out, size_t out_size) {
+    if (!out || out_size == 0) return;
+    switch (kind) {
+        case PX_VAL_INT:
+            snprintf(out, out_size, "%ld", (long)v);
+            break;
+        case PX_VAL_DOUBLE:
+            snprintf(out, out_size, "%.2f", v);
+            break;
+        case PX_VAL_PERCENT:
+            snprintf(out, out_size, "%.0f%%", v);
+            break;
+        case PX_VAL_BOOL:
+            snprintf(out, out_size, "%s", (v != 0.0) ? "on" : "off");
+            break;
+        case PX_VAL_TEXT:
+            snprintf(out, out_size, "<text:%.0f>", v);
+            break;
+        case PX_VAL_NONE:
+        default:
+            snprintf(out, out_size, "<untyped value>");
+            break;
+    }
+}
+
+void px_estimate_describe(const px_estimate* e, char* out, size_t out_size) {
+    if (!out || out_size == 0) return;
+    if (!e) {
+        snprintf(out, out_size, "<null estimate>");
+        return;
+    }
+    if (e->schema && e->schema->print) {
+        e->schema->print(e->value, out, out_size);
+        return;
+    }
+    kind_default_print(e->schema ? e->schema->kind : PX_VAL_NONE,
+                       e->value, out, out_size);
+}
+
+/* Kind-aware equality default: exact for discrete kinds, 1e-9 for
+ * DOUBLE (measurements compare within tolerance, not by bits). */
+static bool kind_default_equal(px_value_kind kind, double a, double b) {
+    switch (kind) {
+        case PX_VAL_DOUBLE:
+            return fabs(a - b) < 1e-9;
+        case PX_VAL_INT:
+        case PX_VAL_PERCENT:
+        case PX_VAL_BOOL:
+        case PX_VAL_TEXT:
+            return a == b;
+        case PX_VAL_NONE:
+        default:
+            return false; /* untyped values carry no equality contract */
+    }
+}
+
+bool px_estimate_value_equal(const px_estimate* a, const px_estimate* b) {
+    if (!a || !b || !a->schema || !b->schema) return false;
+    if (a->schema->kind != b->schema->kind)   return false;
+    if (a->schema->equal)  return a->schema->equal(a->value, b->value);
+    if (b->schema->equal)  return b->schema->equal(a->value, b->value);
+    return kind_default_equal(a->schema->kind, a->value, b->value);
 }
 
 void px_estimate_animate(px_estimate* e, double target, double duration_ms) {

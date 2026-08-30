@@ -13,6 +13,10 @@
  *      explicit opt-out, propagation accounting (edges + depth) in
  *      the audit entry, overrun counting.
  *
+ *   C. Line 3 — Estimate schema: the describable value contract —
+ *      kind-aware assertions, kind-default denotation, custom print,
+ *      kind-aware equality, and the a11y value-naming seam.
+ *
  * Build (or: make test_v07):
  *   cc -std=c17 -I include tests/test_v07.c \
  *      src/relation.c src/estimate.c src/closure.c src/perception.c \
@@ -22,6 +26,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include "planex/planex.h"
 #include "planex/app.h"
+#include "planex/a11y.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -457,6 +462,161 @@ static void test_b4_propagation_accounting(void) {
 }
 
 /* ============================================================
+ * C. Line 3 — Estimate schema (the describable value contract)
+ * ============================================================ */
+
+static void print_count(double v, char* out, size_t out_size) {
+    snprintf(out, out_size, "count=%ld", (long)v);
+}
+
+static bool equal_exact(double a, double b) { return a == b; }
+
+static void test_c1_kind_aware_assertions(void) {
+    /* The roadmap's shape: "this estimate is INT and equals 3", not
+     * byte equality through a pointer. The schema declares WHAT the
+     * double means; the test asserts kind + value together. */
+    static const px_estimate_schema count_schema = {
+        PX_VAL_INT, "count", NULL, NULL
+    };
+    px_estimate* count = px_estimate_new(3.0, 1.0);
+    px_estimate_set_schema(count, &count_schema);
+
+    /* The kind-aware assertion, spelled out. */
+    assert(px_estimate_schema_of(count) == &count_schema);
+    assert(px_estimate_schema_of(count)->kind == PX_VAL_INT);
+    assert(px_estimate_value(count) == 3.0);
+    assert(strcmp(px_value_kind_name(PX_VAL_INT), "INT") == 0);
+
+    /* No schema declared: zero cost, honest answer. */
+    px_estimate* bare = px_estimate_new(1.0, 1.0);
+    assert(px_estimate_schema_of(bare) == NULL);
+
+    px_estimate_free(bare);
+    px_estimate_free(count);
+}
+
+static void test_c2_describe_default_and_custom(void) {
+    char buf[128];
+
+    /* Kind defaults: each kind denotates without a custom print. */
+    static const px_estimate_schema int_s   = { PX_VAL_INT, "n", NULL, NULL };
+    static const px_estimate_schema dbl_s   = { PX_VAL_DOUBLE, "x", NULL, NULL };
+    static const px_estimate_schema pct_s   = { PX_VAL_PERCENT, "p", NULL, NULL };
+    static const px_estimate_schema bool_s  = { PX_VAL_BOOL, "b", NULL, NULL };
+
+    px_estimate* n = px_estimate_new(42.0, 1.0);
+    px_estimate_set_schema(n, &int_s);
+    px_estimate_describe(n, buf, sizeof(buf));
+    assert(strcmp(buf, "42") == 0);
+
+    px_estimate* x = px_estimate_new(0.5, 1.0);
+    px_estimate_set_schema(x, &dbl_s);
+    px_estimate_describe(x, buf, sizeof(buf));
+    assert(strcmp(buf, "0.50") == 0);
+
+    px_estimate* p = px_estimate_new(75.0, 1.0);
+    px_estimate_set_schema(p, &pct_s);
+    px_estimate_describe(p, buf, sizeof(buf));
+    assert(strcmp(buf, "75%") == 0);
+
+    px_estimate* b = px_estimate_new(1.0, 1.0);
+    px_estimate_set_schema(b, &bool_s);
+    px_estimate_describe(b, buf, sizeof(buf));
+    assert(strcmp(buf, "on") == 0);
+
+    /* Custom print overrides the kind default. */
+    static const px_estimate_schema custom_s = {
+        PX_VAL_INT, "count", print_count, NULL
+    };
+    px_estimate_set_schema(n, &custom_s);
+    px_estimate_describe(n, buf, sizeof(buf));
+    assert(strcmp(buf, "count=42") == 0);
+
+    /* Untyped: the honest placeholder. */
+    px_estimate* bare = px_estimate_new(7.0, 1.0);
+    px_estimate_describe(bare, buf, sizeof(buf));
+    assert(strcmp(buf, "<untyped value>") == 0);
+
+    px_estimate_free(bare);
+    px_estimate_free(b);
+    px_estimate_free(p);
+    px_estimate_free(x);
+    px_estimate_free(n);
+}
+
+static void test_c3_kind_aware_equality(void) {
+    static const px_estimate_schema int_s = { PX_VAL_INT, "n", NULL, NULL };
+    static const px_estimate_schema dbl_s = { PX_VAL_DOUBLE, "x", NULL, NULL };
+
+    px_estimate* a = px_estimate_new(3.0, 1.0);
+    px_estimate* b = px_estimate_new(3.0, 1.0);
+    px_estimate* d = px_estimate_new(3.0000000000001, 1.0); /* within 1e-9 */
+    px_estimate* other = px_estimate_new(4.0, 1.0);
+
+    px_estimate_set_schema(a, &int_s);
+    px_estimate_set_schema(b, &int_s);
+    px_estimate_set_schema(d, &dbl_s);
+    px_estimate_set_schema(other, &int_s);
+
+    /* Same kind, same value: equal. */
+    assert(px_estimate_value_equal(a, b));
+    /* Discrete kinds compare exactly; 3 != 4. */
+    assert(!px_estimate_value_equal(a, other));
+    /* DOUBLE compares within 1e-9: 3 ~ 3.0000000000001. */
+    px_estimate* d2 = px_estimate_new(3.0, 1.0);
+    px_estimate_set_schema(d2, &dbl_s);
+    assert(px_estimate_value_equal(d, d2));
+    /* Different kinds never equal. */
+    assert(!px_estimate_value_equal(a, d));
+    /* Untyped values carry no equality contract. */
+    px_estimate* bare = px_estimate_new(3.0, 1.0);
+    assert(!px_estimate_value_equal(a, bare));
+
+    /* Custom equal overrides the kind default. */
+    static const px_estimate_schema exact_s = { PX_VAL_DOUBLE, "x", NULL, equal_exact };
+    px_estimate_set_schema(d, &exact_s);
+    px_estimate_set_schema(d2, &exact_s);
+    assert(!px_estimate_value_equal(d, d2)); /* exact: differs */
+
+    px_estimate_free(bare);
+    px_estimate_free(d2);
+    px_estimate_free(other);
+    px_estimate_free(d);
+    px_estimate_free(b);
+    px_estimate_free(a);
+}
+
+static void test_c4_a11y_reads_the_schema(void) {
+    /* The Line 4 seam: the a11y value string comes from the schema,
+     * not from a hand-formatted printf at each call site. */
+    px_a11y* a = px_a11y_new(NULL);
+    px_a11y_set_verbose(a, false);   /* silence stderr in the suite */
+    assert(a);
+
+    static const px_estimate_schema count_s = { PX_VAL_INT, "count", NULL, NULL };
+    px_estimate* count = px_estimate_new(3.0, 1.0);
+    px_estimate_set_schema(count, &count_s);
+
+    px_a11y_set_name(a, "Count");
+    px_a11y_set_value_estimate(a, count);
+    assert(strcmp(px_a11y_get_value(a), "3") == 0);
+
+    /* Value change flows through the same seam. */
+    px_estimate_set(count, 7.0, 1.0);
+    px_a11y_set_value_estimate(a, count);
+    assert(strcmp(px_a11y_get_value(a), "7") == 0);
+
+    /* Custom print reaches the a11y channel unchanged. */
+    static const px_estimate_schema custom_s = { PX_VAL_INT, "count", print_count, NULL };
+    px_estimate_set_schema(count, &custom_s);
+    px_a11y_set_value_estimate(a, count);
+    assert(strcmp(px_a11y_get_value(a), "count=7") == 0);
+
+    px_estimate_free(count);
+    px_a11y_free(a);
+}
+
+/* ============================================================
  * Main
  * ============================================================ */
 
@@ -464,7 +624,8 @@ int main(void) {
     printf("Planex v0.7 line verification\n");
     printf("=============================\n");
     printf("A. Line 1 — intent compilation routing (afford/region).\n");
-    printf("B. Line 2 — budget as contract.\n\n");
+    printf("B. Line 2 — budget as contract.\n");
+    printf("C. Line 3 — Estimate schema.\n\n");
 
     printf("[A] Intent compilation routing\n");
     TEST(a1_compile_resolves_region_to_closure);
@@ -481,6 +642,12 @@ int main(void) {
     TEST(b3_overrun_is_loud_and_counted);
     TEST(b4_propagation_accounting);
 
+    printf("\n[C] Estimate schema (Line 3)\n");
+    TEST(c1_kind_aware_assertions);
+    TEST(c2_describe_default_and_custom);
+    TEST(c3_kind_aware_equality);
+    TEST(c4_a11y_reads_the_schema);
+
     printf("\n----------------\n");
     printf("%d/%d passed\n", g_tests_pass, g_tests_run);
     printf("\nWhat this suite closes (v0.7-roadmap Line 1):\n");
@@ -495,5 +662,8 @@ int main(void) {
     printf("  - budget contract: default 16ms frame deadline, explicit\n");
     printf("    opt-out, overruns counted + warned once, propagation\n");
     printf("    cost (edges + derive depth) in every audit entry\n");
+    printf("  - Estimate schema: kind-aware assertions, describe()\n");
+    printf("    defaults + custom print, kind-aware equality, and the\n");
+    printf("    a11y value-naming seam (set_value_estimate)\n");
     return (g_tests_pass == g_tests_run) ? 0 : 1;
 }

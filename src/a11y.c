@@ -112,6 +112,18 @@ void px_a11y_set_value(px_a11y* a, const char* value) {
     }
 }
 
+void px_a11y_set_value_estimate(px_a11y* a, const px_estimate* e) {
+    /* Denotate through the estimate's schema (kind default when the
+     * schema has no custom print). A NULL estimate clears the value. */
+    if (!e) {
+        px_a11y_set_value(a, NULL);
+        return;
+    }
+    char buf[128];
+    px_estimate_describe(e, buf, sizeof(buf));
+    px_a11y_set_value(a, buf);
+}
+
 void px_a11y_set_state(px_a11y* a, unsigned state) {
     if (!a) return;
     if (a->state != state) {

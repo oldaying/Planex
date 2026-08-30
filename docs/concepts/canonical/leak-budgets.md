@@ -98,8 +98,19 @@ Leaks are categorized into two tiers because not all leaks are equally damaging 
 | 16 | `px_derived_source_count(derived)` | — | — | pure query (const) |
 | 17 | `px_derived_recompute(derived)` | — | ~~✓~~ | **v0.5 RETIRED** — cycle detection now implemented via per-estimate `recomputing` flag. Cycles no longer stack-overflow. |
 | 18 | `px_estimate_advance(e, t_ms)` (NEW v0.5) | — | — | explicit time-step + finalization. The "advance then read" pattern replaces the old auto-sampling queries. |
+| 19 | `px_estimate_predict(e, expected, tol)` (v0.6) | — | — | mutator, matches name; one-shot prediction |
+| 20 | `px_estimate_surprise(e)` (v0.6) | — | — | pure query |
+| 21 | `px_derive_depth_peak()` (v0.7 L2) | — | — | pure query (propagation accounting) |
+| 22 | `px_derive_depth_reset()` (v0.7 L2) | — | — | explicit reset — split from the read so no query carries a side effect |
+| 23 | `px_estimate_set_schema(e, s)` (v0.7 L3) | — | — | mutator, matches name; schema is borrowed (app-owned static const) |
+| 24 | `px_estimate_schema_of(e)` (v0.7 L3) | — | — | pure query |
+| 25 | `px_estimate_describe(e, out, n)` (v0.7 L3) | — | — | pure denotation through the schema or kind default |
+| 26 | `px_estimate_value_equal(a, b)` (v0.7 L3) | — | — | pure query; kind-aware equality |
+| 27 | `px_value_kind_name(k)` (v0.7 L3) | — | — | pure utility |
 
-**Leak count (v0.5):** L1 = 4, L2 = **0** (was 4 at v0.4). **Total** = 4 / 18 = 22%. **L2** = 0 / 18 = **0%** (was 24%).
+**Leak count (v0.7):** L1 = 4, L2 = **0**. **Total** = 4 / 27 = 15%. **L2** = 0 / 27 = **0%**.
+
+**v0.7 Line 3 — the void* L1 retirement path (the describable contract):** the `void* user` entries (#11–#13) were previously closed with the verdict "intrinsic to C17". That verdict is true for the *pointer* but was not true for the *contract*: rich-typed hosts give every value a type for free, and a C framework can pay for the same semantics explicitly. The v0.7 schema (`px_estimate_schema`: kind + name + optional print/equal) is that payment — opt-in, zero cost when unset. The **contract half** of the void* leak is retired: tests assert "this estimate is INT and equals 3" (test_v07 c1), values denotate kind-aware (`describe`, c2), equality is kind-aware (c3), and the a11y query side names values through the schema (`px_a11y_set_value_estimate`, c4). The **pointer half** (#11–#13 `void* user` in callbacks) remains and is now documented as **permanent host cost** — C17 has no closures to carry user state, so the callback-user pointer stays; the schema retires what the pointer *meant*, not the pointer itself.
 
 **v0.4 leak count (historical):** L1 = 4, L2 = 4. Total = 8 / 17 = 47%. L2 = 4 / 17 = 24%.
 
@@ -375,21 +386,27 @@ ADR-0017 (intent compilation) and ADR-0018 (px_interaction) promoted two prototy
 | Abstraction | Total ops | L1 | L2 | L2 leak % |
 |---|---|---|---|---|
 | Relation (+edges_walked, Line 2) | 8 | 5 | 0 | **0%** |
-| Estimate (+advance/predict/surprise; +depth_peak/depth_reset, Line 2) | 22 | 4 | **0** | **0%** |
+| Estimate (+predict/surprise; +depth pair, Line 2; +schema ops, Line 3) | 27 | 4 | **0** | **0%** |
 | Closure | 12 | 6 | 1 | **8%** (loud; constructor split is the v0.7 Line 5 target) |
 | Perception (+set_free_fn) | 7 | 1 | **0** | **0%** |
 | `px_loop` (+budget ops; +budget_overruns, Line 2) | 14 | 1 | **0** | **0%** |
 | **Intent compilation (new, Line 1)** | **8** | **2** | **0** | **0%** |
 | **`px_interaction` (new, Line 1)** | **22** | **2** | **0** | **0%** |
-| **Total (v0.7)** | **93** | **21** | **1** | **1.1%** |
+| **Total (v0.7)** | **98** | **21** | **1** | **1.0%** |
 
-Aggregate L2 = 1/93 = **1.1%**. The single remaining L2 (Closure `bind_graph` ordering) is unchanged from v0.6 and is the v0.7 Line 5 retire target (constructor split → aggregate L2 = 0%).
+Aggregate L2 = 1/98 = **1.0%**. The single remaining L2 (Closure `bind_graph` ordering) is unchanged from v0.6 and is the v0.7 Line 5 retire target (constructor split → aggregate L2 = 0%).
 
 ### Line 2 additions (budget as contract)
 
 - `px_loop` gains a **default budget** (`PX_LOOP_DEFAULT_BUDGET_MS` = 16ms, one 60fps frame) — a loop without a deadline is now an explicit `px_loop_set_budget(loop, 0)` decision, not a silent default. Overruns are loud: warn-once on stderr in every build; abort under `-DPX_DEBUG_BUDGET` strict mode. `px_loop_budget_overruns` counts (pure query).
 - Audit entries gain **propagation accounting**: `propagation_edges` (per-step delta of `px_relation_edges_walked`, the monotonic edge-traversal counter in `relation.c`) and `propagation_depth` (`px_derive_depth_peak` / `px_derive_depth_reset`, the derive-chain accounting pair in `estimate.c`). The accounting reads are pure; the reset is a separate explicit op — a read-and-reset single function would itself have been an L2 leak (side effect in an apparent query), so the pair is split by design.
 - Verification: `tests/test_v07.c` section B (4 tests: default-on, explicit opt-out, overrun counted + warned once, propagation edges/depth in a derive chain with undo). `test_v06_interaction.c` j1/j2 updated for the new default (j2 renamed `budget_explicit_opt_out`).
+
+### Line 3 additions (Estimate schema — the describable value contract)
+
+- `px_estimate_schema` (kind + name + optional print/equal) beside the value: opt-in via `px_estimate_set_schema`, borrowed pointer (app-owned static const), zero cost when unset. `px_estimate_describe` denotates through the schema or kind defaults; `px_estimate_value_equal` compares kind-aware; `px_a11y_set_value_estimate` is the a11y seam that reads it (feeds the Line 4 bridges).
+- The void* L1 retirement path recorded above: the contract half closes, the pointer half stays as documented permanent host cost.
+- Verification: `tests/test_v07.c` section C (4 tests).
 
 ---
 

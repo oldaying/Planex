@@ -253,6 +253,75 @@ void         px_estimate_predict(px_estimate* e, double expected,
 double       px_estimate_surprise(const px_estimate* e);
 
 /* ============================================================
+ * v0.7 (Line 3) — Estimate schema: the describable value contract
+ *
+ * Rich-typed hosts give every value a type for free; a C framework
+ * can pay for the same semantics explicitly. An opt-in schema beside
+ * the value declares WHAT the double means (kind), what it is CALLED
+ * (name), and HOW it denotates (print) / compares (equal). Not a
+ * type system — a describable contract. Zero cost when unset (the
+ * zero-dependency rule is non-negotiable): the schema pointer is
+ * borrowed, app-owned, typically a static const.
+ *
+ * What the contract buys:
+ *   - tests assert "this estimate is INT and equals 3" (kind + value),
+ *     not byte equality through a pointer
+ *   - the a11y query side names values through the schema
+ *     (px_a11y_set_value_estimate) instead of hand-formatted strings
+ *   - the semantic-primitive axiom gains a mechanism carrier beside
+ *     its documentation (leak-budgets.md: the void* L1 entry's
+ *     retirement path — the contract half closes; the pointer half
+ *     stays as documented host cost)
+ * ============================================================ */
+
+typedef enum {
+    PX_VAL_NONE = 0,   /* no schema declared (the default) */
+    PX_VAL_INT,        /* value() is an integer quantity (count, index) */
+    PX_VAL_DOUBLE,     /* value() is a real measurement */
+    PX_VAL_PERCENT,    /* value() is a 0..100 percentage */
+    PX_VAL_BOOL,       /* value() is 0/1 */
+    PX_VAL_TEXT,       /* value() is app-managed; print() denotates */
+} px_value_kind;
+
+typedef struct {
+    px_value_kind kind;
+    const char*   name;   /* semantic name ("count", "brightness"); NULL ok */
+
+    /* Optional: denotate the value to text. NULL = kind default
+     * (INT "%ld", DOUBLE "%.2f", PERCENT "%.0f%%", BOOL "on"/"off",
+     * TEXT "<text>"). */
+    void (*print)(double value, char* out, size_t out_size);
+
+    /* Optional: kind-aware equality. NULL = kind default (INT/BOOL/
+     * PERCENT exact; DOUBLE within 1e-9). */
+    bool (*equal)(double a, double b);
+} px_estimate_schema;
+
+/* Declare (or replace, or clear with NULL) this estimate's schema.
+ * The schema is BORROWED: the app owns its storage and lifetime —
+ * a static const is the intended form. Zero cost when never called. */
+void                      px_estimate_set_schema(px_estimate* e,
+                                                 const px_estimate_schema* s);
+
+/* The declared schema, or NULL when none (pure query). */
+const px_estimate_schema* px_estimate_schema_of(const px_estimate* e);
+
+/* Denotate the estimate's value through its schema (or the kind
+ * default; "<untyped value>" when no schema). Writes at most
+ * out_size bytes including the terminator. The seam the a11y query
+ * side and kind-aware tests read. */
+void                      px_estimate_describe(const px_estimate* e,
+                                               char* out, size_t out_size);
+
+/* Kind-aware equality through the schema (or the kind default);
+ * false when either estimate has no schema or the kinds differ. */
+bool                      px_estimate_value_equal(const px_estimate* a,
+                                                  const px_estimate* b);
+
+/* Stable name for a kind ("INT", "DOUBLE", ...); "NONE" for 0. */
+const char*               px_value_kind_name(px_value_kind k);
+
+/* ============================================================
  * Derived Estimate — automatic dependency tracking
  *
  * A derived estimate's value is computed from other estimates
