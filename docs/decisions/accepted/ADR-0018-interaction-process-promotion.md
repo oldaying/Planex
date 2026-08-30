@@ -6,7 +6,7 @@ Accepted
 
 Date: 2026-08-30
 
-Promotes the v0.6 interaction prototype ([ADR-0016](../proposed/ADR-0016-interaction-prototype-option-b.md), Option B) to canonical status, per the [v0.7 roadmap](../../concepts/state/v0.7-roadmap.md) Cross-cutting A — the promotion decision that rides Line 1's real-application evidence. Together with [ADR-0017](ADR-0017-intent-compilation-promotion.md) (the noun world), this completes the v0.7 re-score of [UI Pattern Corpus](../../reference/ui-pattern-corpus.md) Category D: four more flips to ✅ (P26, P27, P28, P36) and two downgrades from ❌ to ⚠️ (P29, P37).
+Promotes the v0.6 interaction prototype ([ADR-0016](../proposed/ADR-0016-interaction-prototype-option-b.md), Option B) to canonical status, per the [v0.7 roadmap](../../concepts/history/v0.7-roadmap.md) Cross-cutting A — the promotion decision that rides Line 1's real-application evidence. Together with [ADR-0017](ADR-0017-intent-compilation-promotion.md) (the noun world), this completes the v0.7 re-score of [UI Pattern Corpus](../../reference/ui-pattern-corpus.md) Category D: four more flips to ✅ (P26, P27, P28, P36) and two downgrades from ❌ to ⚠️ (P29, P37).
 
 ## Context
 
@@ -156,4 +156,4 @@ Rejected as dishonest for this release: the corpus re-score rides the promotions
 - ADRs: [ADR-0011](ADR-0011-essence-justified-abstraction-exempts-rule-of-three.md) (admission bar), [ADR-0016](../proposed/ADR-0016-interaction-prototype-option-b.md) (prototype decision, protocol completed here), [ADR-0017](ADR-0017-intent-compilation-promotion.md) (companion promotion — the noun world), [ADR-0006](ADR-0006-continuous-interaction-deferred.md) (the deferral this closes), [ADR-0008](ADR-0008-feedback-as-fifth-essence-category.md) (the 5th-abstraction precedent)
 - Corpus: [ui-pattern-corpus.md](../../reference/ui-pattern-corpus.md) (amended Category D; closing rule followed)
 - Prior art: Hoare, *Communicating Sequential Processes* (1985); Harel, "Statecharts: A Visual Formalism for Complex Systems" (1987); Elliott & Hudak, "Functional Reactive Animation" (ICFP 1997)
-- Roadmap: [v0.7-roadmap.md](../../concepts/state/v0.7-roadmap.md) Cross-cutting A
+- Roadmap: [v0.7-roadmap.md](../../concepts/history/v0.7-roadmap.md) Cross-cutting A

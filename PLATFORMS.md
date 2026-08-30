@@ -9,7 +9,7 @@ The v0.6 query-side contract (getters, announcement ring, `set_verbose`, `px_a11
 
 - **Build:** `make CFLAGS_EXTRA="-DPX_A11Y_ATSPI $(pkg-config --cflags atk atk-bridge-2.0)"` (needs `libatk1.0-dev` + `libatk-bridge2.0-dev`; the source includes `<atk-bridge.h>` bare — pkg-config resolves the distro-dependent header layout, found by the CI probe's first real compile). The CI `a11y-atspi-bridge` job compile-probes this path on every push.
 - **Without the flag:** the bridge is a stub — `attach()` returns NULL, everything else is unchanged. No dependency, no regression.
-- **Verified:** compile-probe in CI (API drift is caught); orca end-to-end navigation is the remaining external condition — tracked as partial in the [v0.7 roadmap conditions ledger](docs/concepts/state/v0.7-roadmap.md).
+- **Verified:** compile-probe in CI (API drift is caught); orca end-to-end navigation is the remaining external condition — tracked as partial in the [v0.8 roadmap conditions ledger](docs/concepts/state/v0.8-roadmap.md).
 - **Windows (UIA) / macOS (NSAccessibility):** follow the same adapter pattern once the AT-SPI2 shape is proven; currently stubs.
 
 ## Backend Maturity

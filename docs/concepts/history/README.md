@@ -16,7 +16,8 @@ A "history" doc:
 | [`essence-derivation-v2.md`](essence-derivation-v2.md) | Superseded | `essence-derivation-v3.md` (first-principles audit added) |
 | [`essence-derivation-v3.md`](essence-derivation-v3.md) | Framing downgraded | `essence-derivation-v4-clean.md` + ADR-0010 (v3 implementation proposed but framing of "essence discovery" downgraded to "design rationale") |
 | [`essence-derivation-v4-clean.md`](essence-derivation-v4-clean.md) | Current derivation | — (current; ADR-0010 downgraded the framing but retained the doc as design rationale) |
-| [`v0.4-roadmap.md`](v0.4-roadmap.md) | Superseded (moved from `state/` 2026-08-30, v0.6.0 release) | shipped reality (v0.4–v0.6) + [`v0.7-roadmap.md`](../state/v0.7-roadmap.md) (the current roadmap) |
+| [`v0.4-roadmap.md`](v0.4-roadmap.md) | Superseded (moved from `state/` 2026-08-30, v0.6.0 release) | shipped reality (v0.4–v0.6) + later roadmaps |
+| [`v0.7-roadmap.md`](v0.7-roadmap.md) | Superseded (moved from `state/` 2026-08-30, v0.7.0 release) | shipped reality (v0.7, all lines) + [`v0.8-roadmap.md`](../state/v0.8-roadmap.md) (the current roadmap) |
 
 ## Why retain superseded docs
 

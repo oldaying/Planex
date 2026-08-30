@@ -7,18 +7,18 @@ A "state" doc:
 - Describes the **current** state (architecture, limitations, roadmap, versioning).
 - Is **descriptive** (contrasts with `canonical/` which is normative).
 - Is **current** (not superseded — `history/` is for that).
-- May include planned future work (in `roadmap-matrix.md` and the current version roadmap, `v0.7-roadmap.md`) but the work is described as "planned", not as "committed" — commitment requires an ADR. Superseded roadmaps (e.g. `v0.4-roadmap.md`) live in [`../history/`](../history/).
+- May include planned future work (in `roadmap-matrix.md` and the current version roadmap, `v0.8-roadmap.md`) but the work is described as "planned", not as "committed" — commitment requires an ADR. Superseded roadmaps (e.g. `v0.4-roadmap.md`, `v0.7-roadmap.md`) live in [`../history/`](../history/).
 
 ## Contents
 
 | Doc | What it describes |
 |-----|---------------------|
 | [`architecture.md`](architecture.md) | The shipping code layout: `src/`, `include/`, `examples/`, `tests/`; the relationship between abstractions; backend structure (font, fb, x11, win32, cocoa, etc.). |
-| [`limitations.md`](limitations.md) | L1 through L14 — known limitations, single-maintainer bus factor (L10), Perception Phase 2 not yet enforced, leak budget gap on L1 leaks, etc. |
+| [`limitations.md`](limitations.md) | L1 through L15 — known limitations, single-maintainer bus factor (L10), the intent-compilation gaps (L15), etc. |
 | [`ui-pattern-coverage.md`](ui-pattern-coverage.md) | v0.4 snapshot: 68 UI patterns × 4 abstractions coverage matrix. The v0.5 canonical replacement is [`../../reference/ui-pattern-corpus.md`](../../reference/ui-pattern-corpus.md) (7 abstractions since the v0.7 re-score + CI-enforced via `make check-completeness`); this v0.4 doc is retained for history of the analysis. <!-- stale-allow: describes the v0.4 snapshot file's content; "4 abstractions" is accurate for that era --> |
 | [`roadmap-matrix.md`](roadmap-matrix.md) | Cross-tab of abstractions × verification dimensions (tradition citation, orthogonality test, leak budget, example count). |
 | [`versioning.md`](versioning.md) | Planex's three-system versioning rule book (semantic version, abstraction epoch, leak budget epoch). |
-| [`v0.7-roadmap.md`](v0.7-roadmap.md) | The v0.7 minor-version roadmap: mechanism judges for the doc-only axioms (intent compilation promotion, budget-as-contract, Estimate schema, a11y AT-SPI2 bridge, Closure constructor split), the interaction promotion decision, the Path C adoption posture, and the conditions ledger. Items here describe planned work; commitment is via ADR. |
+| [`v0.8-roadmap.md`](v0.8-roadmap.md) | The v0.8 minor-version roadmap: making the type-driven-routing claim multi-channel — keyboard affordances over the same AFFORDS graph (Line 1, retires limitations L15a), the drag-begin process afford (Line 2, retires L15b), the dual-path retirement decision (Line 3), the orca end-to-end external condition, and the carried-forward conditions ledger. Items here describe planned work; commitment is via ADR. |
 
 ## Relationship to other directories
 

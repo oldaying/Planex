@@ -115,4 +115,4 @@ Rejected: converts a correctness footgun into a crash footgun. The constructor s
 - ADRs: [ADR-0013](ADR-0013-v05-leak-budget-retire.md) (the retire precedent this completes), [ADR-0002](ADR-0002-relation-necessity-pending-undo.md) (undo-via-graph, the mechanism the ordering leak eroded)
 - Registry: [deprecation-registry.md](../../reference/deprecation-registry.md) (`px_closure_bind_graph` entry)
 - Budget: [leak-budgets.md](../../concepts/canonical/leak-budgets.md) (v0.7 summary — aggregate 0%)
-- Roadmap: [v0.7-roadmap.md](../../concepts/state/v0.7-roadmap.md) Line 5
+- Roadmap: [v0.7-roadmap.md](../../concepts/history/v0.7-roadmap.md) Line 5

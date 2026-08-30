@@ -6,7 +6,7 @@ Accepted
 
 Date: 2026-08-30
 
-Promotes the v0.6 afford/region prototype ([ADR-0016](../proposed/ADR-0016-interaction-prototype-option-b.md)) to canonical status, per the [v0.7 roadmap](../../concepts/state/v0.7-roadmap.md) Line 1 and the admission bar of [ADR-0011](ADR-0011-essence-justified-abstraction-exempts-rule-of-three.md). This ADR is also a corpus amendment: it re-verdicts three Category D patterns (P24, P25, P32) in the [UI Pattern Corpus](../../reference/ui-pattern-corpus.md); the companion promotion [ADR-0018](ADR-0018-interaction-process-promotion.md) re-verdicts the rest of the v0.7 re-score.
+Promotes the v0.6 afford/region prototype ([ADR-0016](../proposed/ADR-0016-interaction-prototype-option-b.md)) to canonical status, per the [v0.7 roadmap](../../concepts/history/v0.7-roadmap.md) Line 1 and the admission bar of [ADR-0011](ADR-0011-essence-justified-abstraction-exempts-rule-of-three.md). This ADR is also a corpus amendment: it re-verdicts three Category D patterns (P24, P25, P32) in the [UI Pattern Corpus](../../reference/ui-pattern-corpus.md); the companion promotion [ADR-0018](ADR-0018-interaction-process-promotion.md) re-verdicts the rest of the v0.7 re-score.
 
 ## Context
 
@@ -156,4 +156,4 @@ Rejected as dishonest: the corpus legend defines ✅ clean as expressible with t
 - ADRs: [ADR-0011](ADR-0011-essence-justified-abstraction-exempts-rule-of-three.md) (admission bar), [ADR-0016](../proposed/ADR-0016-interaction-prototype-option-b.md) (prototype decision), [ADR-0018](ADR-0018-interaction-process-promotion.md) (companion promotion — the verb world)
 - Corpus: [ui-pattern-corpus.md](../../reference/ui-pattern-corpus.md) (amended Category D; closing rule followed)
 - Prior art: Gibson, *The Ecological Approach to Visual Perception* (1979), ch. 8; CLIM 2.0 specification, presentation-based input editing; [path-C-lineage.md](../../concepts/background/path-C-lineage.md) (the conditions-led reading of the CLIM lineage)
-- Roadmap: [v0.7-roadmap.md](../../concepts/state/v0.7-roadmap.md) Line 1 + Cross-cutting A/B
+- Roadmap: [v0.7-roadmap.md](../../concepts/history/v0.7-roadmap.md) Line 1 + Cross-cutting A/B

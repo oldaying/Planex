@@ -6,7 +6,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
-## [Unreleased]
+## [0.7.0] — 2026-08-30
 
 ### Added — v0.7: intent compilation promoted to the 6th canonical abstraction (ADR-0017)
 
@@ -60,6 +60,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - `PX_LOOP_DEFAULT_BUDGET_MS` (16ms): every `px_loop` ships with a deadline — the feedback axiom's "instantly visible" given a number. `px_loop_set_budget(loop, 0)` is the explicit opt-out. Overruns are loud: warn-once on stderr in all builds, abort under `-DPX_DEBUG_BUDGET` strict mode; `px_loop_budget_overruns()` counts.
 - Propagation accounting in every audit entry: `propagation_edges` (per-step delta of the new `px_relation_edges_walked()` monotonic counter) + `propagation_depth` (`px_derive_depth_peak()` / `px_derive_depth_reset()` — read and reset are separate ops so no query carries a side effect).
 - `tests/test_v07.c` section B (4 tests); `test_v06_interaction.c` j1/j2 updated for the default (j2 renamed `budget_explicit_opt_out`).
+
+### Changed — v0.7.0 release cut
+
+- `PLANEX_VERSION` bumped `0.6.0` → `0.7.0`. **No git tag** — per the release convention, a release is the version constant + this changelog cut (the v0.6.0 tag was deleted at maintainer direction; tags are not part of the release process).
+- `docs/concepts/state/v0.7-roadmap.md` → `docs/concepts/history/v0.7-roadmap.md` (superseded banner added; all 8 referencing docs re-pointed). New `docs/concepts/state/v0.8-roadmap.md` takes its place: keyboard affordances (L15a) → drag-begin afford (L15b) → dual-path retirement decision, with the conditions ledger carried forward at its v0.7.0 state.
 
 ## [0.6.0] — 2026-08-30
 
