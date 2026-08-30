@@ -244,6 +244,15 @@ add_executable(test_v07 tests/test_v07.c)
 target_link_libraries(test_v07 planex_lib)
 add_test(NAME v07_line_tests COMMAND test_v07)
 
+# v0.8 line verification suite — validates the keyboard channel:
+# the derived focus ring (regions that afford closures, in creation
+# order), px_afford_compile_focus and the px_key_intent value
+# contract, the app-level key routing decision, and channel
+# orthogonality (one graph, two channels, one closure).
+add_executable(test_v08 tests/test_v08.c)
+target_link_libraries(test_v08 planex_lib)
+add_test(NAME v08_line_tests COMMAND test_v08)
+
 # v3 prototype test suite — validates that the 4 new essence
 # categories (Interpretant, Perlocution, Breakdown, 3-place Relation)
 # are expressible in Planex's C17 zero-dependency API surface, and

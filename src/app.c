@@ -19,6 +19,14 @@
  * triggers with a px_pointer_intent payload. Raw-coordinate dispatch
  * (on_click) remains as the fallback for unresolved clicks.
  *
+ * v0.8 (Line 1): the SAME graph serves the keyboard channel. When
+ * intent_graph is set, Tab/Shift-Tab walk the derived focus ring
+ * (px_afford_focus_next/prev; on_focus reports each move) and
+ * Enter/Space compile the focused region's afforded closure with a
+ * px_key_intent payload (px_afford_compile_focus) — same dispatch
+ * path as a pointer-down, same last-declared-first resolution. Keys
+ * that compile to nothing fall back to on_key unchanged.
+ *
  * Backward compat: if only desc->render is set (old API), use it.
  */
 #define _POSIX_C_SOURCE 200809L
@@ -103,7 +111,7 @@ int px_app_run(const px_app_desc* desc) {
     printf("Backend: %s  %dx%d (resizable)  scale=%.2f\n",
            px_window_backend_name(), desc->width, desc->height,
            px_window_scale(win));
-    printf("Click or press keys. q/ESC to quit.\n\n");
+    printf("Click or press keys. Tab moves focus. q/ESC to quit.\n\n");
 
     px_window_show(win);
 
@@ -116,6 +124,12 @@ int px_app_run(const px_app_desc* desc) {
     bool running = true;
     double last_tick = px_now_ms();
     int last_w = desc->width, last_h = desc->height;
+
+    /* v0.8 (Line 1): the keyboard channel's focus state. NULL =
+     * focus nowhere (the Tab-from-nowhere start); px_afford_focus_next
+     * normalizes it onto the ring. Loop-local by design: focus is
+     * interaction state scoped to this run, not registry state. */
+    px_region* focus = NULL;
 
     while (running && !px_window_should_close(win)) {
         /* Drain all pending events (non-blocking) */
@@ -179,6 +193,50 @@ int px_app_run(const px_app_desc* desc) {
                     if (ev.key_char == 'q' || ev.key_char == 'Q' || ev.key_char == 27) {
                         running = false;
                         continue;
+                    }
+                    /* v0.8 (Line 1): the keyboard channel — compile
+                     * BEFORE dispatch, same order as pointer-downs.
+                     * Tab/Shift-Tab move the derived focus ring;
+                     * Enter/Space compile the focused region's
+                     * afforded closure with a px_key_intent payload.
+                     * Keys that compile to nothing (including a
+                     * focus ring with nothing on it) fall through
+                     * to on_key — the fallback, not the path. */
+                    if (desc->intent_graph) {
+                        if (ev.key_char == '\t') {
+                            px_region* next = (ev.modifiers & PX_MOD_SHIFT)
+                                ? px_afford_focus_prev(desc->intent_graph, focus)
+                                : px_afford_focus_next(desc->intent_graph, focus);
+                            if (next && next != focus) {
+                                focus = next;
+                                if (desc->on_focus) {
+                                    desc->on_focus(px_region_label(focus),
+                                                   desc->user);
+                                }
+                                event_changed = true;
+                                break;
+                            }
+                            if (next && next == focus && desc->on_focus) {
+                                /* Ring of one: focus unchanged, but the
+                                 * app still hears where it is. */
+                                desc->on_focus(px_region_label(focus),
+                                               desc->user);
+                                break;
+                            }
+                            /* Empty ring: fall through to on_key. */
+                        } else if (ev.key_char == '\r' || ev.key_char == '\n' ||
+                                   ev.key_char == ' ') {
+                            px_key_intent ki;
+                            px_closure* afforded = px_afford_compile_focus(
+                                desc->intent_graph, focus, ev.key_char, &ki);
+                            if (afforded) {
+                                px_closure_trigger(afforded, &ki, sizeof(ki));
+                                event_changed = true;
+                                break;
+                            }
+                            /* No focus / focus affords nothing: fall
+                             * through to on_key. */
+                        }
                     }
                     if (desc->on_key) {
                         if (desc->on_key(ev.key_char, desc->user)) {

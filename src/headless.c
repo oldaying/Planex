@@ -146,6 +146,25 @@ static bool try_read_stdin_event(px_window* w, px_event* out) {
             return true;
         }
     }
+    /* v0.8: named keys that cannot be typed as a single stdin char.
+     * 't' = Tab, 'T' = Shift+Tab, 'e' = Enter — the keyboard-channel
+     * test entries for the headless event script. */
+    if (cmd == 't') {
+        out->kind = PX_EV_KEY_DOWN;
+        out->key_char = '\t';
+        return true;
+    }
+    if (cmd == 'T') {
+        out->kind = PX_EV_KEY_DOWN;
+        out->key_char = '\t';
+        out->modifiers = PX_MOD_SHIFT;
+        return true;
+    }
+    if (cmd == 'e') {
+        out->kind = PX_EV_KEY_DOWN;
+        out->key_char = '\r';
+        return true;
+    }
     return false;
 }
 

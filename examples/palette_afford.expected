@@ -29,10 +29,30 @@ the AFFORDS query. px_app_desc.on_click is NULL by design.
 [8] click empty space (40, 5)...
     no-op: no region there, no fallback handler exists
 
+[9] keyboard: Tab ring walk (5 focusable, slider excluded)...
+    ring: swatch-red, green, blue, canvas, reset (wrap OK)
+    brightness NOT on the ring — no discrete affordance
+
+[10] keyboard: Enter on swatch-blue...
+    selected: blue — the SAME closure as [1], one act,
+    two channels, zero coordinate branches
+
+[11] keyboard: Shift-Tab backward...
+    focus: blue -> green (reverse walk)
+
+[12] keyboard: Enter on canvas (position-free act)...
+    canvas cleared by keyboard — no dot landed because
+    no position exists in a key intent (payload shape)
+
+[13] keyboard: Tab to reset, Enter...
+    state reset via keyboard (Space — the second
+    activation key, same compile path)
+
 Final state: sel=0 brightness=50 dots=0
-Semantic estimate writes (whole session): 8
+Semantic estimate writes (whole session): 13
 Raw-coordinate callbacks defined: 0 (on_click == NULL)
 Unresolved clicks (no-op path): 1
+Focus moves (keyboard session): 12
 
 === Line 1 evidence complete ===
 ADR-0017 admission bar (ADR-0011) — what this app shows:
@@ -41,3 +61,7 @@ ADR-0017 admission bar (ADR-0011) — what this app shows:
      (label embedded — see tests/test_v07.c a3)
   3. Real-app shape: acts are closures, undo through the
      graph, drag is a process with derived live preview
+  4. TWO channels, one graph (v0.8 Line 1): pointer and
+     keyboard compile through the same AFFORDS edges to
+     the same closures — the channel is a projection
+     (see tests/test_v08.c d1)

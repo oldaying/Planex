@@ -505,6 +505,13 @@ static char keycode_to_char(Display* dpy, KeyCode keycode) {
         .state = 0,
     }, buf, sizeof(buf), &keysym, &compose);
     if (n > 0) return buf[0];
+    /* v0.8: keys that produce no text but still carry a canonical
+     * char for routing. Tab under Shift maps to ISO_Left_Tab and
+     * XLookupString yields nothing — report '\t' anyway so the
+     * KEY_DOWN event carries the key identity; modifiers tell the
+     * shift apart. */
+    if (keysym == XK_Tab || keysym == XK_ISO_Left_Tab) return '\t';
+    if (keysym == XK_Return) return '\r';
     return 0;
 }
 
@@ -593,6 +600,11 @@ px_event px_window_poll_event(px_window* w) {
             ev.button = xev.xbutton.button;
             break;
         case KeyPress: {
+            /* v0.8: modifiers first — every key event carries them. */
+            if (xev.xkey.state & ShiftMask)   ev.modifiers |= PX_MOD_SHIFT;
+            if (xev.xkey.state & ControlMask) ev.modifiers |= PX_MOD_CTRL;
+            if (xev.xkey.state & Mod1Mask)    ev.modifiers |= PX_MOD_ALT;
+
             /* Stage 9: use XIC (X Input Context) for IME + UTF-8 support.
              * If XIC available, XmbLookupString returns UTF-8 / locale-encoded text.
              * If commit happens (IME finalized), fire PX_EV_IME_COMMIT.
@@ -625,6 +637,9 @@ px_event px_window_poll_event(px_window* w) {
         case KeyRelease:
             ev.kind = PX_EV_KEY_UP;
             ev.key = xev.xkey.keycode;
+            if (xev.xkey.state & ShiftMask)   ev.modifiers |= PX_MOD_SHIFT;
+            if (xev.xkey.state & ControlMask) ev.modifiers |= PX_MOD_CTRL;
+            if (xev.xkey.state & Mod1Mask)    ev.modifiers |= PX_MOD_ALT;
             ev.key_char = keycode_to_char(w->display, xev.xkey.keycode);
             break;
         case ClientMessage: {

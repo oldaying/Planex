@@ -341,19 +341,19 @@ Per essence-driven principle (ADR-0007): **a deferred essence candidate must rem
 
 ---
 
-## L15: Intent compilation gaps — no keyboard affordances; drag-begin does not afford-route
+## L15: Intent compilation gaps — ~~no keyboard affordances~~ (L15a retired) ; drag-begin does not afford-route
 
-**Severity:** Medium for keyboard users; Low for drag-heavy apps — recorded at promotion time (v0.7, ADR-0017/0018)
+**Severity:** ~~Medium for keyboard users;~~ Low for drag-heavy apps — recorded at promotion time (v0.7, ADR-0017/0018); L15a retired in v0.8 ([ADR-0020](../../decisions/accepted/ADR-0020-v08-keyboard-channel.md))
 
 Two scoped gaps recorded by the promotion ADRs' Known-issues sections, kept here so the corpus of "not done yet" stays complete:
 
-### L15a. No keyboard affordances
+### L15a. No keyboard affordances — RESOLVED in v0.8 (ADR-0020)
 
-Regions are pointer geometry. Keyboard traversal (focus order, activation keys, shortcuts compiled to the same afforded closures) is not compiled — a keyboard user cannot be served by intent compilation. The pointer is currently the only channel with a compile step. Falsifiable retire path: a `px_afford_focus_next`-shaped query over the same AFFORDS graph (the graph already holds what is needed; the missing piece is focus-order data + key event compilation in `app.c`).
+The keyboard channel now rides the same AFFORDS graph: the focus ring is **derived** (a region is focusable iff it affords at least one closure; ring order is creation order), `px_afford_focus_first/next/prev` are pure ring queries, and `px_afford_compile_focus` compiles an activation on the focused region into a `px_key_intent` (label embedded — the same value contract as the pointer channel). `px_app_run` walks the ring on Tab/Shift-Tab (reporting moves through the optional `on_focus` label callback) and compiles Enter/Space through the same dispatch path as a pointer-down. Corpus P61 re-scored ⚠️ → ✅ (39/23/6). What remains honestly unmodeled: arrow-key traversal, shortcuts, and per-region activation keys (the Enter/Space set is a constant, not affordance data) — recorded in ADR-0020 CAVEATS.
 
 ### L15b. The drag-begin seam
 
-`intent_graph` compiles pointer-downs to closures for **discrete acts**. A drag (continuous intent) is begun by the app wiring `on_mouse_move`/`on_mouse_up` into a `px_interaction` — the begin step does not resolve through the afford graph, so a region's drag-ability is not graph data. `palette_afford.c` documents the boundary in place (its slider affords no closure). Retire path: an afford variant resolving a *process* rather than a closure — a joint ADR-0017/0018 obligation, requiring new evidence (an app whose drags must be data-driven, e.g. a designer-tool palette).
+`intent_graph` compiles pointer-downs to closures for **discrete acts**. A drag (continuous intent) is begun by the app wiring `on_mouse_move`/`on_mouse_up` into a `px_interaction` — the begin step does not resolve through the afford graph, so a region's drag-ability is not graph data. `palette_afford.c` documents the boundary in place (its slider affords no closure — and, since v0.8, is visibly absent from the focus ring for the same reason). Retire path: an afford variant resolving a *process* rather than a closure — a joint ADR-0017/0018 obligation, requiring new evidence (an app whose drags must be data-driven, e.g. a designer-tool palette).
 
 ---
 

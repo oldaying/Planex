@@ -1272,6 +1272,63 @@ typedef struct {
 px_closure* px_afford_compile(px_graph* g, double x, double y,
                               int button, px_pointer_intent* out);
 
+/* ============================================================
+ * v0.8 (Line 1) — compiled keyboard intents (the second channel)
+ *
+ * v0.7 proved the type drives routing for the POINTER channel.
+ * The channel axiom (A6) demands the same graph serve every
+ * channel; until v0.8 the keyboard had no compile step — a
+ * keyboard user could not be served by intent compilation at
+ * all (limitations L15a).
+ *
+ * The focus ring is DERIVED, not declared: a region joins the
+ * ring by affording at least one closure (the AFFORDS edges the
+ * app already declared). Ring order is region CREATION order —
+ * the app-declared order, read forward; the z-order scan is the
+ * same registry read backward. No layout-derived ordering: layout
+ * is Perception's business, not Relation's.
+ *
+ * The same resolution rule as pointer compiles applies to a
+ * region with several AFFORDS edges: last-declared-first (pinned
+ * in tests/test_v07.c a7) — one ring, one rule.
+ * ============================================================ */
+
+/* The keyboard intent value — same value contract as
+ * px_pointer_intent: the region label is EMBEDDED so the intent
+ * survives capture/replay after the region is freed; the key is
+ * context for the closure's act, not a routing key (the routing
+ * key was the focused region). */
+typedef struct {
+    char region[PX_REGION_LABEL_MAX]; /* focused region's label, embedded */
+    int  key;    /* activating key ('\r', '\n', ' ') — context, not key */
+} px_key_intent;
+
+/* The focus ring, in creation order.
+ *
+ *   px_afford_focus_first(g)  — the first focusable region, NULL
+ *                               if the ring is empty
+ *   px_afford_focus_next(g, r)  — r's successor; wraps (last -> first)
+ *   px_afford_focus_prev(g, r)  — r's predecessor; wraps (first -> last)
+ *
+ * `from` == NULL starts at the ring's head (the Tab-from-nowhere
+ * semantics: the first Tab focuses the first focusable region).
+ * A `from` that is freed, or affords nothing (not on the ring),
+ * is treated as nowhere: the head is returned. All three are
+ * pure queries over (registry, graph) — window-free, testable
+ * headless (tests/test_v08.c section A). */
+px_region* px_afford_focus_first(px_graph* g);
+px_region* px_afford_focus_next(px_graph* g, px_region* from);
+px_region* px_afford_focus_prev(px_graph* g, px_region* from);
+
+/* Compile a keyboard activation on the focused region: same
+ * resolution as a pointer-down compile, but the routing key is
+ * the focus, not a position. Returns the afforded closure and
+ * fills *out; returns NULL (and zeroes *out) when `focused` is
+ * NULL, freed, or affords nothing — the caller then falls back
+ * to the raw-key callback. Window-free by design. */
+px_closure* px_afford_compile_focus(px_graph* g, px_region* focused,
+                                    int key, px_key_intent* out);
+
 #ifdef __cplusplus
 }
 #endif

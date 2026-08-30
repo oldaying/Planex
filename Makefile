@@ -127,10 +127,12 @@ TEST_V06       = $(BUILD)/test_v06_interaction
 TEST_V06_SRC   = $(TST_DIR)/test_v06_interaction.c
 TEST_V07       = $(BUILD)/test_v07
 TEST_V07_SRC   = $(TST_DIR)/test_v07.c
+TEST_V08       = $(BUILD)/test_v08
+TEST_V08_SRC   = $(TST_DIR)/test_v08.c
 TEST_COMP      = $(BUILD)/test_completeness
 TEST_COMP_SRC  = $(TST_DIR)/test_completeness.c
 
-.PHONY: all clean test test_ortho test_feedback test_v05 test_v06 test_v07 check-completeness check-compression check-examples check-essence examples backends-info
+.PHONY: all clean test test_ortho test_feedback test_v05 test_v06 test_v07 test_v08 check-completeness check-compression check-examples check-essence examples backends-info
 
 all: examples test
 
@@ -203,6 +205,12 @@ test_v07: $(TEST_V07)
 
 $(TEST_V07): $(TEST_V07_SRC) $(CORE_OBJS) | $(BUILD)
 	$(CC) $(CFLAGS) -I$(INC_DIR) $(TEST_V07_SRC) $(CORE_OBJS) -o $@ $(LDFLAGS)
+
+test_v08: $(TEST_V08)
+	./$(TEST_V08)
+
+$(TEST_V08): $(TEST_V08_SRC) $(CORE_OBJS) | $(BUILD)
+	$(CC) $(CFLAGS) -I$(INC_DIR) $(TEST_V08_SRC) $(CORE_OBJS) -o $@ $(LDFLAGS)
 
 # ============================================================
 # Completeness check — closed-corpus falsifiability test

@@ -1,10 +1,10 @@
 # UI Pattern Corpus — Closed Falsifiability Set
 
-> **Status:** Canonical reference. Versioned at v0.5; re-scored at v0.7 by [ADR-0017](../decisions/accepted/ADR-0017-intent-compilation-promotion.md) + [ADR-0018](../decisions/accepted/ADR-0018-interaction-process-promotion.md). Date: 2026-08-30 (re-score).
+> **Status:** Canonical reference. Versioned at v0.5; re-scored at v0.7 by [ADR-0017](../decisions/accepted/ADR-0017-intent-compilation-promotion.md) + [ADR-0018](../decisions/accepted/ADR-0018-interaction-process-promotion.md). Date: 2026-08-30 (re-scored again at v0.8 by [ADR-0020](../decisions/accepted/ADR-0020-v08-keyboard-channel.md) — P61).
 >
 > **Purpose:** Prerequisite 3 (falsifiability) Layer 3c — the closed UI-pattern corpus used to verify completeness of the abstraction set. Each pattern is either (a) cleanly expressible (✅, exemplified in `examples/`), (b) forced (⚠️, documented as a limitation in [`limitations.md`](../concepts/state/limitations.md)), or (c) impossible (❌, documented as a non-goal in [`non-goals.md`](../concepts/canonical/non-goals.md) or as a structural limitation).
 >
-> **Closing rule:** Adding, removing, or re-verdicting a pattern requires an ADR. The corpus is closed at **68 patterns**; the v0.7 re-score (Category D, per ADR-0017/0018) changed the distribution to **38 ✅ + 24 ⚠️ + 6 ❌ = 68**. The count is an invariant — drift from this distribution is a CI failure surfaced by [`tests/test_completeness.c`](../../tests/test_completeness.c).
+> **Closing rule:** Adding, removing, or re-verdicting a pattern requires an ADR. The corpus is closed at **68 patterns**; the v0.7 re-score (Category D, per ADR-0017/0018) changed the distribution to **38 ✅ + 24 ⚠️ + 6 ❌ = 68**; the v0.8 re-score (P61, per ADR-0020) changed it to **39 ✅ + 23 ⚠️ + 6 ❌ = 68**. The count is an invariant — drift from this distribution is a CI failure surfaced by [`tests/test_completeness.c`](../../tests/test_completeness.c).
 >
 > **Companion documents:**
 > - [`../concepts/state/ui-pattern-coverage.md`](../concepts/state/ui-pattern-coverage.md) — the qualitative coverage matrix this corpus distills (one row per pattern with per-abstraction verdict + notes).
@@ -21,7 +21,7 @@
 The corpus is **closed** at 68 patterns. This means:
 
 1. **Count invariant** — `tests/test_completeness.c` asserts the count is exactly 68. If a pattern is added (e.g. P69: "Undo via voice command") or removed (e.g. P4 dropdown subsumed by P7 tabs), the test fails until the corpus and the test agree.
-2. **Verdict-distribution invariant** — `38 ✅ + 24 ⚠️ + 6 ❌ = 68` (v0.7 re-score; was `31 + 29 + 8` at v0.5). If a re-verdict happens (e.g. P20 Redo moves from ⚠️ to ✅ when L4 closes), both this corpus and the test must be updated in the same commit. A one-sided update is a CI failure.
+2. **Verdict-distribution invariant** — `39 ✅ + 23 ⚠️ + 6 ❌ = 68` (v0.8 re-score; was `38 + 24 + 6` at v0.7, `31 + 29 + 8` at v0.5). If a re-verdict happens (e.g. P20 Redo moves from ⚠️ to ✅ when L4 closes), both this corpus and the test must be updated in the same commit. A one-sided update is a CI failure.
 3. **Grounding invariant** — every ✅ pattern grounds to either (a) a file in `examples/` or (b) the `CLAIM_ONLY` sentinel (for trivially expressible patterns where a separate demo would be redundant). Every ⚠️/❌ pattern grounds to either (a) a limitation L# in `limitations.md` or (b) a non-goal NG-# in `non-goals.md`. Patterns without grounding are CI failures.
 
 These invariants compose with the leak-budget mechanism ([`leak-budgets.md`](../concepts/canonical/leak-budgets.md)) to form the falsifiability contract: the leak-budget catches *quantitative* leaks in implemented abstractions, the corpus catches *completeness* gaps in the abstraction set as a whole.
@@ -187,11 +187,11 @@ Multi-denotation is Planex's differentiator. Three patterns are clean (separate 
 | P58 | Screen reader (a11y) | ✅ clean | EXAMPLE multi_perception.c | Separate Perception = separate denotation |
 | P59 | Test snapshot | ✅ clean | EXAMPLE counter_denotative.c | Pure fn = testable; denotative mode |
 | P60 | High contrast mode | ⚠️ forced | CLAIM_ONLY | Theme shouldn't be Estimate (NG-8 styling) |
-| P61 | Keyboard navigation | ⚠️ forced | LIMITATION L11 | Focus is transient, not state |
+| P61 | Keyboard navigation | ✅ clean | EXAMPLE palette_afford.c (v0.8, ADR-0020) | Focus ring derived from AFFORDS; key intents compile like pointer intents |
 | P62 | Reduced motion | ⚠️ forced | CLAIM_ONLY | System preference, not app state |
 | P63 | ARIA live region | ✅ clean | CLAIM_ONLY | Closure feedback → a11y Perception |
 
-**Category verdict: 3/6 ✅, 3/6 ⚠️.**
+**Category verdict: 4/6 ✅, 2/6 ⚠️.**
 
 ---
 
@@ -224,9 +224,9 @@ Extension is a gap (Layer 6 — medium). Planex is a library, not a platform; pl
 | G: Multi-window | 2 | 2 | 1 | 5 |
 | H: Accessibility | 3 | 3 | 0 | 6 |
 | I: Extension | 1 | 2 | 2 | 5 |
-| **Total** | **38** | **24** | **6** | **68** |
+| **Total** | **39** | **23** | **6** | **68** |
 
-**Closed-corpus invariant:** `38 + 24 + 6 = 68`. The test `tests/test_completeness.c` recomputes these counts from its hardcoded pattern table and asserts the equality; any drift is a CI failure. Re-scored at v0.7 by ADR-0017 + ADR-0018 (was `31 + 29 + 8` at v0.5).
+**Closed-corpus invariant:** `39 + 23 + 6 = 68`. The test `tests/test_completeness.c` recomputes these counts from its hardcoded pattern table and asserts the equality; any drift is a CI failure. Re-scored at v0.7 by ADR-0017 + ADR-0018 (was `31 + 29 + 8` at v0.5); at v0.8 by ADR-0020 (P61).
 
 ---
 

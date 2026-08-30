@@ -102,6 +102,16 @@ typedef struct {
      * opt-in per ADR-0016's evidence-gathering posture. */
     px_graph*   intent_graph;
 
+    /* v0.8 (Line 1): optional focus-change notification for the
+     * keyboard channel. When intent_graph is set, Tab/Shift-Tab
+     * move the focus through the DERIVED focus ring (regions that
+     * afford closures, in creation order — see px_afford_focus_*
+     * in planex.h); each move calls this with the newly focused
+     * region's LABEL (a value: the region may be freed later).
+     * The framework never draws a focus indicator — the app
+     * renders one from this callback, or ignores focus entirely. */
+    void  (*on_focus)(const char* region_label, void* user);
+
     void*       user;
 } px_app_desc;
 

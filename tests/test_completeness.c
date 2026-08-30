@@ -37,8 +37,8 @@
  * ============================================================ */
 
 #define EXPECTED_TOTAL   68
-#define EXPECTED_CLEAN   38
-#define EXPECTED_FORCED  24
+#define EXPECTED_CLEAN   39
+#define EXPECTED_FORCED  23
 #define EXPECTED_CANNOT   6
 
 /* ============================================================
@@ -183,11 +183,11 @@ static const pattern_t kPatterns[] = {
     {56,  "Notification toast",             "G", CLEAN,  G_CLAIM_ONLY, NULL },
     {57,  "Global state (Redux-like)",       "G", CLEAN,  G_CLAIM_ONLY, NULL },
 
-    /* Category H: Accessibility & Multi-denotation (P58-P63) — 3 clean, 3 forced */
+    /* Category H: Accessibility & Multi-denotation (P58-P63) — 4 clean, 2 forced (P61 re-scored v0.8, ADR-0020) */
     {58,  "Screen reader (a11y)",           "H", CLEAN,  G_EXAMPLE,    "multi_perception.c" },
     {59,  "Test snapshot",                  "H", CLEAN,  G_EXAMPLE,    "counter_denotative.c" },
     {60,  "High contrast mode",             "H", FORCED, G_CLAIM_ONLY, NULL },
-    {61,  "Keyboard navigation",            "H", FORCED, G_LIMITATION, "L11" },
+    {61,  "Keyboard navigation",            "H", CLEAN,  G_EXAMPLE,    "palette_afford.c" },
     {62,  "Reduced motion",                 "H", FORCED, G_CLAIM_ONLY, NULL },
     {63,  "ARIA live region",               "H", CLEAN,  G_CLAIM_ONLY, NULL },
 

@@ -6,6 +6,28 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [Unreleased]
+
+### Added — v0.8: the keyboard channel (Line 1, ADR-0020 — L15a retired)
+
+- `px_afford_focus_first / next / prev(g, from)`: the DERIVED focus ring — a region is focusable iff it affords at least one closure; ring order is region creation order (the registry read forward; the z-order scan is the same registry read backward). Wraparound both directions; NULL/freed/unfocusable `from` is "nowhere" and resolves to the ring head; empty ring returns NULL.
+- `px_key_intent`: the keyboard intent value — region label embedded (replay-safe after the region is freed, the same value contract as `px_pointer_intent`); the activating key rides along as context, not as a routing key.
+- `px_afford_compile_focus(g, focused, key, out)`: the window-free activation compile. Same last-declared-first multi-edge rule as the pointer channel (one ring, one rule, two channels); miss zeroes the payload.
+- `px_app_run` keyboard routing (opt-in beside `intent_graph`, compile-before-dispatch, same order as pointer-downs): Tab/Shift-Tab walk the ring and report each move via the new optional `on_focus(region_label, user)` callback (a value — the region may be freed later); Enter/Space compile the focused region's afforded closure; everything else falls back to `on_key` unchanged. NULL `intent_graph` keeps legacy key dispatch identical.
+- `px_event.modifiers` + `PX_MOD_SHIFT/CTRL/ALT`: the event model gains a modifier bitmask (the missing piece that made Shift-Tab inexpressible). X11 fills it from key state (and now reports Tab under Shift as `'\t'`); headless stdin gains `t` (Tab), `T` (Shift-Tab), `e` (Enter) named-key injections; win32/cocoa leave it 0.
+- `examples/palette_afford.c` keyboard session [9]–[13]: the same app driven by keyboard alone — ring walk (slider visibly absent: no discrete affordance), Enter activation of swatch-blue (the SAME closure as the pointer click — one act, two channels, the actions sort by payload shape), Shift-Tab reverse, position-free canvas clear, Space reset.
+- `tests/test_v08.c` (18 tests): focus-ring semantics (A), the key-compile value contract (B), the app-level routing decision verbatim (C), channel orthogonality — both compile entry points resolve the same region to the same closure (D). Wired into all CI jobs (5/5).
+- `docs/decisions/accepted/ADR-0020-v08-keyboard-channel.md`: the decision record — derived ring vs declared focus API, focus-as-Estimate deferred, keyboard-as-second-class-pointer rejected; P61 re-score.
+
+### Changed — v0.8: P61 re-score (ADR-0020 corpus amendment)
+
+- `ui-pattern-corpus.md` P61 (Keyboard navigation): ⚠️ forced → ✅ clean (EXAMPLE `palette_afford.c`). "Focus is transient, not state" answered: the ring is derived graph data; the focus position is interaction state reported by value. Distribution **38/24/6 → 39/23/6**; `test_completeness.c` constants updated in the same commit.
+- `limitations.md` L15a retired (RESOLVED in v0.8, ADR-0020); L15b (drag-begin seam) remains open — the v0.8 Line 2 obligation.
+
+### Fixed — v0.8: a11y.c strict compile (local-toolchain found)
+
+- `src/a11y.c` gained `#define _POSIX_C_SOURCE 200809L` (the same header pattern every other src/ file carries): without it, `px_sleep_ms`'s `nanosleep` is an implicit declaration under `-std=c17` on GCC 14 — invisible on CI's GCC 13, an error on newer toolchains. (Sibling of the Task-12 fix that added the same macro to `a11y_bridge_atspi.c`.)
+
 ## [0.7.0] — 2026-08-30
 
 ### Added — v0.7: intent compilation promoted to the 6th canonical abstraction (ADR-0017)

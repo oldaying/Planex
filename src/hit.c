@@ -187,3 +187,129 @@ px_closure* px_afford_compile(px_graph* g, double x, double y,
     out->region[PX_REGION_LABEL_MAX - 1] = 0;
     return c;
 }
+
+/* ============================================================
+ * v0.8 (Line 1) — the keyboard channel: focus ring + key compile
+ *
+ * The ring is DERIVED from what the app already declared: a
+ * region is focusable iff it affords at least one closure. The
+ * registry is a stack (head = newest), so creation order is the
+ * stack read backward — the same list the z-order scan reads
+ * forward. One registry, two honest projections: z-order (newest
+ * first, for pointer containment) and focus order (oldest first,
+ * for traversal). No layout-derived focus order: layout is
+ * Perception's business, not Relation's.
+ * ============================================================ */
+
+/* Does this region afford at least one closure in `g`?
+ * Same filtering rule as px_afford_at: first closure on a
+ * (region AFFORDS closure) edge wins; non-closure endpoints of
+ * reversed declarations are skipped. */
+static bool region_is_focusable(px_graph* g, px_region* r) {
+    if (!g || !r) return false;
+    px_node_list list = px_query(g, r, PX_REL_AFFORDS);
+    bool focusable = false;
+    for (int i = 0; i < list.count; i++) {
+        if (list.items[i]) { focusable = true; break; }
+    }
+    px_node_list_free(&list);
+    return focusable;
+}
+
+/* Walk the ring in creation order. `from` NULL = start at head.
+ * Returns the focusable region at ring offset `offset` counting
+ * from `from` (may wrap); NULL if the ring is empty. offset is
+ * signed: +1 = next, -1 = prev, 0 = `from`'s normalized position
+ * (head when `from` is nowhere). */
+static px_region* focus_ring_walk(px_graph* g, px_region* from, int offset) {
+    if (!g) return NULL;
+
+    /* Collect focusable regions; the registry walk yields
+     * newest-first, so reverse in place to get CREATION order
+     * (oldest first) — the ring's order. */
+    int n = g_region_count;
+    if (n <= 0) return NULL;
+    px_region** ring = (px_region**)calloc((size_t)n, sizeof(px_region*));
+    if (!ring) return NULL;
+
+    int count = 0;
+    for (px_region_node* node = g_regions; node; node = node->next) {
+        if (region_is_focusable(g, node->r)) ring[count++] = node->r;
+    }
+    if (count == 0) { free(ring); return NULL; }
+    for (int i = 0; i < count / 2; i++) {
+        px_region* tmp   = ring[i];
+        ring[i]          = ring[count - 1 - i];
+        ring[count - 1 - i] = tmp;
+    }
+
+    /* Locate `from`. Nowhere — NULL, freed, or unfocusable —
+     * resolves to the HEAD for either direction: the first Tab
+     * (or Shift-Tab) from nowhere focuses the ring's first
+     * region, matching px_afford_focus_first. */
+    int at = -1;
+    if (from) {
+        for (int i = 0; i < count; i++) {
+            if (ring[i] == from) { at = i; break; }
+        }
+    }
+    if (at < 0) {
+        px_region* head = ring[0];
+        free(ring);
+        return head;
+    }
+
+    /* Signed walk with wraparound; the % count keeps it a ring. */
+    int idx = at + offset;
+    idx %= count;
+    if (idx < 0) idx += count;
+
+    px_region* result = ring[idx];
+    free(ring);
+    return result;
+}
+
+px_region* px_afford_focus_first(px_graph* g) {
+    return focus_ring_walk(g, NULL, 0);
+}
+
+px_region* px_afford_focus_next(px_graph* g, px_region* from) {
+    return focus_ring_walk(g, from, +1);
+}
+
+px_region* px_afford_focus_prev(px_graph* g, px_region* from) {
+    return focus_ring_walk(g, from, -1);
+}
+
+/* The keyboard compile: same resolution as a pointer compile —
+ * the region's last-declared AFFORDS closure wins — but the
+ * routing key is the FOCUS, not a position. The payload is a
+ * value by the same construction as px_pointer_intent: the label
+ * is embedded, so the intent survives capture and replay after
+ * the region is freed. Miss zeroes the payload so a stale value
+ * can never leak through the raw-key fallback. */
+px_closure* px_afford_compile_focus(px_graph* g, px_region* focused,
+                                    int key, px_key_intent* out) {
+    if (out) memset(out, 0, sizeof(*out));
+    if (!g || !out) return NULL;
+    if (!focused || !region_is_focusable(g, focused)) return NULL;
+
+    px_node_list list = px_query(g, focused, PX_REL_AFFORDS);
+    px_closure* result = NULL;
+    /* px_query returns edges newest-first (px_declare prepends),
+     * so the FIRST closure in the list is the LAST declared —
+     * the same last-declared-first rule px_afford_at applies. */
+    for (int i = 0; i < list.count; i++) {
+        if (list.items[i]) {
+            result = (px_closure*)list.items[i];
+            break;
+        }
+    }
+    px_node_list_free(&list);
+    if (!result) return NULL;
+
+    out->key = key;
+    strncpy(out->region, px_region_label(focused), PX_REGION_LABEL_MAX - 1);
+    out->region[PX_REGION_LABEL_MAX - 1] = 0;
+    return result;
+}

@@ -28,6 +28,15 @@
  *   - undo works through the graph: TRIGGERS edges + bound
  *     closures, so select/paint/clear/brightness are all undoable
  *
+ * v0.8 (Line 1) — the KEYBOARD channel rides the same graph.
+ * After the pointer script, a keyboard-only session runs the
+ * same app: Tab walks the derived focus ring (the slider is
+ * NOT on it — it affords no discrete act), Enter compiles the
+ * focused region's closure with a px_key_intent payload. The
+ * SAME closures serve both channels; each action sorts by
+ * payload shape (px_pointer_intent vs px_key_intent) — the
+ * channel is a projection, the ontology is one graph (A6).
+ *
  * Deterministic script (headless, no backend needed):
  *   1. click swatch-green        -> select color 1
  *   2. click canvas x2           -> 2 dots painted (payload x/y as data)
@@ -38,6 +47,13 @@
  *   6. undo                      -> brightness back to 50
  *   7. click reset               -> all state reset via closure
  *   8. click empty space (40, 5) -> no-op (no affordance there)
+ *   9. keyboard: Tab ring walk   -> swatch-red..reset, slider excluded
+ *  10. keyboard: Enter on swatch-blue -> select color 2 (the
+ *      SAME closure as [1] — one act, two channels)
+ *  11. keyboard: Shift-Tab back  -> focus reverse-walks the ring
+ *  12. keyboard: Enter on canvas -> context clear (position-free
+ *      act — the keyboard payload has no x/y, so no dot lands)
+ *  13. keyboard: Tab to reset, Enter -> full reset via keyboard
  *
  * Build:
  *   cc -std=c17 -I include examples/palette_afford.c \
@@ -50,6 +66,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include "planex/planex.h"
 #include "planex/app.h"
+#include "planex/window.h"   /* PX_MOD_SHIFT (keyboard routing) */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -80,12 +97,18 @@ typedef struct {
 
     /* Affordances — one closure per act, label-driven. */
     px_closure* select_color;
-    px_closure* canvas_act;    /* paint (b1) | context-clear (b3) */
+    px_closure* canvas_act;    /* paint (b1) | context-clear (b3 | key) */
     px_closure* set_brightness;
     px_closure* reset_all;
 
     /* The slider drag process. */
     px_interaction* slider_drag;
+
+    /* v0.8: the keyboard channel's focus state + metrics. */
+    px_region*  focus;         /* NULL = focus nowhere (loop-local in
+                                * px_app_run; kept here for the script) */
+    int         focus_moves;  /* on_focus notifications received      */
+    char        focus_path[16][32]; /* the ring walk, as labels        */
 
     /* Metrics for the evidence report. */
     int raw_clicks;           /* must stay 0 — the whole point      */
@@ -113,19 +136,26 @@ static bool eval_true(void* u) { (void)u; return true; }
 
 static void on_select_color(px_intent intent, void* user) {
     App* app = (App*)user;
-    /* ONE closure serves three swatches: the REGION LABEL is the
-     * semantic type. This is the presentation-type payoff — the
-     * handler dispatches on meaning, never on coordinates. */
+    /* ONE closure serves THREE swatches on TWO channels: the
+     * REGION LABEL is the semantic type. Pointer and keyboard
+     * intents both carry it; the action sorts by payload shape
+     * — this is the presentation-type payoff doubled: the
+     * handler dispatches on meaning, never on coordinates, and
+     * never on the channel either. */
+    const char* region = NULL;
     if (intent.payload && intent.payload_size == sizeof(px_pointer_intent)) {
-        const px_pointer_intent* pi = (const px_pointer_intent*)intent.payload;
-        for (int i = 0; i < N_SWATCHES; i++) {
-            char label[32];
-            snprintf(label, sizeof(label), "swatch-%s", swatch_names[i]);
-            if (strcmp(pi->region, label) == 0) {
-                px_estimate_set(app->sel_color, (double)i, 1.0);
-                app->estimate_writes++;
-                return;
-            }
+        region = ((const px_pointer_intent*)intent.payload)->region;
+    } else if (intent.payload && intent.payload_size == sizeof(px_key_intent)) {
+        region = ((const px_key_intent*)intent.payload)->region;
+    }
+    if (!region) return;
+    for (int i = 0; i < N_SWATCHES; i++) {
+        char label[32];
+        snprintf(label, sizeof(label), "swatch-%s", swatch_names[i]);
+        if (strcmp(region, label) == 0) {
+            px_estimate_set(app->sel_color, (double)i, 1.0);
+            app->estimate_writes++;
+            return;
         }
     }
 }
@@ -150,6 +180,14 @@ static void on_canvas_act(px_intent intent, void* user) {
             px_estimate_set(app->n_dots, 0.0, 1.0);
             app->estimate_writes++;
         }
+    } else if (intent.payload && intent.payload_size == sizeof(px_key_intent)) {
+        /* The keyboard channel's canvas act: position-free by
+         * construction (a key intent carries no x/y), so the
+         * position-independent act is the correct one — clear.
+         * The closure did not branch on the channel; the payload
+         * SHAPE carried the semantics. */
+        px_estimate_set(app->n_dots, 0.0, 1.0);
+        app->estimate_writes++;
     }
 }
 
@@ -214,6 +252,47 @@ static void route_pointer(App* app, double x, double y, int button) {
                             * count that matters is the one that must
                             * stay ZERO: raw-coordinate HANDLERS */
     }
+}
+
+/* ---- THE keyboard routing rule (mirrors px_app_run v0.8 exactly) - */
+
+static void record_focus(App* app, const px_region* r) {
+    app->focus_moves++;
+    if (app->focus_moves <= 16) {
+        strncpy(app->focus_path[app->focus_moves - 1],
+                px_region_label(r), 31);
+        app->focus_path[app->focus_moves - 1][31] = 0;
+    }
+}
+
+static void route_key(App* app, char key, int modifiers) {
+    /* This is the px_app_run PX_EV_KEY_DOWN decision (v0.8 Line 1),
+     * verbatim: Tab/Shift-Tab walk the derived focus ring (the
+     * on_focus notification rides along), Enter/Space compile the
+     * focused region's closure with a px_key_intent payload, and
+     * everything else would fall back to on_key — which this app
+     * also leaves NULL by design. */
+    if (key == '\t') {
+        px_region* next = (modifiers & PX_MOD_SHIFT)
+            ? px_afford_focus_prev(app->graph, app->focus)
+            : px_afford_focus_next(app->graph, app->focus);
+        if (next) {
+            app->focus = next;
+            record_focus(app, next);   /* the on_focus callback */
+        }
+        return;
+    }
+    if (key == '\r' || key == '\n' || key == ' ') {
+        px_key_intent ki;
+        px_closure* c = px_afford_compile_focus(app->graph, app->focus,
+                                                key, &ki);
+        if (c) {
+            px_closure_trigger(c, &ki, sizeof(ki));
+        }
+        /* No focus / nothing afforded: no-op (no raw-key handler). */
+        return;
+    }
+    /* Any other key: the on_key fallback — NULL here. */
 }
 
 /* ====================================================================
@@ -368,6 +447,68 @@ int main(void) {
     assert(px_undo_count() >= 0);
     printf("    no-op: no region there, no fallback handler exists\n\n");
 
+    /* ---- 9. keyboard: the focus ring walk ------------------------ */
+    /* The same app, now driven by keyboard alone. The ring is
+     * DERIVED: the five regions that afford closures, in creation
+     * order — swatch-red, swatch-green, swatch-blue, canvas,
+     * reset. The slider is NOT on it (it affords no discrete
+     * act) — the honest boundary, visible in the walk itself. */
+    printf("[9] keyboard: Tab ring walk (5 focusable, slider excluded)...\n");
+    assert(px_afford_focus_first(app.graph) == app.swatch[0]);
+    for (int i = 0; i < 5; i++) route_key(&app, '\t', 0);
+    assert(app.focus_moves == 5);
+    /* Creation order: swatch-red, green, blue, canvas, reset —
+     * then the 6th Tab wraps back to swatch-red. */
+    assert(strcmp(app.focus_path[0], "swatch-red")    == 0);
+    assert(strcmp(app.focus_path[1], "swatch-green")  == 0);
+    assert(strcmp(app.focus_path[2], "swatch-blue")   == 0);
+    assert(strcmp(app.focus_path[3], "canvas")        == 0);
+    assert(strcmp(app.focus_path[4], "reset")         == 0);
+    route_key(&app, '\t', 0);   /* wraps to swatch-red */
+    assert(strcmp(app.focus_path[5], "swatch-red") == 0);
+    printf("    ring: swatch-red, green, blue, canvas, reset (wrap OK)\n");
+    printf("    brightness NOT on the ring — no discrete affordance\n\n");
+
+    /* ---- 10. keyboard: Enter activates swatch-blue --------------- */
+    printf("[10] keyboard: Enter on swatch-blue...\n");
+    /* focus is on swatch-red after the wrap; two Tabs to blue. */
+    route_key(&app, '\t', 0);   /* red -> green */
+    route_key(&app, '\t', 0);   /* green -> blue */
+    route_key(&app, '\r', 0);   /* Enter: compile + fire */
+    assert(px_estimate_value(app.sel_color) == 2.0);
+    printf("    selected: blue — the SAME closure as [1], one act,\n");
+    printf("    two channels, zero coordinate branches\n\n");
+
+    /* ---- 11. keyboard: Shift-Tab walks the ring backward --------- */
+    printf("[11] keyboard: Shift-Tab backward...\n");
+    route_key(&app, '\t', PX_MOD_SHIFT);   /* blue -> green */
+    assert(strcmp(app.focus_path[app.focus_moves - 1],
+                  "swatch-green") == 0);
+    printf("    focus: blue -> green (reverse walk)\n\n");
+
+    /* ---- 12. keyboard: Enter on canvas = position-free clear ---- */
+    /* A keyboard intent carries no x/y, so the position-free act
+     * is the correct canvas act: clear. The closure sorted by
+     * payload shape — it never saw the channel. */
+    printf("[12] keyboard: Enter on canvas (position-free act)...\n");
+    route_key(&app, '\t', 0);   /* green -> blue */
+    route_key(&app, '\t', 0);   /* blue -> canvas */
+    assert(px_estimate_value(app.n_dots) == 0.0);  /* [7] reset them */
+    route_key(&app, '\r', 0);
+    assert(px_estimate_value(app.n_dots) == 0.0);  /* clear on empty */
+    printf("    canvas cleared by keyboard — no dot landed because\n");
+    printf("    no position exists in a key intent (payload shape)\n\n");
+
+    /* ---- 13. keyboard: full reset via the ring ------------------- */
+    printf("[13] keyboard: Tab to reset, Enter...\n");
+    route_key(&app, '\t', 0);   /* canvas -> reset */
+    route_key(&app, ' ', 0);    /* Space activates too */
+    assert(px_estimate_value(app.sel_color) == 0.0);
+    assert(px_estimate_value(app.brightness) == 50.0);
+    assert(px_estimate_value(app.n_dots) == 0.0);
+    printf("    state reset via keyboard (Space — the second\n");
+    printf("    activation key, same compile path)\n\n");
+
     /* ---- evidence summary --------------------------------------- */
     printf("Final state: sel=%d brightness=%.0f dots=%d\n",
            (int)px_estimate_value(app.sel_color),
@@ -377,6 +518,7 @@ int main(void) {
            app.estimate_writes);
     printf("Raw-coordinate callbacks defined: 0 (on_click == NULL)\n");
     printf("Unresolved clicks (no-op path): %d\n", app.raw_clicks);
+    printf("Focus moves (keyboard session): %d\n", app.focus_moves);
 
     printf("\n=== Line 1 evidence complete ===\n");
     printf("ADR-0017 admission bar (ADR-0011) — what this app shows:\n");
@@ -385,6 +527,10 @@ int main(void) {
     printf("     (label embedded — see tests/test_v07.c a3)\n");
     printf("  3. Real-app shape: acts are closures, undo through the\n");
     printf("     graph, drag is a process with derived live preview\n");
+    printf("  4. TWO channels, one graph (v0.8 Line 1): pointer and\n");
+    printf("     keyboard compile through the same AFFORDS edges to\n");
+    printf("     the same closures — the channel is a projection\n");
+    printf("     (see tests/test_v08.c d1)\n");
 
     /* ---- cleanup ------------------------------------------------- */
     px_interaction_free(app.slider_drag);

@@ -19,6 +19,7 @@
  * Future: each platform can add #ifdef-guarded real implementations
  * without changing the API.
  */
+#define _POSIX_C_SOURCE 200809L
 #include "planex/a11y.h"
 #include <stdlib.h>
 #include <string.h>

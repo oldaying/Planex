@@ -62,6 +62,11 @@ typedef struct {
     int           key;      /* X11 keycode for key events */
     char          key_char; /* ASCII char if printable, else 0 */
 
+    /* v0.8: modifier-key bitmask for key events (PX_MOD_*).
+     * Backends that do not report modifiers leave it 0 — the
+     * unmodified semantics. */
+    int           modifiers;
+
     /* v0.6: wheel delta in ticks, used when kind == PX_EV_WHEEL.
      * Positive = scroll down/away from user; negative = up/toward.
      * x/y carry the cursor position at scroll time. */
@@ -71,6 +76,12 @@ typedef struct {
      * or PX_EV_IME_COMPOSE. UTF-8 encoded, may be multibyte. */
     char          ime_text[64];  /* null-terminated UTF-8 */
 } px_event;
+
+/* v0.8: modifier flags for px_event.modifiers. A backend that
+ * cannot report a modifier simply never sets its bit. */
+#define PX_MOD_SHIFT 0x1
+#define PX_MOD_CTRL  0x2
+#define PX_MOD_ALT   0x4
 
 /* New event kinds for IME (Stage 9) */
 /* PX_EV_IME_COMPOSE:  IME is composing (intermediate state, preedit text)
