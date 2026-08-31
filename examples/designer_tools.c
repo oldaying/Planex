@@ -114,7 +114,7 @@ static const char* chip_names[3] = { "red", "green", "blue" };
 /* ---- layout ------------------------------------------------------ */
 
 static px_rect chip_rect(int i) {
-    return px_rect_make(10 + i * 50, 10, 40, 24);
+    return px_rect_make(10.0f + i * 50.0f, 10.0f, 40.0f, 24.0f);
 }
 /* slider track: x in [10, 310] maps to value [0, 100] */
 static double slider_x_to_value(double x) {

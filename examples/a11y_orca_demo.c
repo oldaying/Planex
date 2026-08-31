@@ -85,7 +85,7 @@ typedef struct {
 /* ---- layout ------------------------------------------------------ */
 
 static px_rect swatch_rect(int i) {
-    return px_rect_make(20 + i * 80, 20, 70, 30);
+    return px_rect_make(20.0f + i * 80.0f, 20.0f, 70.0f, 30.0f);
 }
 
 /* ---- the a11y mirror: derive the CURRENT element from the graph

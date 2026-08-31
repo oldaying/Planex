@@ -121,7 +121,7 @@ static const char* swatch_names[N_SWATCHES] = { "red", "green", "blue" };
 /* ---- layout ------------------------------------------------------ */
 
 static px_rect swatch_rect(int i) {
-    return px_rect_make(20 + i * 70, 20, 60, 28);
+    return px_rect_make(20.0f + i * 70.0f, 20.0f, 60.0f, 28.0f);
 }
 /* slider track: x in [20, 300] maps to value [0, 100] */
 static double slider_x_to_value(double x) {

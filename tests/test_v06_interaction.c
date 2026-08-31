@@ -25,6 +25,13 @@
  *      src/a11y.c -lm -o build/test_v06_interaction
  */
 #define _POSIX_C_SOURCE 200809L
+/* Keep assert() alive in Release builds: MSVC Release defines NDEBUG
+ * (CMake default flags), which compiles this suite's assertions to
+ * no-ops — a vacuous pass. Found on the first real Windows run
+ * (C4700 on the out-param copy was the tell). */
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include "planex/planex.h"
 #include <stdio.h>
 #include <stdlib.h>

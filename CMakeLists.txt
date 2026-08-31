@@ -22,7 +22,10 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 if(MSVC)
     add_compile_options(/W3 /utf-8)
-    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+    # _CRT_SECURE_NO_WARNINGS: strcpy/sscanf etc. (MSVC security nag)
+    # _CRT_NONSTDC_NO_WARNINGS: strdup etc. (MSVC POSIX-name nag, C4996
+    # — seen on tests/test_v3_prototype.c in the first real Windows build)
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS)
 else()
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
