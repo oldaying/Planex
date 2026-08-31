@@ -327,6 +327,30 @@ static void* perceive_null(px_estimate* const* in, int n, void* u) {
     return NULL;
 }
 
+/* b3 only: a perception whose duration spans at least one clock
+ * tick. px_now_ms() is QPC-backed on Windows (100ns-class
+ * granularity) and CLOCK_MONOTONIC on Linux (ns). A null
+ * perception can complete a whole loop step inside one QPC tick,
+ * so the audit measures iteration_ms == 0.0 exactly and the 1ns
+ * budget is NOT flagged exceeded — a clock-granularity false
+ * negative (not evidence of sub-nanosecond execution), and a flaky
+ * gate: the same binary passed and failed across windows-latest
+ * runs. Caught by the per-suite exit-code loop in the hardened
+ * windows job; the old one-command-per-line step format would have
+ * swallowed the abort with the last suite's exit 0. Spinning until
+ * the clock advances makes the measurement resolvable — every
+ * step's iteration_ms >= 1 tick > 1ns, so the overrun path fires
+ * deterministically on every platform. Bounded so a broken clock
+ * fails the test instead of hanging it. */
+static void* perceive_one_tick(px_estimate* const* in, int n, void* u) {
+    (void)in; (void)n; (void)u;
+    double t = px_now_ms();
+    for (long guard = 0; guard < 100000000L; ++guard) {
+        if (px_now_ms() != t) break;
+    }
+    return NULL;
+}
+
 static void on_set_src(px_intent i, void* u) {
     (void)i;
     px_estimate* e = (px_estimate*)u;
@@ -399,7 +423,10 @@ static void test_b2_explicit_opt_out(void) {
 }
 
 static void test_b3_overrun_is_loud_and_counted(void) {
-    /* A budget of one nanosecond is exceeded by any real iteration.
+    /* A budget of one nanosecond is exceeded by any measurable
+     * iteration (perceive_one_tick guarantees the iteration spans
+     * at least one clock tick, so the measurement is resolvable on
+     * every platform — see its comment for the QPC flake it kills).
      * The overrun must be (a) recorded in the entry, (b) counted by
      * px_loop_budget_overruns, (c) warned exactly once on stderr —
      * the single notice is visible in this suite's own output when
@@ -410,7 +437,7 @@ static void test_b3_overrun_is_loud_and_counted(void) {
     px_closure* c = px_closure_new("inc", PX_INTENT_REQUEST,
                                    on_set_src, eval_true, e);
     px_estimate* srcs[] = { e };
-    px_perception* p = px_perception_new("p", perceive_null, srcs, 1, NULL);
+    px_perception* p = px_perception_new("p", perceive_one_tick, srcs, 1, NULL);
     px_loop* loop = px_loop_new(c, p);
 
     px_loop_set_budget(loop, 0.000001); /* 1ns: nothing fits */
