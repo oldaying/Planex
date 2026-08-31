@@ -562,6 +562,19 @@ static void test_d5_undo_replay_is_redo(void) {
     px_intent captured = px_closure_last_intent(set_to);
     assert(*(int*)captured.payload == 42);
 
+    /* 2b. Copy the payload bytes while the borrow is live.
+     *     planex.h: the payload is "owned by closure until the
+     *     next trigger" — replay #1 (step 4) retires that borrow,
+     *     so a second replay must come from caller-owned bytes.
+     *     Intent-as-value means kind + size + payload BYTES are
+     *     copyable (the idiom test_core's serializable-intent
+     *     test already uses), not that a captured struct's
+     *     payload pointer stays live forever. */
+    int held = 0;
+    assert(captured.payload_size == sizeof(int));
+    memcpy(&held, captured.payload, sizeof(int));
+    assert(held == 42);
+
     /* 3. Undo: count reverts to 0 */
     px_undo();
     assert(px_estimate_value(count) == 0.0);
@@ -580,9 +593,18 @@ static void test_d5_undo_replay_is_redo(void) {
     assert(px_undo_count() == 0);
 
     /* 6. Replay again: count goes back to 42 (redo again).
-     *    Same captured intent, replayed multiple times —
-     *    proves intent is a value, not a one-shot. */
-    px_closure_replay(set_to, captured);
+     *    The old form replayed `captured` a second time — reading
+     *    a payload whose closure-owned borrow had expired at step
+     *    4's trigger. That use-after-free read passed only by
+     *    allocator luck: Linux tcache left the freed 4 bytes
+     *    intact 200/200 runs, the Windows CRT heap reused them
+     *    (run 33402526410, exit 0xC0000409). The bytes are the
+     *    value — replay from the caller-owned copy of step 2b. */
+    px_intent held_intent;
+    held_intent.kind         = captured.kind;
+    held_intent.payload      = &held;
+    held_intent.payload_size = sizeof(held);
+    px_closure_replay(set_to, held_intent);
     assert(px_estimate_value(count) == 42.0);
 
     px_undo_set_enabled(false);
