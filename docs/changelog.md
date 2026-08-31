@@ -8,6 +8,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Removed — two orphaned root-level BMPs (counter.bmp, slider.bmp): re-seed snapshot residue, invisible to .gitignore
+
+- **The finding**: `counter.bmp` (256×128, 131 KB) and `slider.bmp` (320×96, 123 KB) sat at the repository root with zero references — no source, test, example, doc, or script mentions either filename; every demo writes its screenshot under its full name (`counter_denotative.bmp`, `calculator_denotative.bmp`, …), and no slider demo has ever existed in this repository. Their dimensions match no current demo output either (the counter demos render 256×96, not 256×128). They entered in the 4db6e6c re-seed snapshot — a bulk import predating the `*.bmp` ignore rule, and tracked files survive `.gitignore`, which is why the rule that should have kept them out also kept them invisible to every later cleanup pass.
+- **The removal**: 254 KB of unreferenced binary, ~18% of the 1438 KB repository — gone. Nothing reads the files, so the working tree is unaffected; the demos' transient `.bmp` outputs keep landing wherever the binaries run, still covered by the existing ignore rule. Local clones recover the space automatically on the next fetch (the two blobs leave the tree; repo history before 4db6e6c is unreachable by default).
+
 ### Fixed — test_v07's b3 was a flaky gate on windows-latest (QPC granularity vs the 1ns budget; caught by the hardened windows job, which the old step format would have swallowed)
 
 - **The catch**: run 33393381147's windows job (the identity-rewrite push — content byte-identical to the previous green run) failed in the new per-suite exit-code loop: `test_v07` aborted with `entries[i].budget_exceeded == true` (assert, exit 0xC0000409). Two prior windows runs of the same content had passed — a genuine flake, and exactly the defect class the hardened step exists for: under the old one-command-per-line format, the abort would have been overwritten by the last suite's exit 0 and the step would have gone green.
