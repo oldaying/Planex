@@ -47,16 +47,15 @@ body:
     id: demos
     attributes:
       label: Which demos did you test?
+      # The four current windowed demos (make EXAMPLES_WINDOWED /
+      # CMake "examples" on every backend). The old counter_x11 /
+      # slider_x11-era list predated the 2025 repo restructure and
+      # named binaries that no longer exist.
       options:
-        - label: counter_x11
-        - label: slider_x11
-        - label: radio_x11
-        - label: dropdown_x11
-        - label: checkbox_x11
-        - label: form_x11
-        - label: animate_x11
-        - label: resize_x11
-        - label: perf_x11
+        - label: counter_interactive (v0.4 click/undo in a real window)
+        - label: counter_perception_window (perception-driven rendering)
+        - label: hover_drag_4abs (drag interaction)
+        - label: a11y_orca_demo (keyboard focus + a11y query side; on Windows the screen-reader bridge is a stub — verify the Tab focus ring and Enter activation, not speech)
 
   - type: textarea
     id: notes

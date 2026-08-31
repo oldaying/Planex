@@ -5,6 +5,8 @@
 > Per [ADR-0005](docs/decisions/accepted/ADR-0005-promote-perception-to-fourth-abstraction.md): Perception was promoted to a 4th first-class abstraction. Closure restructured from 7 stages to 5 stages (execution side). Per [ADR-0008](docs/decisions/accepted/ADR-0008-feedback-as-fifth-essence-category.md): `px_loop` was added as the 5th abstraction for the Feedback essence category (v0.4). See [UI Essence Layers](docs/concepts/background/ui-essence-layers.md) for the layered essence model.
 
 [![CI](https://github.com/oldaying/Planex/actions/workflows/ci.yml/badge.svg)](https://github.com/oldaying/Planex/actions/workflows/ci.yml)
+[![Static Analysis](https://github.com/oldaying/Planex/actions/workflows/static-analysis.yml/badge.svg)](https://github.com/oldaying/Planex/actions/workflows/static-analysis.yml)
+[![CodeQL](https://github.com/oldaying/Planex/actions/workflows/codeql.yml/badge.svg)](https://github.com/oldaying/Planex/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![C Standard](https://img.shields.io/badge/C-17-blue.svg)](https://en.wikipedia.org/wiki/C17_(C_standard_revision))
 

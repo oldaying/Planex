@@ -1,9 +1,8 @@
 name: Static Analysis
 
 # The analyzer tier (from the 2026-08 code-check research): static
-# analysis + runtime UB detection, all locally pre-verified clean at
-# the exact commands below before this workflow ever ran. Four
-# self-enforcing gates, one job, one report each:
+# analysis + runtime UB detection. Four self-enforcing gates, one
+# job, one report each:
 #
 #   Gate 1  cppcheck (bug-pattern level)   — the static sibling of
 #           the C4700 class the first real Windows build surfaced
@@ -107,10 +106,25 @@ jobs:
             $FILES -- -std=c17 -Iinclude -I/usr/include/freetype2 -DPLANEX_BACKEND_HEADLESS
 
       # ----------------------------------------------------------------
-      # Gate 3: UBSan over the full suite + examples, strict mode:
-      # any UB aborts the run (-fno-sanitize-recover). Locally
-      # verified clean: 7 test targets + 9 examples including the
-      # windowed demos (headless stdin-EOF path).
+      # Gate 3: UBSan over the full suite + ALL examples, strict mode:
+      # any UB aborts the run (-fno-sanitize-recover).
+      #
+      # Two drive modes, and why (lesson of the first CI run,
+      # 33388320275): under BACKEND=headless, `make examples` builds
+      # only EXAMPLES_NO_X11 (Makefile keeps windowed demos out of
+      # the aggregate) — the windowed demos must be built via their
+      # explicit per-target rules. And they cannot be driven with
+      # </dev/null: px_app_run presents only when something changed
+      # (app.c), while the headless auto-quit counter counts
+      # PRESENTS (headless.c) — an event-driven demo never presents
+      # when idle, so EOF hangs forever (empirically: 3 of 4).
+      # headless.c's own documented idiom is the stdin 'q' close
+      # event; every run also gets `timeout 30` so a future hang
+      # fails in 30s instead of blocking the job for 6h. The
+      # original local pre-verification had missed both issues —
+      # it ran in a dirty build/ directory with stale binaries;
+      # this sequence was re-verified hermetic (rm -rf build) at the
+      # exact commands below.
       # ----------------------------------------------------------------
       - name: UBSan (test suite + examples, strict)
         run: |
@@ -122,9 +136,20 @@ jobs:
             make BACKEND=headless CFLAGS_EXTRA="$UBSAN" $t >/dev/null
           done
           make BACKEND=headless CFLAGS_EXTRA="$UBSAN" examples >/dev/null
-          for d in counter_4abs multi_perception undo_via_graph antipattern_estimate palette_afford designer_tools a11y_orca_demo counter_interactive hover_drag_4abs; do
-            echo "UBSan: run $d"
-            ./build/$d </dev/null >/dev/null 2>/tmp/ub_run.err || { echo "$d FAILED"; cat /tmp/ub_run.err; exit 1; }
+          make BACKEND=headless CFLAGS_EXTRA="$UBSAN" \
+            build/counter_perception_window build/counter_interactive \
+            build/hover_drag_4abs build/a11y_orca_demo >/dev/null
+          # stdout/BMP examples: their own present-per-frame loops
+          # hit the headless EOF auto-quit.
+          for d in counter_4abs multi_perception undo_via_graph antipattern_estimate palette_afford designer_tools; do
+            echo "UBSan: run $d (EOF auto-quit)"
+            timeout 30 ./build/$d </dev/null >/dev/null 2>/tmp/ub_run.err || { echo "$d FAILED"; cat /tmp/ub_run.err; exit 1; }
+            grep -q "runtime error" /tmp/ub_run.err && { cat /tmp/ub_run.err; exit 1; } || true
+          done
+          # windowed demos: stdin 'q' (headless.c's close idiom)
+          for d in counter_perception_window counter_interactive hover_drag_4abs a11y_orca_demo; do
+            echo "UBSan: run $d (stdin 'q')"
+            timeout 30 sh -c "printf 'q\n' | ./build/$d" >/dev/null 2>/tmp/ub_run.err || { echo "$d FAILED"; cat /tmp/ub_run.err; exit 1; }
             grep -q "runtime error" /tmp/ub_run.err && { cat /tmp/ub_run.err; exit 1; } || true
           done
           echo "UBSan strict: all clean"

@@ -58,20 +58,50 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build (cmake)
-        run: cmake -B build -DCMAKE_EXE_LINKER_FLAGS="-lX11 -lXext -lfreetype -lfontconfig" && cmake --build build --config Release
-      - name: Run tests
+      - name: Build (cmake, warnings are errors)
+        # /WX is the MSVC -Werror equivalent. The build has been
+        # warning-free since c098b63 (C4244 float literals and the
+        # C4996 POSIX-name nags fixed at the source level), so a new
+        # warning from a future toolchain/SDK rev fails the build
+        # instead of scrolling past. The old
+        # -DCMAKE_EXE_LINKER_FLAGS="-lX11 ..." was copy residue from
+        # the Linux config — GCC-style flags are meaningless to
+        # MSVC's link.exe.
+        run: cmake -B build -DCMAKE_C_FLAGS="/WX" && cmake --build build --config Release
+      - name: Precheck test executables
+        # A silently-unbuilt binary must fail loudly BEFORE any test
+        # runs: PowerShell's call operator on a missing path does
+        # not fail the step ($LASTEXITCODE keeps a stale value) —
+        # the exact false-PASS shape the local pwsh loop hit during
+        # the c098b63 diagnosis.
         run: |
-          .\build\Release\test_core.exe
-          .\build\Release\test_orthogonality.exe
-          .\build\Release\test_feedback.exe
-          .\build\Release\test_v05_retire.exe
-          .\build\Release\test_v06_interaction.exe
-          .\build\Release\test_v07.exe
-          .\build\Release\test_v08.exe
-          .\build\Release\perception_smoke.exe
-          .\build\Release\perception_phase2.exe
-          .\build\Release\undo_via_graph.exe
+          $tests = @('test_core','test_orthogonality','test_feedback','test_v05_retire','test_v06_interaction','test_v07','test_v08','perception_smoke','perception_phase2','undo_via_graph')
+          $missing = $tests | Where-Object { -not (Test-Path ".\build\Release\${_}.exe") }
+          if ($missing) {
+            Write-Host "FAILED: missing test executable(s): $($missing -join ', ')"
+            exit 1
+          }
+          Write-Host "all $($tests.Count) test executables present"
+      - name: Run tests (exit code checked per suite)
+        # The old one-command-per-line form had the mirror-image
+        # false PASS: a failing suite mid-list left the step's exit
+        # code to whatever the LAST command returned. The loop
+        # records every nonzero exit and fails on any failed suite.
+        # Assertions are live in Release per c098b63's #undef NDEBUG
+        # guards (Gate 4 of static-analysis.yml keeps them that way).
+        run: |
+          $tests = @('test_core','test_orthogonality','test_feedback','test_v05_retire','test_v06_interaction','test_v07','test_v08','perception_smoke','perception_phase2','undo_via_graph')
+          $failed = @()
+          foreach ($t in $tests) {
+            Write-Host "=== $t ==="
+            & ".\build\Release\${t}.exe"
+            if ($LASTEXITCODE -ne 0) { $failed += "${t} (exit $LASTEXITCODE)" }
+          }
+          if ($failed.Count -gt 0) {
+            Write-Host "FAILED suites: $($failed -join '; ')"
+            exit 1
+          }
+          Write-Host "all $($tests.Count) suites passed (assertions live)"
 
   strict-warnings:
     runs-on: ubuntu-latest

@@ -1,0 +1,69 @@
+name: CodeQL
+
+# The analyzer tier's third leg (from the 2026-08 code-check research):
+# semantic, taint-tracking analysis over the full C surface — the
+# data-flow bug class neither cppcheck nor clang-tidy models
+# (path-sensitive flows from source to sink), free for public repos.
+#
+# POSTURE — reporting, not blocking (an honest distinction): CodeQL
+# results land in Security → Code scanning alerts for triage, the
+# same tier as cppcheck's style layer. The blocking tiers remain
+# ci.yml (tests, -Werror, /WX) and static-analysis.yml (cppcheck
+# error/warning, clang-tidy, UBSan strict, the NDEBUG probe). If a
+# CodeQL alert ever deserves to block, promote it into a query
+# filter + a failure condition here — deliberately, in review.
+#
+# SETUP: this workflow file IS the setup (advanced mode) — it runs
+# on the next push with no Settings toggle. The repo's default-setup
+# toggle (Settings → Code security) stays off: the file path and the
+# default path are mutually exclusive, and the file path gives
+# version-controlled control.
+#
+# BUILD: traced manual cmake build (not autobuild) — the same
+# configuration ci.yml's linux-cmake job compiles, so the traced
+# translation units are exactly the ones the green CI builds. Init
+# before build (tracing), analyze after.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly, 03:17 UTC — off the round-number minute pile-up
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyze (c-cpp)
+    runs-on: ubuntu-latest
+    permissions:
+      # required: upload SARIF to Security → Code scanning
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build deps
+        # The same set as ci.yml's linux-cmake job
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxext-dev libxft-dev libfontconfig1-dev libfreetype6-dev cmake build-essential
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: c-cpp
+          # security-extended: the security-focused suite (the C/C++
+          # default) — widen to security-and-quality in review only if
+          # the alert volume stays manageable (documented, not blanket)
+          queries: security-extended
+
+      - name: Build (traced by CodeQL)
+        run: cmake -B build && cmake --build build -j
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:c-cpp"
