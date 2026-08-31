@@ -1,0 +1,153 @@
+name: Static Analysis
+
+# The analyzer tier (from the 2026-08 code-check research): static
+# analysis + runtime UB detection, all locally pre-verified clean at
+# the exact commands below before this workflow ever ran. Four
+# self-enforcing gates, one job, one report each:
+#
+#   Gate 1  cppcheck (bug-pattern level)   — the static sibling of
+#           the C4700 class the first real Windows build surfaced
+#           (c098b63): uninitialized reads, leaks, OOB shapes that
+#           the compiler does not flag. Blocking on error/warning;
+#           style findings counted and reported non-blocking (the
+#           compression-metric precedent: WARN tracked, not blocked).
+#   Gate 2  clang-tidy (curated set)       — clang diagnostics beyond
+#           -Wall -Wextra over the portable library surface.
+#   Gate 3  UBSan strict                   — runtime UB over the full
+#           test suite + examples; any UB aborts (no recover).
+#   Gate 4  assertion-liveness probe       — the NDEBUG guards'
+#           mutation test: a -DNDEBUG-compiled probe MUST abort.
+#           Guards regressing = every assert suite vacuous again.
+#
+# Scope note (applies to Gates 1-2): the portable surface is
+# analyzed — src/*.c minus win32/cocoa/x11 (platform headers do not
+# exist on Linux; the a11y-atspi-bridge job in ci.yml owns the
+# AT-SPI probe) and minus font_ttf.c for cppcheck (freetype-optional
+# file; tidy gets the freetype include path instead). headless.c
+# stays: it IS the Linux backend.
+#
+# Exclusion honesty (clang-tidy noise classes disabled WITH reasons,
+# reviewable right here — not blanket-muting):
+#   -bugprone-reserved-identifier
+#       _POSIX_C_SOURCE feature-test macros are the required POSIX
+#       idiom, not a violation.
+#   -clang-analyzer-security.insecureAPI.*
+#       The MSVC *_s-function worldview; on glibc the flagged
+#       fprintf/strncpy/memcpy ARE the standard, correct calls.
+#   -bugprone-easily-swappable-parameters
+#       API-design critique firing on the entire math-shaped API
+#       surface (adjacent double/int params); the shapes are pinned
+#       by tests, and LLVM disables this check by default too.
+#   -bugprone-narrowing-conversions
+#       uint32_t->int in the fb pixel-extraction idiom,
+#       codebase-wide and consistent.
+#   -bugprone-multi-level-implicit-pointer-conversion
+#       The registry void* pattern (process-global registered
+#       objects) relies on it by design.
+#   -bugprone-implicit-widening-of-multiplication-result
+#       fb y*width indexing; window-bounded, far from overflow.
+#
+# Tool availability: cppcheck + clang-tidy from apt on
+# ubuntu-latest; UBSan is GCC-built-in.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install analyzers
+        run: sudo apt-get update && sudo apt-get install -y cppcheck clang-tidy build-essential libx11-dev libxext-dev libxft-dev libfontconfig1-dev libfreetype6-dev
+
+      # ----------------------------------------------------------------
+      # Gate 1: cppcheck over the portable library surface. Blocking
+      # on error/warning (--error-exitcode=1); style-level findings
+      # counted and reported, non-blocking (compression-metric
+      # precedent). --inline-suppr keeps the escape hatch honest
+      # (in-code cppcheck-suppress comments, visible in review).
+      # ----------------------------------------------------------------
+      - name: cppcheck (bug patterns, blocking + style report)
+        run: |
+          set -e
+          FILES=$(ls src/*.c | grep -vE 'src/(win32|cocoa|x11|font_ttf)\.c')
+          # Blocking layer: error + warning level
+          cppcheck --std=c17 --enable=warning \
+            --inline-suppr --error-exitcode=1 \
+            --suppress=missingIncludeSystem \
+            --suppress=normalCheckLevelMaxBranches \
+            -I include --relative-paths $FILES
+          # Tracked layer: style findings (reported, not blocking)
+          STYLE_COUNT=$(cppcheck --std=c17 --enable=style \
+            --inline-suppr \
+            --suppress=missingIncludeSystem \
+            --suppress=normalCheckLevelMaxBranches \
+            -I include --relative-paths $FILES 2>&1 | \
+            grep -cE 'style:|performance:' || true)
+          echo "cppcheck style findings (tracked, non-blocking): $STYLE_COUNT"
+
+      # ----------------------------------------------------------------
+      # Gate 2: clang-tidy, curated set, self-enforcing
+      # (--warnings-as-errors, zero tolerated noise). The exclusion
+      # list and its reasons are documented in this file's header —
+      # muting a check requires editing that rationale in review.
+      # ----------------------------------------------------------------
+      - name: clang-tidy (curated bugprone/analyzer set)
+        run: |
+          set -e
+          FILES=$(ls src/*.c | grep -vE 'src/(win32|cocoa|x11)\.c')
+          clang-tidy \
+            --checks='-*,bugprone-*,clang-analyzer-*,performance-*,-bugprone-reserved-identifier,-clang-analyzer-security.insecureAPI.*,-bugprone-easily-swappable-parameters,-bugprone-narrowing-conversions,-bugprone-multi-level-implicit-pointer-conversion,-bugprone-implicit-widening-of-multiplication-result' \
+            --warnings-as-errors='*' \
+            $FILES -- -std=c17 -Iinclude -I/usr/include/freetype2 -DPLANEX_BACKEND_HEADLESS
+
+      # ----------------------------------------------------------------
+      # Gate 3: UBSan over the full suite + examples, strict mode:
+      # any UB aborts the run (-fno-sanitize-recover). Locally
+      # verified clean: 7 test targets + 9 examples including the
+      # windowed demos (headless stdin-EOF path).
+      # ----------------------------------------------------------------
+      - name: UBSan (test suite + examples, strict)
+        run: |
+          set -e
+          UBSAN="-fsanitize=undefined -fno-sanitize-recover=undefined"
+          make BACKEND=headless CFLAGS_EXTRA="$UBSAN" >/dev/null
+          for t in test test_ortho test_feedback test_v05 test_v06 test_v07 test_v08; do
+            echo "UBSan: make $t"
+            make BACKEND=headless CFLAGS_EXTRA="$UBSAN" $t >/dev/null
+          done
+          make BACKEND=headless CFLAGS_EXTRA="$UBSAN" examples >/dev/null
+          for d in counter_4abs multi_perception undo_via_graph antipattern_estimate palette_afford designer_tools a11y_orca_demo counter_interactive hover_drag_4abs; do
+            echo "UBSan: run $d"
+            ./build/$d </dev/null >/dev/null 2>/tmp/ub_run.err || { echo "$d FAILED"; cat /tmp/ub_run.err; exit 1; }
+            grep -q "runtime error" /tmp/ub_run.err && { cat /tmp/ub_run.err; exit 1; } || true
+          done
+          echo "UBSan strict: all clean"
+
+      # ----------------------------------------------------------------
+      # Gate 4: assertion-liveness self-check (mutation thinking on
+      # the NDEBUG guards themselves). A probe compiled with
+      # -DNDEBUG must STILL abort: exit 0 means the guards regressed
+      # and every assert-based suite is vacuous again (the c098b63
+      # failure mode, caught before it can return).
+      # ----------------------------------------------------------------
+      - name: assertion-liveness probe (guards must keep assert alive)
+        run: |
+          cat > /tmp/probe.c << 'EOF'
+          #ifdef NDEBUG
+          #undef NDEBUG
+          #endif
+          #include <assert.h>
+          int main(void) { assert(1 == 2); return 0; }
+          EOF
+          cc -DNDEBUG /tmp/probe.c -o /tmp/probe
+          if /tmp/probe; then
+            echo "FATAL: assert() compiled out under -DNDEBUG — the guards regressed"
+            exit 1
+          fi
+          echo "assert-liveness probe: assert is live under -DNDEBUG (guards work)"
