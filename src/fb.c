@@ -13,6 +13,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#ifndef _WIN32
+#include <fcntl.h>   /* open + O_* flags: explicit 0644 creation */
+#include <unistd.h>  /* close (fdopen's companion) */
+#endif
 
 /* ============================================================
  * Font (defined in font.c, but we need to declare it here)
@@ -234,8 +238,26 @@ static void put_u32(FILE* f, uint32_t v) {
 int px_fb_save_bmp(px_fb* fb, const char* path) {
     if (!fb || !path) return -1;
 
+#ifdef _WIN32
+    /* Windows CRT: file access is ACL-governed; the fopen creation
+     * mode has no umask dependency worth modeling. */
     FILE* f = fopen(path, "wb");
     if (!f) return -1;
+#else
+    /* Create with an explicit 0644, independent of the process
+     * umask. fopen("wb") creates 0666 & ~umask, so a permissive
+     * umask (0) made the output world-writable — CodeQL
+     * cpp/world-writable-file-creation, the CodeQL tier's first
+     * real finding; reproduced locally (umask 0 +
+     * counter_denotative wrote mode-666 BMPs) before this fix. */
+    int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd < 0) return -1;
+    FILE* f = fdopen(fd, "wb");
+    if (!f) {
+        close(fd);
+        return -1;
+    }
+#endif
 
     /* BMP file header (14 bytes) */
     fwrite("BM", 1, 2, f);
