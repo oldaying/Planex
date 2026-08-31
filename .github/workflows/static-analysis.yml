@@ -6,7 +6,7 @@ name: Static Analysis
 #
 #   Gate 1  cppcheck (bug-pattern level)   — the static sibling of
 #           the C4700 class the first real Windows build surfaced
-#           (c098b63): uninitialized reads, leaks, OOB shapes that
+#           (f702d0a): uninitialized reads, leaks, OOB shapes that
 #           the compiler does not flag. Blocking on error/warning;
 #           style findings counted and reported non-blocking (the
 #           compression-metric precedent: WARN tracked, not blocked).
@@ -158,7 +158,7 @@ jobs:
       # Gate 4: assertion-liveness self-check (mutation thinking on
       # the NDEBUG guards themselves). A probe compiled with
       # -DNDEBUG must STILL abort: exit 0 means the guards regressed
-      # and every assert-based suite is vacuous again (the c098b63
+      # and every assert-based suite is vacuous again (the f702d0a
       # failure mode, caught before it can return).
       # ----------------------------------------------------------------
       - name: assertion-liveness probe (guards must keep assert alive)

@@ -60,7 +60,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build (cmake, warnings are errors)
         # /WX is the MSVC -Werror equivalent. The build has been
-        # warning-free since c098b63 (C4244 float literals and the
+        # warning-free since f702d0a (C4244 float literals and the
         # C4996 POSIX-name nags fixed at the source level), so a new
         # warning from a future toolchain/SDK rev fails the build
         # instead of scrolling past. The old
@@ -73,7 +73,7 @@ jobs:
         # runs: PowerShell's call operator on a missing path does
         # not fail the step ($LASTEXITCODE keeps a stale value) —
         # the exact false-PASS shape the local pwsh loop hit during
-        # the c098b63 diagnosis.
+        # the f702d0a diagnosis.
         run: |
           $tests = @('test_core','test_orthogonality','test_feedback','test_v05_retire','test_v06_interaction','test_v07','test_v08','perception_smoke','perception_phase2','undo_via_graph')
           $missing = $tests | Where-Object { -not (Test-Path ".\build\Release\${_}.exe") }
@@ -87,7 +87,7 @@ jobs:
         # false PASS: a failing suite mid-list left the step's exit
         # code to whatever the LAST command returned. The loop
         # records every nonzero exit and fails on any failed suite.
-        # Assertions are live in Release per c098b63's #undef NDEBUG
+        # Assertions are live in Release per f702d0a's #undef NDEBUG
         # guards (Gate 4 of static-analysis.yml keeps them that way).
         run: |
           $tests = @('test_core','test_orthogonality','test_feedback','test_v05_retire','test_v06_interaction','test_v07','test_v08','perception_smoke','perception_phase2','undo_via_graph')
