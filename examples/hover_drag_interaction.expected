@@ -1,4 +1,4 @@
-Planex hover_drag_interaction — boundary-CLOSING demo (v0.6 prototype)
+Planex hover_drag_interaction — boundary-CLOSING demo (v0.6 prototype→v0.7 canonical, ADR-0018)
 ======================================================================
 Validates: hover+drag+cancel+tap with px_interaction + affordances.
 Counterpart of hover_drag_4abs.c (ADR-0006 evidence → ADR-0016).
@@ -49,5 +49,6 @@ Verdict for ADR-0016:
   - The estimate-write count for the whole session is 2 (one
     reorder), versus ~O(events) in the old demo.
   - Cancel is a first-class outcome; gesture is derivable.
-  - Prototype status: evidence, not promotion. The 5 canonical
-    abstractions are untouched.
+  - Status: promoted — the 7th canonical abstraction since
+    v0.7 (ADR-0018). Samples stay inert; THE INVARIANT is now
+    normative — test_v06_interaction.c section D enforces it.

@@ -1014,11 +1014,13 @@ void*         px_perception_interpret(px_perception* p,
 void          px_loop_mark_breakdown(px_loop* loop, int transition,
                                       const char* reason);
 
-/* ---------- Breakdown (6th abstraction, v3 prototype) ------------
+/* ---------- Breakdown (v3 prototype, never admitted) ------------
  * Per Heidegger Zuhandenheit/Vorhandenheit, Winograd/Flores
  * breakdown-recovery, Dourish embodiment, Suchman situatedness:
  * a UI that cannot break down is not a UI. Breakdown is the moment
  * the boundary becomes visible to the actor.
+ * (v3's "6th abstraction" claim was never admitted — the canonical
+ * 6th is intent compilation, ADR-0017; see ADR-0009/ADR-0010.)
  *
  * This abstraction records *semantic* breakdown — the actor's
  * interpretant no longer matches the system's representamen —
@@ -1059,16 +1061,16 @@ void          px_breakdown_to_relation(px_breakdown* b, px_graph* g,
                                          void* node);
 
 /* ============================================================
- * v0.6 PROTOTYPE — Interaction: a continuous interaction process
- * (6th abstraction candidate)
+ * Interaction — the 7th canonical abstraction: a continuous
+ * interaction process (promoted v0.7 by ADR-0018; landed in v0.6
+ * as the Option-B prototype of ADR-0016)
  *
- * Per ADR-0016 (proposed) and continuous-intent-speculation.md
- * Option B. ADR-0006 deferred the continuous-interaction
+ * ADR-0006 deferred the continuous-interaction
  * abstraction to v1.0+ pending evidence; hover_drag_4abs.c supplied
  * that evidence ("INTOLERABLE for complex gesture/touch UIs").
- * This prototype gathers the next round of evidence WITHOUT
- * touching the 5 canonical abstractions — same protocol as the
- * v3 prototype section above.
+ * The prototype kept its landing promise — the then-canonical
+ * abstractions were untouched — and v0.7 promoted it: promotion
+ * adds status, not API (ADR-0018).
  *
  * What it models: a process with identity, trajectory, and outcome.
  *
@@ -1208,7 +1210,8 @@ void            px_interaction_on_cancel(px_interaction* it, px_closure* c);
 void            px_interaction_publish_phase(px_interaction* it, px_estimate* est);
 
 /* ============================================================
- * v0.6 PROTOTYPE — Region + affordance query (intent compilation)
+ * Intent compilation — the 6th canonical abstraction (promoted v0.7
+ * by ADR-0017): region + affordance query
  *
  * A px_region is pure data (geometry + label) — NOT an abstraction.
  * It exists to be the `a` node of an AFFORDS relation:

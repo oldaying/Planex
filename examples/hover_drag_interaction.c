@@ -10,12 +10,12 @@
  *    for complex gesture/touch UIs."
  *
  * ADR-0006's decision protocol says that evidence feeds the next ADR
- * (this one: ADR-0016, proposed). This demo implements the SAME list
- * reorder scenario with the v0.6 prototype — px_interaction (process)
+ * (this one: ADR-0016; promoted by ADR-0018). This demo implements the SAME list
+ * reorder scenario with the v0.6 prototype→v0.7 canonical — px_interaction
  * + px_region/px_afford_at (intent compilation) — and measures the
  * difference:
  *
- *   hover_drag_4abs.c (Estimate hack)   hover_drag_interaction.c (prototype)
+ *   hover_drag_4abs.c (Estimate hack)   hover_drag_interaction.c (v0.6→v0.7)
  *   ---------------------------------   ------------------------------------
  *   6 transient Estimates (HACK 1-3)    1 interaction + 5 regions
  *   2 estimate_set per mouse move       0 estimate writes per sample
@@ -58,7 +58,7 @@ typedef struct {
     px_estimate* item_order[N_ITEMS];   /* order[i] = item at slot i */
     px_graph*    graph;
 
-    /* Continuous interaction process (the v0.6 prototype). */
+    /* Continuous interaction process (the 7th canonical abstraction). */
     px_interaction* drag;
 
     /* Ambient pointer position — a plain struct field, NOT an Estimate.
@@ -224,7 +224,7 @@ static const char* render_status(App* app) {
  * ============================================================ */
 
 int main(void) {
-    printf("Planex hover_drag_interaction — boundary-CLOSING demo (v0.6 prototype)\n");
+    printf("Planex hover_drag_interaction — boundary-CLOSING demo (v0.6 prototype→v0.7 canonical, ADR-0018)\n");
     printf("======================================================================\n");
     printf("Validates: hover+drag+cancel+tap with px_interaction + affordances.\n");
     printf("Counterpart of hover_drag_4abs.c (ADR-0006 evidence → ADR-0016).\n\n");
@@ -423,7 +423,8 @@ int main(void) {
     printf("  - The estimate-write count for the whole session is 2 (one\n");
     printf("    reorder), versus ~O(events) in the old demo.\n");
     printf("  - Cancel is a first-class outcome; gesture is derivable.\n");
-    printf("  - Prototype status: evidence, not promotion. The 5 canonical\n");
-    printf("    abstractions are untouched.\n");
+    printf("  - Status: promoted — the 7th canonical abstraction since\n");
+    printf("    v0.7 (ADR-0018). Samples stay inert; THE INVARIANT is now\n");
+    printf("    normative — test_v06_interaction.c section D enforces it.\n");
     return 0;
 }

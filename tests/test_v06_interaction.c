@@ -1,14 +1,16 @@
 /*
- * test_v06_interaction.c — v0.6 prototype + leak-retire test suite
+ * test_v06_interaction.c — interaction + leak-retire test suite
  *
- * Validates two layers of the v0.6 cycle:
+ * Validates two layers of the v0.6→v0.7 cycle:
  *
- *   A-F. Interaction prototype (6th abstraction candidate, ADR-0016):
+ *   A-F. Interaction (the 7th canonical abstraction, ADR-0018;
+ *        landed v0.6 per ADR-0016):
  *     A. Lifecycle — begin/sample/commit/cancel phase machine
  *     B. Trajectory — ring retention, ordering, measures
  *     C. Bridges — phase hook, commit→Closure, phase→Estimate
  *     D. THE INVARIANT — samples are inert (no observer fan-out,
  *        no perception auto-invoke) — what makes a process NOT state
+ *        (normative since ADR-0018: this section is the enforcement)
  *     E. Region + affordance — intent compilation as graph query
  *     F. Gesture derivation — swipe/cancel from trajectory measures
  *
@@ -704,7 +706,7 @@ static void test_j2_budget_explicit_opt_out(void) {
 int main(void) {
     printf("Planex v0.6 prototype + leak-retire verification\n");
     printf("=================================================\n");
-    printf("Interaction prototype (ADR-0016, proposed) + audit fixes.\n\n");
+    printf("Interaction (7th canonical per ADR-0018; prototype protocol per ADR-0016) + audit fixes.\n\n");
 
     printf("[A] Interaction lifecycle\n");
     TEST(a1_lifecycle_phases);

@@ -2,7 +2,7 @@
 
 > **Status: Authoritative reference for Planex's stance on UI essence.**
 >
-> **Applies to**: v0.4. Layer assignments may shift in future releases if ADR-0009 (Proposed) is accepted (would add Breakdown as a 6th abstraction, prompting re-layering).
+> **Applies to**: v0.8. The six-layer model itself is version-independent; the per-layer implementation census below reflects the seven canonical abstractions (the 6th — intent compilation — and 7th — px_interaction — were promoted in v0.7 by ADR-0017/ADR-0018). ADR-0009's Breakdown-as-6th claim was never admitted: the v3 additions (actor/breakdown/perlocution/interpretant) remain prototype status, and ADR-0010 downgraded the essence-discovery framing to design rationale.
 > Replaces the implicit "3 abstractions = UI essence" framing with an explicit layered model that admits Planex only implements part of UI essence, not all of it.
 
 This document records what UI essence is, in a layered form grounded in academic literature. It is the honest answer to "what is UI fundamentally?" — surveying the question across HCI, cognitive science, philosophy, and computing history.
@@ -165,14 +165,13 @@ It does not specify how affordances evolve or adapt over time (that is Layer 5).
 
 ### Planex status
 
-⚠️ **Partially implemented (seed only).** Planex has `PX_REL_AFFORDS` as a relation kind in its Relation graph — this is a seed of Layer 4. But it is:
+⚠ **Partially implemented — the query half is canonical, the presentation half is not.** v0.7 promoted intent compilation (region + `PX_REL_AFFORDS` + `px_afford_at`/`px_afford_compile`) to the 6th canonical abstraction (ADR-0017): affordances are now a first-class, queryable surface — "which affordance contains (x, y)" and "which closure does this input afford" are graph queries, and the v0.8 a11y focus ring is derived from the AFFORDS graph. What remains open:
 
-- Not a first-class abstraction (just an edge in the graph)
-- Not queryable for "what actions are currently possible"
-- Not used by the rendering to surface affordances to the user
-- Not connected to ready-to-hand concept
+- Rendering does not yet visually differentiate available affordances to the user
+- Ready-to-hand / breakdown (the Heidegger half) remains v3 prototype (`px_breakdown`, not admitted — see ADR-0010)
+- Affordance *adaptation* over time is Layer 5's job, out of scope here
 
-**Layer 4 is acknowledged but not implemented as a first-class abstraction.** See [ADR-0001](../../decisions/superseded/ADR-0001-perception-currently-noop.md) for related discussion of Perception's role here.
+**Layer 4's action-possibilities vocabulary is canonical; its perception-side surfacing is not.** See [ADR-0017](../../decisions/accepted/ADR-0017-intent-compilation-promotion.md) for the promotion record.
 
 ### Source
 
@@ -288,13 +287,13 @@ It does not specify which mediums to support (text, image, sound, simulation, et
 
 ### The honest claim
 
-Planex implements Layers 1–3 of UI essence. It does **not** implement Layers 4, 5, or 6. The README's claim "Relation + Estimate + Closure" addresses Layers 1–3; it does not address the others.
+Planex implements Layers 1–3 of UI essence fully, plus Layer 4's query half (intent compilation — the AFFORDS graph surface). It does **not** implement Layers 5 or 6, nor Layer 4's perception-side surfacing. The README's "seven abstractions" claim addresses exactly this scope; the per-layer census below is the fine print.
 
-When the manifesto says "Planex is built on UI essence", what it actually means is "Planex is built on the cognitive + semantic layers of UI essence". The behavioral, evolutionary, and medium layers are not in scope.
+When the manifesto says "Planex is built on UI essence", what it actually means is "Planex is built on the cognitive + semantic layers of UI essence, plus the behavioral layer's query half (intent compilation)". The behavioral layer's presentation half, and the evolutionary and medium layers, are not in scope.
 
 ### What this changes
 
-Previously, Planex's documentation framed "UI essence" as a single proposition ("intent space ↔ state space semantic interface"). This document corrects that — UI essence is **six nested layers**, and Planex implements three of them.
+Previously, Planex's documentation framed "UI essence" as a single proposition ("intent space ↔ state space semantic interface"). This document corrects that — UI essence is **six nested layers**, and Planex implements Layers 1–3 fully plus Layer 4's query half (intent compilation).
 
 This is more honest for three reasons:
 
@@ -304,9 +303,9 @@ This is more honest for three reasons:
 
 ### What this does NOT change
 
-Planex's three core abstractions (Relation + Estimate + Closure) remain unchanged. They are the implementation of Layers 1–3. The (b) vs (c) decision (see [ADR-0001](../../decisions/superseded/ADR-0001-perception-currently-noop.md)) is about how to implement Layers 1–3 better, not about extending to Layers 4–6.
+Planex's canonical set is seven abstractions (Relation, Estimate, Closure, Perception, px_loop, intent compilation, px_interaction — per ADR-0005/0008/0017/0018). The first five implement Layers 1–3; the 6th (intent compilation) is Layer 4's action-possibilities query. The v0.1-era "three core abstractions" framing this section originally recorded was superseded first by ADR-0005 (Perception) and ADR-0008 (px_loop), then by the v0.7 promotions.
 
-If Planex ever extends to Layer 4 (affordances as first-class abstraction) or Layer 5 (predictive adaptation), that would be a separate ADR — and would likely require new abstractions beyond the current three.
+Extending to Layer 5 (predictive adaptation) remains future work (the v4 derivation's essence #9, deferred); Layer 6 (medium) is explicitly out of scope (see [limitations](../state/limitations.md)).
 
 ---
 
@@ -316,7 +315,7 @@ Where other UI libraries sit on this layered model:
 
 | Library | Layers implemented |
 |---|---|
-| Planex | 1, 2, 3 (with Layer 4 seed) |
+| Planex | 1, 2, 3, 4-query (intent compilation, ADR-0017) |
 | React / Vue / SwiftUI | 1, 2, 3 (no Layer 4 first-class, no 5/6) |
 | Dear ImGui | 1, 2 (limited 3, no 4/5/6) |
 | Qt | 1, 2, 3 + limited 4 (via QAction) |
@@ -327,7 +326,7 @@ Where other UI libraries sit on this layered model:
 
 **No mainstream UI library implements Layers 4–6.** This is not a Planex deficiency — it is an industry-wide gap. Dynamicland is the rare exception, and it requires physical-space hardware (projectors, cameras) that Planex does not target.
 
-Planex is therefore **on par with industry leaders** for Layers 1–3, and **acknowledged-but-not-implementing** for Layers 4–6. This is honest.
+Planex is therefore **on par with industry leaders** for Layers 1–3, holds a first-class Layer 4 affordance query (rare in the industry — the strongest prior claim, CLIM's presentation-typed interaction, died with its host for economic reasons, not because the idea was refuted), and remains **acknowledged-but-not-implementing** for Layers 5–6. This is honest.
 
 ---
 

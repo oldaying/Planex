@@ -274,6 +274,13 @@ This ADR does NOT:
 - 2026-08-29: Proposed (prototype implemented: interaction.c, hit.c,
   test_v06_interaction.c 27/27, hover_drag_interaction.c demo, PX_EV_WHEEL
   on all backends)
+- 2026-08-30: The promotion gates this ADR deliberately deferred were
+  closed by [ADR-0017](../accepted/ADR-0017-intent-compilation-promotion.md)
+  (intent compilation, the 6th) and
+  [ADR-0018](../accepted/ADR-0018-interaction-process-promotion.md)
+  (px_interaction, the 7th). This ADR stays proposed as the historical
+  record of the prototype protocol (ADR-0022's reference note; the
+  ADR-0009 precedent).
 
 ## References
 

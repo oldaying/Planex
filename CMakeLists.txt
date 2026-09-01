@@ -47,8 +47,8 @@ set(CORE_SOURCES
     src/layout.c
     src/actor.c        # v3 prototype (essence derivation v3 / Path B)
     src/breakdown.c    # v3 prototype (essence derivation v3 / Path B)
-    src/interaction.c  # v0.6 prototype (ADR-0016: continuous interaction process)
-    src/hit.c          # v0.6 prototype (ADR-0016: region + affordance query)
+    src/interaction.c  # 7th canonical abstraction (ADR-0018; landed v0.6 as prototype per ADR-0016)
+    src/hit.c          # 6th canonical abstraction (ADR-0017; landed v0.6 as prototype per ADR-0016)
     src/a11y_bridge_atspi.c  # v0.7 L4: AT-SPI2 adapter behind the a11y query-side contract (PX_A11Y_ATSPI)
 )
 
@@ -166,7 +166,7 @@ set(STDOUT_DEMOS
     v3_prototype_actor          # v3: 3-place Relation (actor parameter)
     v3_prototype_perlocution    # v3: Searle level 3 effect-of-utterance
     v3_prototype_interpretant  # v3: Peirce interpretant gap
-    v3_prototype_breakdown     # v3: Zuhandenheit/breakdown (6th abstraction)
+    v3_prototype_breakdown     # v3: Zuhandenheit/breakdown (prototype, not admitted)
 )
 
 foreach(demo ${STDOUT_DEMOS})
@@ -230,11 +230,12 @@ add_executable(test_v05_retire tests/test_v05_retire.c)
 target_link_libraries(test_v05_retire planex_lib)
 add_test(NAME v05_retire_tests COMMAND test_v05_retire)
 
-# v0.6 interaction prototype + leak-retire test suite — validates the
-# 6th abstraction candidate (px_interaction: inert hot path, transitions-
-# only bridges) + the v0.6 retires (confidence predictive loop,
-# representamen free_fn, a11y query side, loop feedback budget).
-# Per ADR-0016 (proposed) + canonical/leak-budgets.md v0.6 retire summary.
+# Interaction + leak-retire test suite — validates the 7th canonical
+# abstraction (px_interaction: inert hot path, transitions-only bridges;
+# section D is THE INVARIANT's normative enforcement per ADR-0018) + the
+# v0.6 retires (confidence predictive loop, representamen free_fn,
+# a11y query side, loop feedback budget).
+# Per ADR-0016 (stays proposed as protocol record) + canonical/leak-budgets.md v0.6 retire summary.
 add_executable(test_v06_interaction tests/test_v06_interaction.c)
 target_link_libraries(test_v06_interaction planex_lib)
 add_test(NAME v06_interaction_tests COMMAND test_v06_interaction)

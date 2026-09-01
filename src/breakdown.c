@@ -1,5 +1,6 @@
 /*
- * breakdown.c — Breakdown (v3 prototype, 6th abstraction)
+ * breakdown.c — Breakdown (v3 prototype — the "6th abstraction" claim was
+ * never admitted: the canonical 6th is intent compilation per ADR-0017)
  *
  * Per Heidegger (1927, Zuhandenheit/Vorhandenheit), Winograd/Flores
  * (1986, Understanding Computers and Cognition), Dourish (2001,

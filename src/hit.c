@@ -1,6 +1,7 @@
 /*
- * hit.c — Region + affordance query (v0.6 prototype: intent compilation;
- * v0.7 Line 1 gains the routing-side compile step, px_afford_compile)
+ * hit.c — Region + affordance query (the 6th canonical abstraction,
+ * ADR-0017; landed in v0.6 as the prototype of ADR-0016; v0.7 Line 1
+ * added the routing-side compile step, px_afford_compile)
  *
  * The missing compile step between PHYSICAL events and SEMANTIC intents.
  *

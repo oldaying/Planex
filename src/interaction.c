@@ -1,14 +1,15 @@
 /*
- * interaction.c — Interaction (v0.6 prototype: 6th abstraction candidate)
+ * interaction.c — Interaction (the 7th canonical abstraction, ADR-0018;
+ * landed in v0.6 as the prototype of ADR-0016, promoted in v0.7)
  *
  * A continuous interaction PROCESS with identity, trajectory, and
  * outcome:
  *
  *     begin(ev) → sample(ev)* → commit(ev) | cancel(reason)
  *
- * This is the Option-B prototype from
- * docs/concepts/speculation/continuous-intent-speculation.md, promoted
- * to code by ADR-0016 (proposed) after hover_drag_4abs.c supplied the
+ * This is the Option-B design from
+ * docs/concepts/speculation/continuous-intent-speculation.md, landed
+ * as a prototype by ADR-0016 (protocol record) after hover_drag_4abs.c supplied the
  * ADR-0006 evidence: the Estimate hack is "INTOLERABLE for complex
  * gesture/touch UIs".
  *
