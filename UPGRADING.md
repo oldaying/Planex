@@ -163,16 +163,21 @@ the v0.5 leak-budget retire that completed the migration.
 
 #### `++ Internal changes:`
 
-- **`src/` restructured** to mirror the four-shipping-abstraction layout:
-  - Before: flat `src/estimates.c`, `src/relations.c`, etc.
-  - After: `src/estimate/`, `src/perception/`, `src/closure/`, `src/relation/`,
-    `src/loop/` — one directory per abstraction
-  - Why: directory structure mirrors the abstraction boundary; a leak in
-    directory structure is now visible as cross-directory `#include` of
-    internal headers
-  - Migration: no caller action; contributor action — update local clones,
-    re-apply any local patches to the new paths
-  - ADR: implicit in ADR-0012 Finding 4
+- **`v4/` clean-room tree added; shipping `src/` unchanged (still flat)**:
+  - Before: all sources flat in `src/` (`src/estimate.c`, `src/relation.c`, ...)
+  - After: shipping sources remain flat in `src/` — the v4 rederivation
+    lives in its own tree: `v4/src/`, `v4/include/planex/`, `v4/tests/`,
+    built as the separate `planex_v4_lib` and **not** linked into
+    `planex_lib`
+  - Why: v4 is a clean-room verification artifact with intentional ABI
+    breaks from shipping Planex (ADR-0012); mixing it into `src/` would
+    pollute the shipping API surface. An earlier draft of this entry
+    described `src/` restructured into per-abstraction directories
+    (`src/estimate/`, `src/perception/`, ...) — that restructure never
+    happened; corrected in the 2026-10 external audit
+  - Migration: no caller action; contributor action — v4 API questions
+    go to `v4/include/planex/`, not `include/planex/`
+  - ADR: [ADR-0012](docs/decisions/accepted/ADR-0012-v4-orthogonality-pressure-test-four-findings.md) Finding 4 lineage
 
 #### `++ Build changes:`
 
