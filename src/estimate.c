@@ -115,6 +115,51 @@ struct px_estimate {
 };
 
 /* ============================================================
+ * Live-estimate registry (undo safety)
+ * ============================================================
+ * Relation edges store raw void* endpoints with no type information,
+ * so "is this TRIGGERS target actually an Estimate?" is unanswerable
+ * from the graph alone. px_undo_record used to blind-cast every target
+ * to px_estimate* and dereference it — a type-confused edge (any
+ * non-Estimate endpoint) or a freed Estimate is immediate UB there.
+ *
+ * The registry answers "is this pointer a live px_estimate?" by
+ * POINTER COMPARISON ONLY — the candidate pointer is never
+ * dereferenced, so neither type confusion nor a dangling pointer
+ * can crash the check itself. Frees unregister, so dead estimates
+ * are rejected even when the graph still holds their address (the
+ * documented dangling-endpoint hazard in relation.c).
+ *
+ * Same pattern as the Perception registry (perception.c
+ * g_perceptions): Planex is single-app single-threaded; undo_record
+ * walks O(live estimates) per snapshot, trivial at app scale.
+ *
+ * Residual limit (documented, not hidden): if a freed estimate's
+ * address is immediately reused by a NEW estimate, the new one is
+ * live and snapshotting it is memory-safe — possibly surprising,
+ * never UB.
+ * ============================================================ */
+
+typedef struct px_estimate_reg_node {
+    px_estimate*                 e;
+    struct px_estimate_reg_node* next;
+} px_estimate_reg_node;
+
+static px_estimate_reg_node* g_estimate_reg = NULL;
+static int                   g_estimate_reg_count = 0;
+
+/* Internal (px__ prefix, cross-TU like px__perception_clear_cache in
+ * feedback.c): true iff p is the address of a currently-live
+ * px_estimate. Never dereferences p. */
+bool px__estimate_is_live(const void* p) {
+    if (!p) return false;
+    for (px_estimate_reg_node* n = g_estimate_reg; n; n = n->next) {
+        if ((const void*)n->e == p) return true;
+    }
+    return false;
+}
+
+/* ============================================================
  * Lifecycle
  * ============================================================ */
 
@@ -131,11 +176,43 @@ px_estimate* px_estimate_new(double value, double confidence) {
     e->observers      = NULL;
     e->derived        = NULL;
     e->recomputing    = false;
+
+    /* Register in the live-estimate list (undo safety). Same
+     * failure discipline as perception.c: if the registry node
+     * cannot be allocated, the estimate is not created at all —
+     * an unregistered estimate would silently weaken px_undo's
+     * safety check, so half-registration is not an option. */
+    px_estimate_reg_node* node =
+        (px_estimate_reg_node*)calloc(1, sizeof(px_estimate_reg_node));
+    if (!node) {
+        free(e);
+        return NULL;
+    }
+    node->e     = e;
+    node->next  = g_estimate_reg;
+    g_estimate_reg = node;
+    g_estimate_reg_count++;
+
     return e;
 }
 
 void px_estimate_free(px_estimate* e) {
     if (!e) return;
+
+    /* Unregister from the live-estimate list BEFORE freeing — from
+     * this point px__estimate_is_live(e) must answer false. */
+    px_estimate_reg_node** pp = &g_estimate_reg;
+    while (*pp) {
+        if ((*pp)->e == e) {
+            px_estimate_reg_node* to_free = *pp;
+            *pp = to_free->next;
+            free(to_free);
+            g_estimate_reg_count--;
+            break;
+        }
+        pp = &((*pp)->next);
+    }
+
     /* Free observers */
     px_observer* o = e->observers;
     while (o) {

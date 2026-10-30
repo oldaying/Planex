@@ -661,6 +661,62 @@ static void test_font_chain_text_renders(void) {
 }
 
 /* ============================================================
+ * Undo safety (2026-10 audit fix: registry-checked snapshots)
+ * ============================================================ */
+
+static void test_undo_skips_non_estimate_target(void) {
+    /* A TRIGGERS edge to a non-Estimate object (here: a stack int)
+     * must be skipped, not blind-cast and dereferenced. Before the
+     * fix this was direct UB (undo.c relied on the convention that
+     * "TRIGGERS edges always point to Estimates"). */
+    px_graph* g = px_graph_new();
+    px_estimate* live = px_estimate_new(5.0, 1.0);
+    int not_an_estimate = 42;
+    px_closure* c = px_closure_new_with_graph(
+        "safety", PX_INTENT_REQUEST, NULL, NULL, NULL, g);
+    assert(c != NULL);
+    assert(live != NULL);
+
+    px_declare(g, c, PX_REL_TRIGGERS, &not_an_estimate); /* type-confused */
+    px_declare(g, c, PX_REL_TRIGGERS, live);             /* healthy */
+
+    int n = px_undo_record(g, c);
+    assert(n == 1);              /* only the live Estimate snapshotted */
+    assert(px_undo_count() == 1);
+
+    px_estimate_set(live, 9.0, 1.0);
+    assert(px_undo() == 1);      /* restore */
+    assert(px_estimate_value(live) == 5.0);
+
+    px_undo_clear();
+    px_estimate_free(live);
+    px_closure_free(c);
+    px_graph_free(g);
+}
+
+static void test_undo_skips_freed_estimate(void) {
+    /* The documented dangling-endpoint hazard (relation.c: px_query
+     * hands back endpoints freed without px_undeclare). A freed
+     * Estimate must be skipped — the live-registry no longer contains
+     * it — and the all-filtered snapshot must not be pushed. */
+    px_graph* g = px_graph_new();
+    px_estimate* dead = px_estimate_new(1.0, 1.0);
+    px_closure* c = px_closure_new_with_graph(
+        "dangling", PX_INTENT_REQUEST, NULL, NULL, NULL, g);
+    assert(c != NULL);
+    assert(dead != NULL);
+
+    px_declare(g, c, PX_REL_TRIGGERS, dead);
+    px_estimate_free(dead);      /* NO px_undeclare — the hazard itself */
+
+    assert(px_undo_record(g, c) == 0);   /* skipped, not dereferenced */
+    assert(px_undo_count() == 0);        /* empty snapshot not pushed */
+
+    px_closure_free(c);
+    px_graph_free(g);
+}
+
+/* ============================================================
  * Main
  * ============================================================ */
 
@@ -716,6 +772,10 @@ int main(void) {
     TEST(font_load_invalid_path);
     TEST(font_default_add_fallback_is_noop);
     TEST(font_chain_text_renders);
+
+    printf("\n[Undo safety (audit fix)]\n");
+    TEST(undo_skips_non_estimate_target);
+    TEST(undo_skips_freed_estimate);
 
     printf("\n-------------------\n");
     printf("%d/%d passed\n", g_tests_pass, g_tests_run);

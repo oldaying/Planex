@@ -24,6 +24,14 @@
  *     the Closure, snapshots those Estimates
  *   - px_undo restores the last snapshot
  *
+ * SAFETY (2026-10 audit fix): Relation edges carry raw void* with no
+ * type information, so a TRIGGERS target is not guaranteed to be an
+ * Estimate. Every target is validated against the live-estimate
+ * registry (px__estimate_is_live, estimate.c) — pointer comparison
+ * only, the candidate is never dereferenced — before being cast and
+ * snapshotted. Non-Estimate and freed targets are skipped; a
+ * snapshot that filtered down to zero entries is not pushed.
+ *
  * The undo stack is GLOBAL (not per-graph). This matches the
  * Perception registry pattern — Planex is single-app.
  *
@@ -41,6 +49,11 @@
 #include "planex/planex.h"
 #include <stdlib.h>
 #include <string.h>
+
+/* Internal cross-TU seam (house pattern: px__perception_clear_cache in
+ * feedback.c). Owned by estimate.c; answers by pointer comparison and
+ * never dereferences the candidate. */
+extern bool px__estimate_is_live(const void* p);
 
 /* ============================================================
  * Snapshot structure
@@ -124,19 +137,33 @@ int px_undo_record(px_graph* g, px_closure* c) {
         return -1;
     }
 
-    /* For each triggered node, if it's an Estimate, snapshot it.
-     * We can't easily tell if a void* is an Estimate — but in practice,
-     * TRIGGERS edges in Planex always point to Estimates. We rely on
-     * this convention. A more robust implementation would use a typed
-     * node system, but that's beyond v0.3 scope. */
+    /* For each triggered node, snapshot it ONLY if it is a live
+     * Estimate (registry-checked, undo-safety fix). Type-confused
+     * edges (any non-Estimate target) and freed Estimates — the
+     * documented dangling-endpoint hazard in relation.c — are
+     * skipped rather than blind-cast into UB. NULL entries likewise.
+     *
+     * Residual limit: an estimate freed and its address immediately
+     * reused by a new estimate IS live — snapshotting the new one is
+     * memory-safe, see the registry comment in estimate.c. */
     int n = 0;
     for (int i = 0; i < triggered.count; i++) {
         px_estimate* est = (px_estimate*)triggered.items[i];
-        if (!est) continue;
+        if (!est || !px__estimate_is_live(est)) continue;
         snap->entries[n].est        = est;
         snap->entries[n].value      = px_estimate_value(est);
         snap->entries[n].confidence = px_estimate_confidence(est);
         n++;
+    }
+
+    if (n == 0) {
+        /* Everything filtered out: nothing to undo. Do not push an
+         * empty snapshot — px_undo_count() would advertise an undo
+         * step that restores nothing. */
+        free(snap->entries);
+        free(snap);
+        px_node_list_free(&triggered);
+        return 0;
     }
     snap->count = n;
 
