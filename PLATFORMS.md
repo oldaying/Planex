@@ -45,23 +45,58 @@ The v0.6 query-side contract (getters, announcement ring, `set_verbose`, `px_a11
 
 ## Demos by Backend
 
-| Demo | X11 | Headless | Win32 | Cocoa |
-|---|---|---|---|---|
-| counter, todo, slider, radio, dropdown, tabs, checkbox, form, wizard, modal | stdout only | ✅ | ✅ | ✅ |
-| counter_fb, slider_fb | BMP output | ✅ | ❓ | ❓ |
-| counter_x11 ... resize_x11 (9 windowed) | ✅ | ✅ headless mode | ❓ | ❓ |
-| animate_x11 | ✅ | ✅ | ❓ | ❓ |
-| perf_x11 | ✅ 55fps@800x600 | ✅ | ❓ | ❓ |
-| text_input_ime (Stage 9) | ⚠️ XIM only | ❌ | ❌ | ❌ |
+### Stdout demos (22) — backend-free by construction
+
+These exercise the abstraction API without a window (text on stdout), so they build and run identically on every backend and in every CI job. All 22 are in BOTH build systems (enforced by Gate 13, `make check-build-sync`).
+
+| Demo | What it exercises |
+|---|---|
+| `counter_4abs` | Canonical multi-abstraction hello world |
+| `multi_perception` | Why Perception is a separate abstraction |
+| `perception_smoke` | Perception Phase 1 API validation (9 tests) |
+| `perception_phase2` | Perception Phase 2 runtime validation (7 tests) |
+| `undo_via_graph` | ADR-0002 Relation-necessity proof (7 tests) |
+| `antipattern_estimate` | Why Estimate is necessary (3 anti-patterns) |
+| `antipattern_closure` | Why Closure is necessary (5 anti-patterns) |
+| `antipattern_perception` | Why Perception is necessary (4 anti-patterns) |
+| `counter_denotative` | Denotative-route single-state prototype (4 tests) |
+| `calculator_denotative` | Denotative-route multi-state prototype (4 tests) |
+| `editor_meaning` | Phenomenological-school prototype |
+| `hover_drag_interaction` | `px_interaction` regression demo (ADR-0018) |
+| `palette_afford` | v0.7 L1: afford-routed app, zero raw-coordinate clicks |
+| `designer_tools` | v0.8 L2: drag-begin afford — drags decided by the graph |
+| `animation_demo` | Time as a first-class dimension |
+| `async_demo` | PROMISE/DECLARE/FAIL intent lifecycle |
+| `confidence_demo` | The confidence field in real use |
+| `integration_4abs` | All abstractions working simultaneously |
+| `v3_prototype_actor` | v3: 3-place Relation (actor parameter) |
+| `v3_prototype_perlocution` | v3: Searle level-3 effect-of-utterance |
+| `v3_prototype_interpretant` | v3: Peirce interpretant gap |
+| `v3_prototype_breakdown` | v3: Zuhandenheit/breakdown (prototype, not admitted) |
+
+### Windowed demos (4) — need a real backend
+
+| Demo | X11 | Headless | Win32 | Cocoa | Notes |
+|---|---|---|---|---|---|
+| `counter_perception_window` | ✅ | ✅ headless mode | ✅ code | ✅ code | Phase 2 capstone — perception-driven window |
+| `counter_interactive` | ✅ | ✅ headless mode | ✅ code | ✅ code | Denotative route with a real window (2 tests) |
+| `hover_drag_4abs` | ✅ | ✅ headless mode | ✅ code | ✅ code | Boundary demo: hover+drag (ADR-0006) |
+| `a11y_orca_demo` | ✅ (needs AT-SPI2 + orca) | ⚠️ query side only | ⚠️ API stub | ⚠️ API stub | v0.8 Cross-cutting A evidence app; driven end-to-end by `scripts/verify_orca_e2e.sh` |
+
+("✅ code" = compiles against that backend, runtime verification wanted — see [How to help](#how-to-help) below.)
+
+The demo table previously listed counter/todo/slider/radio/dropdown/tabs/checkbox/form/wizard/modal, counter_fb/slider_fb, nine `*_x11` windowed demos, animate_x11, perf_x11 and text_input_ime — the v0.3 demo set, deleted in the v0.3 refactor. None of those files exist; the changelog records that a slider demo never existed in this repository at all.
 
 ## What's needed for full coverage
 
-- [ ] Win32 backend runtime tested on real Windows
+- [ ] Win32 backend runtime tested on real Windows (compiles clean under CI `/WX`; only the runtime is unverified)
 - [ ] Cocoa backend runtime tested on real macOS
-- [ ] IME on Win32 (TSF) and Cocoa (NSTextInputClient)
+- [ ] IME runtime verification on Win32 (IMM32, Stage 14 — code-complete) and Cocoa (NSTextInputClient, Stage 14 — code-complete); X11 XIM is verified (Stage 9)
 - [ ] Cross-platform clipboard
-- [ ] HiDPI/Retina support
-- [ ] Accessibility (AT-SPI on Linux, UIA on Windows, AXUIElement on macOS)
+- [ ] Drag & drop
+- [ ] UIA adapter (Windows) and NSAccessibility adapter (macOS) — the AT-SPI2 shape is proven end-to-end; the deferral is capacity, not design
+
+Delivered since this list was last curated (do not re-add): HiDPI/Retina (Stage 15, all backends), AT-SPI2 on Linux (v0.7 Line 4, orca-verified v0.8).
 
 ## How to help
 
@@ -69,7 +104,7 @@ If you have Windows or macOS, please:
 
 1. Clone: `git clone https://github.com/oldaying/Planex.git`
 2. Build: `make BACKEND=win32` (or `cocoa CC=clang`)
-3. Run: `./build/counter_x11` (or `.exe`)
+3. Run: `./build/counter_4abs` (stdout, backend-free) or `./build/counter_perception_window` (windowed)
 4. Report: open an issue with "Backend verification report" template
 
 Even "works for me on Windows 11" comments help us mark the matrix.
