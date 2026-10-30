@@ -21,6 +21,12 @@ name: Docs
 # (check-completeness, check-compression, check-examples,
 # check-essence). All 12 are wired across 5 jobs. Each gate is its own
 # step so the GitHub UI shows which contract broke.
+#
+# Gate 13 (scripts/check_build_sync.sh, `make check-build-sync`) lives
+# in ci.yml's linux-make + strict-warnings jobs instead of here: it
+# guards the BUILD files (Makefile/CMakeLists/examples/), which this
+# workflow's paths filter would not reliably trigger on. Pure shell,
+# no toolchain — same constraint class as the 8 scripts above.
 
 on:
   push:

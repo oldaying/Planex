@@ -161,9 +161,9 @@ A future audit that finds one of these prerequisites broken flips Planex's form 
 
 ---
 
-## The CI contract (12 gates)
+## The CI contract (13 gates)
 
-The doc-organization contract is enforced by 12 CI gates. If any one fails, the PR cannot merge. The gates are listed in `.github/workflows/docs.yml`.
+The doc-organization contract is enforced by 13 CI gates. If any one fails, the PR cannot merge. Gates 1-12 are listed in `.github/workflows/docs.yml`; Gate 13 runs in `.github/workflows/ci.yml` (it guards the build files, which the docs.yml paths filter would not reliably trigger on).
 
 | Gate | What it falsifies |
 |---|---|
@@ -179,6 +179,7 @@ The doc-organization contract is enforced by 12 CI gates. If any one fails, the 
 | 10. `make check-compression` | Planex Compression Metric v0.1: no example AEL > 25.0 (catastrophic) and aggregate LLE > 0.3 |
 | 11. `make check-examples` | Every `examples/X.expected` matches the actual output of `examples/X.c` (timestamps normalized) — closes Wave 4.3 |
 | 12. `make check-essence` | Every ADR with `## Essence Check` section passes ADR-0011's three-criterion admission gate (tradition-cite + real alternatives + negative consequences); the synthetic case `tests/synthetic_adr_0015.md` correctly triggers the lint — closes ADR-0014's `Validated` stage |
+| 13. `make check-build-sync` (`check_build_sync.sh`, ci.yml) | Every `examples/*.c` is in BOTH build lists, every `src/*.c` is referenced by BOTH build systems, no phantom demos, no dead `run-*` targets — machine-enforces CONTRIBUTING.md rule 1, whose 20+-commit CI breakage was previously caught only by humans (the 2026-10 external audit found it drifted in both directions at once) |
 
 Plus the 4 code jobs in `.github/workflows/ci.yml`: 3 build jobs (`linux-cmake`, `linux-make`, `windows`) running `test_core` + `test_orthogonality` + `test_feedback` + `test_v05_retire`, plus a `strict-warnings` job re-running the same test suite under `-Werror`. The `test_completeness` corpus runs in `docs.yml` Gate 9 (not in `ci.yml`) because the 68-pattern corpus is a doc-org concern, not a code-build concern. `test_v3_prototype` and `test_v4_orthogonality` are CMake-built but **not** CI-enforced — they pressure-test v3/v4 proposal-stage designs that are not yet promoted to shipping (per ADR-0009 Proposed + ADR-0012 accepted-but-not-promoted); running them locally requires `cc -std=c17 -I v4/include tests/test_v4_orthogonality.c v4/src/*.c -lm`.
 

@@ -20,6 +20,13 @@
 - [ ] Makefile updated?
 - [ ] examples/README.md updated?
 - [ ] Both build systems pass?
+- [ ] `make check-build-sync` passes? (Gate 13 — since 2026-10 this rule
+      is machine-enforced: every `examples/*.c` in both build lists, every
+      `src/*.c` referenced by both build systems, no dead `run-*` targets.
+      The gate exists because this rule drifted in BOTH directions while
+      the checklist above went unchecked: `hover_drag_interaction` was
+      Makefile-only, eight demos and `actor.c`/`breakdown.c` were
+      CMake-only, and 17 `run-*` targets named deleted demos.)
 
 ---
 

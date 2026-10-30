@@ -157,6 +157,7 @@ set(STDOUT_DEMOS
     counter_denotative    # (c) route single-state prototype (4 tests)
     calculator_denotative # (c) route multi-state prototype (4 tests)
     editor_meaning        # phenomenological school prototype
+    hover_drag_interaction  # px_interaction regression demo (was Makefile-only — build-sync gate 13 catch)
     integration_4abs      # 4 abstractions working simultaneously
     confidence_demo       # confidence field in real use
     animation_demo        # time as first-class dimension

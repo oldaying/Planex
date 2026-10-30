@@ -35,7 +35,8 @@ LDFLAGS += $(FREETYPE_LIBS) $(FONTCONFIG_LIBS)
 CORE_SRCS = $(SRC_DIR)/relation.c $(SRC_DIR)/estimate.c $(SRC_DIR)/closure.c \
 	    $(SRC_DIR)/perception.c $(SRC_DIR)/undo.c $(SRC_DIR)/feedback.c \
             $(SRC_DIR)/fb.c $(SRC_DIR)/font.c $(SRC_DIR)/a11y.c $(SRC_DIR)/layout.c \
-            $(SRC_DIR)/interaction.c $(SRC_DIR)/hit.c $(SRC_DIR)/a11y_bridge_atspi.c
+            $(SRC_DIR)/interaction.c $(SRC_DIR)/hit.c $(SRC_DIR)/a11y_bridge_atspi.c \
+            $(SRC_DIR)/actor.c $(SRC_DIR)/breakdown.c
 CORE_OBJS = $(patsubst $(SRC_DIR)/%.c,$(BUILD)/%.o,$(CORE_SRCS))
 
 # ============================================================
@@ -104,7 +105,9 @@ BACKEND_OBJS := $(patsubst $(SRC_DIR)/%.c,$(BUILD)/%.o,$(filter-out $(SRC_DIR)/a
 EXAMPLES_NO_X11 = counter_4abs multi_perception perception_smoke perception_phase2 \
 	          undo_via_graph antipattern_estimate antipattern_closure antipattern_perception \
                   counter_denotative calculator_denotative editor_meaning hover_drag_interaction \
-		  palette_afford designer_tools
+		  palette_afford designer_tools animation_demo async_demo confidence_demo \
+                  integration_4abs v3_prototype_actor v3_prototype_perlocution \
+                  v3_prototype_interpretant v3_prototype_breakdown
 
 # All X11 demos work on all backends (public API is identical)
 EXAMPLES_WINDOWED = counter_perception_window counter_interactive hover_drag_4abs a11y_orca_demo
@@ -132,7 +135,7 @@ TEST_V08_SRC   = $(TST_DIR)/test_v08.c
 TEST_COMP      = $(BUILD)/test_completeness
 TEST_COMP_SRC  = $(TST_DIR)/test_completeness.c
 
-.PHONY: all clean test test_ortho test_feedback test_v05 test_v06 test_v07 test_v08 check-completeness check-compression check-examples check-essence examples backends-info
+.PHONY: all clean test test_ortho test_feedback test_v05 test_v06 test_v07 test_v08 check-completeness check-compression check-examples check-essence check-build-sync examples backends-info
 
 all: examples test
 
@@ -239,27 +242,16 @@ backends-info:
 # ============================================================
 # Convenience targets (X11 variants)
 # ============================================================
+# Every run-* target must have an examples/<name>.c — enforced by
+# scripts/check_build_sync.sh (Gate 13). The 17 targets naming demos
+# deleted in the v0.3 refactor (todo, slider, radio, dropdown, tabs,
+# checkbox, form, wizard, modal, slider_fb, slider/radio/dropdown/
+# checkbox/form_x11, perf_x11, resize_x11) were removed when that
+# gate landed.
 
 run-counter_4abs: $(BUILD)/counter_4abs ; ./$(BUILD)/counter_4abs
-run-todo:    $(BUILD)/todo    ; ./$(BUILD)/todo
-run-slider:  $(BUILD)/slider  ; ./$(BUILD)/slider
-run-radio:   $(BUILD)/radio   ; ./$(BUILD)/radio
-run-dropdown: $(BUILD)/dropdown ; ./$(BUILD)/dropdown
-run-tabs:    $(BUILD)/tabs    ; ./$(BUILD)/tabs
-run-checkbox: $(BUILD)/checkbox ; ./$(BUILD)/checkbox
-run-form:    $(BUILD)/form    ; ./$(BUILD)/form
-run-wizard:  $(BUILD)/wizard  ; ./$(BUILD)/wizard
-run-modal:   $(BUILD)/modal   ; ./$(BUILD)/modal
 run-multi_perception: $(BUILD)/multi_perception ; ./$(BUILD)/multi_perception
-run-slider_fb:  $(BUILD)/slider_fb  ; ./$(BUILD)/slider_fb
 run-counter_perception_window: $(BUILD)/counter_perception_window ; ./$(BUILD)/counter_perception_window
-run-slider_x11: $(BUILD)/slider_x11 ; ./$(BUILD)/slider_x11
-run-radio_x11: $(BUILD)/radio_x11 ; ./$(BUILD)/radio_x11
-run-dropdown_x11: $(BUILD)/dropdown_x11 ; ./$(BUILD)/dropdown_x11
-run-checkbox_x11: $(BUILD)/checkbox_x11 ; ./$(BUILD)/checkbox_x11
-run-form_x11: $(BUILD)/form_x11 ; ./$(BUILD)/form_x11
-run-perf_x11: $(BUILD)/perf_x11 ; ./$(BUILD)/perf_x11
-run-resize_x11: $(BUILD)/resize_x11 ; ./$(BUILD)/resize_x11
 
 # ============================================================
 # Compression metric - Planex Compression Metric (PCM) v0.1
@@ -322,6 +314,17 @@ check-examples: examples
 check-essence:
 	./scripts/check_essence_admission.sh --check
 	./scripts/check_essence_admission.sh --synthetic
+
+# ============================================================
+# Build-system sync gate (Gate 13) — machine-enforces
+# CONTRIBUTING.md rule 1: every examples/*.c must be declared in
+# BOTH build systems, and every run-* convenience target must point
+# at an existing demo. Pure shell, no toolchain.
+# Run: make check-build-sync
+# ============================================================
+
+check-build-sync:
+	./scripts/check_build_sync.sh --check
 
 clean:
 	rm -rf $(BUILD)

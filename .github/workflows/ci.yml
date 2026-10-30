@@ -37,6 +37,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install deps
         run: sudo apt-get update && sudo apt-get install -y libx11-dev libxext-dev libxft-dev libfontconfig1-dev libfreetype6-dev make
+      - name: Build-system sync gate (Gate 13)
+        # Fails fast, before the toolchain work: every examples/*.c in BOTH
+        # build lists, every src/*.c referenced by both build systems. The
+        # 2026-10 external audit found drift in both directions at once
+        # (hover_drag_interaction Makefile-only; eight demos CMake-only;
+        # actor.c/breakdown.c never in CORE_SRCS) — none visible to the
+        # jobs below until link time, if ever.
+        run: make check-build-sync
       - name: Build (make, headless)
         run: make BACKEND=headless
       - name: Run tests
@@ -109,6 +117,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install deps
         run: sudo apt-get update && sudo apt-get install -y libx11-dev libxext-dev libfreetype6-dev libfontconfig1-dev make
+      - name: Build-system sync gate (Gate 13)
+        run: make check-build-sync
       - name: Build with -Werror
         run: make BACKEND=headless CFLAGS_EXTRA="-Werror"
       - name: Run tests
