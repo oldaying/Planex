@@ -126,6 +126,10 @@ int main(void) {
     px_perception* p_alarm = px_perception_new("alarm_display",
         perceive_alarm, pin, 2, NULL);
     (void)p_temp; (void)p_alarm;
+    /* Denotations are malloc'd strings — register the destructor so
+     * the cached representamen is reclaimed on overwrite and free. */
+    px_perception_set_free_fn(p_temp, free);
+    px_perception_set_free_fn(p_alarm, free);
 
     printf("Initial state:\n");
     printf("  temp=%.1f  conf=%.2f  alarm=%.0f\n\n",

@@ -175,6 +175,10 @@ int main(void) {
     px_perception* p_json = px_perception_new("status_json",
         perceive_json, pin, 1, NULL);
     (void)p_status; (void)p_json;
+    /* Denotations are malloc'd strings — register the destructor so
+     * the cached representamen is reclaimed on overwrite and free. */
+    px_perception_set_free_fn(p_status, free);
+    px_perception_set_free_fn(p_json, free);
 
     printf("Initial state:\n");
     printf("  status=%d (IDLE)\n", (int)px_estimate_value(a.status));

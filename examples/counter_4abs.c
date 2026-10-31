@@ -141,6 +141,12 @@ int main(void) {
         "counter_a11y",
         render_count_to_a11y,
         inputs, 1, NULL);
+    /* The denotations are malloc'd strings, so the perceptions own
+     * them: register the destructor and the framework reclaims each
+     * cached representamen on overwrite and on perception free —
+     * the no-leak pattern the canonical demo exists to show. */
+    px_perception_set_free_fn(text_p, free);
+    px_perception_set_free_fn(a11y_p, free);
 
     printf("Setup:\n");
     printf("  Estimate: count = %.0f\n", px_estimate_value(app.count));

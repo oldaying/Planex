@@ -132,6 +132,10 @@ int main(void) {
         perceive_bar, pin, 2, NULL);
     px_perception* p_status = px_perception_new("completion_status",
         perceive_status, pin, 2, NULL);
+    /* Denotations are malloc'd strings — register the destructor so
+     * the cached representamen is reclaimed on overwrite and free. */
+    px_perception_set_free_fn(p_bar, free);
+    px_perception_set_free_fn(p_status, free);
     (void)p_bar; (void)p_status;
 
     printf("Initial state:\n");

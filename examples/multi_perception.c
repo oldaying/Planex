@@ -164,6 +164,13 @@ int main(void) {
         "json_snapshot", perceive_json, perception_inputs, 2, NULL);
     px_perception* p_log = px_perception_new(
         "log_line", perceive_log, perception_inputs, 2, NULL);
+    /* All four denotations are malloc'd strings — register the
+     * destructor so the framework reclaims each cached representamen
+     * on overwrite and on perception free (the no-leak pattern). */
+    px_perception_set_free_fn(p_visual, free);
+    px_perception_set_free_fn(p_a11y, free);
+    px_perception_set_free_fn(p_json, free);
+    px_perception_set_free_fn(p_log, free);
 
     printf("Registered %d perceptions of the same state:\n",
            px_perception_count());

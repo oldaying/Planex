@@ -104,7 +104,6 @@ int main(void) {
     assert(p1 != NULL);
     assert(px_perception_count() == 1);
     printf("PASS\n");
-
     /* Verify name */
     printf("[test 5] px_perception_name returns correct name ... ");
     assert(strcmp(px_perception_name(p1), "counter_pixels") == 0);
@@ -120,6 +119,12 @@ int main(void) {
     assert(p2 != NULL);
     assert(px_perception_count() == 2);
     printf("PASS (count = %d)\n", px_perception_count());
+
+    /* The denotations are malloc'd strings — registering the
+     * destructor lets the framework reclaim each cached
+     * representamen on overwrite and on perception free. */
+    px_perception_set_free_fn(p1, free);
+    px_perception_set_free_fn(p2, free);
 
     /* Phase 2: px_perceptions_for_estimate returns matching perceptions */
     printf("[test 7] px_perceptions_for_estimate returns 2 matches ... ");

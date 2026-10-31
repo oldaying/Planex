@@ -238,6 +238,11 @@ int main(void) {
     px_perception* pa=px_perception_new("a11y",   p_a11y,   pin, 2, &a);
     px_perception* pj=px_perception_new("json",   p_json,   pin, 2, &a);
     (void)pv;(void)pa;(void)pj;
+    /* Denotations are malloc'd strings — the framework reclaims each
+     * cached representamen on overwrite and on perception free. */
+    px_perception_set_free_fn(pv, free);
+    px_perception_set_free_fn(pa, free);
+    px_perception_set_free_fn(pj, free);
 
     printf("Setup complete. Perceptions: %d\n\n", px_perception_count());
 

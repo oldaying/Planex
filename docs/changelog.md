@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed — the canonical demos never registered their perceptions' free_fn (audit C5): the no-leak pattern existed since v0.6, but no demo showed it
+
+- **The finding**: the v0.6 ownership mechanism (`px_perception_set_free_fn`) frees a perception's cached representamen on overwrite and on perception free — the framework side was complete. But every canonical demo registered perceptions whose functions return `malloc`'d strings and passed no destructor, so each auto-invoke after a state change overwrote a leaked string: the demos taught the exact pattern the mechanism was built to retire. The framework was right; the examples were the bug.
+- **The fix**: seventeen perceptions across seven demos now register their destructor — `counter_4abs` (2), `multi_perception` (4), `integration_4abs` (3), `confidence_demo` (2), `async_demo` (2), `animation_demo` (2), `perception_smoke` (2). The demos whose denotations are not heap objects (`editor_meaning` and the rest) deliberately register nothing — freeing non-heap storage would be the bug those demos avoid by construction.
+- Verification: stdout is byte-identical — `check-examples` 14 PASS / 0 FAIL against every `.expected`. The before/after leak proof: `counter_4abs` at main@4e7ab2a under ASAN with `detect_leaks=1` reports `768 byte(s) leaked in 8 allocation(s)` (four count changes × two perceptions — one dropped string per set per channel) and exits 1; the fixed tree reports no leaks and exits 0. All seven modified demos re-run the same way: zero leaks, exit 0.
+
 ### Fixed — px_loop_replay's snapshot buffer was a 64 KB stack frame (audit C3) — now a heap allocation of exactly n entries
 
 - **The finding**: replay collected its entries into `px_loop_audit_entry entries[PX_LOOP_AUDIT_CAPACITY]` — 1024 entries at 64 bytes each, a 64 KB frame carved onto the caller's stack on every call, whatever the replay size. Harmless under a desktop default stack; fatal on the 4–8 KB stacks of the MCU/RTOS class the library's own positioning names as a target. The embeddability claim and the stack frame contradicted each other in the same function.
