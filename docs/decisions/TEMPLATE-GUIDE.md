@@ -88,6 +88,50 @@ signals "we looked for neutral effects and didn't find any", not "we
 didn't think about it". Reviewer self-check: *did you name at least one
 negative consequence?* An ADR with zero negatives is suspect.
 
+### Refutation Criteria (mandatory for ADR-0024 and later)
+
+Two to five sentences naming the observable evidence that would count
+**against** this decision, where it would show up, and who would notice.
+Write it in future tense at decision time — it is the decision's expiry
+condition, registered before the outcome is known (the same
+predictions-before-implementation rule ADR-0023 applied to its probe).
+
+The three failure modes, in rising order of subtlety:
+
+1. **Absent observable** — "this is wrong if it turns out to be the
+   wrong choice." Nothing was named; nothing can fire. Move the
+   decision to the changelog.
+2. **Unwitnessed observable** — "this is wrong if users are unhappy."
+   Named, but nobody is positioned to notice. A criterion without a
+   witness is a fire alarm nobody can hear; name *where it shows up*
+   (a gate, an audit, a metric, a review artifact in this repo).
+3. **Unfirable criterion** — the observable can never move when the
+   decision is bad. This is the hardest to catch at review; the
+   self-check is "can I imagine the successor ADR citing this exact
+   line as its reason?" If not, rewrite it.
+
+Distinct from Essence Check Q4 (which names the decision's *cost* and
+who can verify the cost) and from `## Validation` (which proves an
+enforcement *mechanism* fires on a synthetic case): this section is
+about the *decision's* evidence-based retirement path.
+
+### Regression Clause (mandatory for ADR-0024 and later)
+
+One to three sentences stating what must NOT silently return if this
+ADR is superseded or deprecated, and what old behavior may survive only
+as a documented special case of the successor. It is the one-way valve
+the deprecation registry enforces for API surface, applied to design
+decisions: an overturned default survives as a *derived theorem* of its
+successor, never as a returning primitive.
+
+The common failure mode is writing a regression clause that only
+restates the Decision. The self-check: *if this ADR is superseded, what
+is the laziest way its default could creep back?* Name that way, and
+forbid it explicitly. Example shape: "a successor may only reopen this
+by naming the measured evidence (see Refutation Criteria), not by
+deleting the constraint and letting [the old default] grow back
+unexamined."
+
 ### Alternatives Considered
 
 At least two alternatives. For each: what it is, why rejected. The common

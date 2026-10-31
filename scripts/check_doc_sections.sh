@@ -8,6 +8,14 @@
 #   scripts/check_doc_sections.sh                # exit non-zero on any missing section
 #   scripts/check_doc_sections.sh --check        # same, but prints drift summary first
 #   scripts/check_doc_sections.sh --report       # always exit 0, print human report
+#   scripts/check_doc_sections.sh --four-column  # --check plus the ADR-0024 discipline:
+#                                                #   ADRs numbered >= 0024 must also carry
+#                                                #   "## Refutation Criteria" and
+#                                                #   "## Regression Clause". Default mode
+#                                                #   is behavior-identical to pre-ADR-0024;
+#                                                #   the flag is opt-in until ADR-0024 is
+#                                                #   promoted to Validated and docs.yml
+#                                                #   passes it.
 #
 # Required ADR sections (every ADR under docs/decisions/{proposed,validated,accepted,deferred,deprecated,superseded}/):
 #   - "## Status"            (lifecycle field)
@@ -18,6 +26,12 @@
 #   - "## CAVEATS"            (what this decision does NOT promise — distinct from alternatives)
 #   - "## HISTORY"           (per-ADR state transition log, mirrors the project-level changelog)
 #   - "## References"         (code paths, related ADRs, external prior art)
+#
+# Four-column sections (ADR-0024 discipline, "--four-column" mode only, ADRs >= 0024):
+#   - "## Refutation Criteria" (the decision's expiry condition — what observable
+#                               evidence would count against it)
+#   - "## Regression Clause"   (the contract a successor ADR inherits if this one is
+#                               superseded or deprecated)
 #
 # "Essence Check" is required only for abstraction-affecting decisions; this script
 # does not enforce it (the TEMPLATE.md note explains the rule).
@@ -33,19 +47,23 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$(pwd)/..")"
 ADR_ROOT="$REPO_ROOT/docs/decisions"
 
 mode="check"
-case "${1:---check}" in
-    --check)  mode="check" ;;
-    --report) mode="report" ;;
-    "")       mode="check" ;;
-    -h|--help)
-        sed -n '2,30p' "$0"
-        exit 0
-        ;;
-    *)
-        echo "Usage: $0 [--check|--report]" >&2
-        exit 2
-        ;;
-esac
+four_column=0
+for arg in "$@"; do
+    case "$arg" in
+        --check)       mode="check" ;;
+        --report)      mode="report" ;;
+        --four-column) four_column=1 ;;
+        "")            mode="check" ;;
+        -h|--help)
+            sed -n '2,36p' "$0"
+            exit 0
+            ;;
+        *)
+            echo "Usage: $0 [--check|--report] [--four-column]" >&2
+            exit 2
+            ;;
+    esac
+done
 
 # Mandatory section headings (literal `## X` matches — anchored at line start,
 # case-sensitive, exactly two leading hashes so `###` sub-headings don't count).
@@ -60,6 +78,17 @@ mandatory=(
     "## HISTORY"
     "## References"
 )
+
+# ADR-0024 four-column sections ("--four-column" mode only). Appended to the
+# per-file requirement for ADRs whose number is >= the threshold below. The
+# number threshold, not a content sniff, is the grandfathering mechanism —
+# ADR-0001..0023 predate the discipline and are exempt by ADR-0024's own
+# When-NOT-to-use section.
+four_column_sections=(
+    "## Refutation Criteria"
+    "## Regression Clause"
+)
+four_column_threshold=24
 
 # Find every ADR markdown file under the 6 lifecycle subdirs.
 adr_files=()
@@ -81,7 +110,19 @@ declare -a report_lines=()
 
 for f in "${adr_files[@]}"; do
     base=$(basename "$f")
-    for sect in "${mandatory[@]}"; do
+    # Per-file required sections: the universal mandatory list, plus (in
+    # --four-column mode) the two ADR-0024 sections for ADRs >= threshold.
+    required=("${mandatory[@]}")
+    if [[ $four_column -eq 1 ]]; then
+        # 10# forces base-10: ADR numbers are zero-padded ("0024"), and bare
+        # [[ -ge ]] would read 8/9-containing numbers as invalid octal — the
+        # exact silent-escape bug the repo's own gate culture exists to catch.
+        adr_num=$(printf '%s' "$base" | grep -oE 'ADR-[0-9]+' | head -n1 | grep -oE '[0-9]+' || printf '0')
+        if (( 10#${adr_num:-0} >= four_column_threshold )); then
+            required+=("${four_column_sections[@]}")
+        fi
+    fi
+    for sect in "${required[@]}"; do
         # Use grep with line-anchored pattern. -E needed for the `^## ` literal.
         if ! grep -qE "^${sect}([[:space:]]|$)" "$f"; then
             missing_total=$((missing_total + 1))
@@ -97,10 +138,17 @@ if [[ ${#report_lines[@]} -gt 0 ]]; then
     echo
     echo "Mandatory sections (per docs/decisions/TEMPLATE.md):"
     for s in "${mandatory[@]}"; do echo "  - $s"; done
+    if [[ $four_column -eq 1 ]]; then
+        echo "  (+ ${four_column_sections[0]} and ${four_column_sections[1]} for ADR-$(printf "%04d" ${four_column_threshold}) and later — ADR-0024 four-column mode)"
+    fi
     echo
     echo "See: docs/doc-organization.md Part IX (Principle 11) for the rationale."
 else
-    echo "check_doc_sections: all ${#adr_files[@]} ADR file(s) have all ${#mandatory[@]} mandatory sections."
+    if [[ $four_column -eq 1 ]]; then
+        echo "check_doc_sections: all ${#adr_files[@]} ADR file(s) have all mandatory sections (four-column mode: ADR-$(printf "%04d" ${four_column_threshold}) and later also checked for ${four_column_sections[0]} and ${four_column_sections[1]})."
+    else
+        echo "check_doc_sections: all ${#adr_files[@]} ADR file(s) have all ${#mandatory[@]} mandatory sections."
+    fi
 fi
 
 if [[ "$mode" == "report" ]]; then
