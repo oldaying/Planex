@@ -332,6 +332,37 @@ static void test_e2_replay_more_than_stored(void) {
     px_estimate_free(e);
 }
 
+static void test_e3_replay_full_ring(void) {
+    /* 2026-10 audit (C3): the snapshot buffer is heap-allocated for
+     * exactly n entries instead of a 64 KB stack array. This test
+     * locks the maximum-n path — fill the 1024-entry ring past full,
+     * then replay more than the ring holds. The observable contract
+     * is unchanged: clamp to capacity, replay in chronological order,
+     * every entry re-triggering once. */
+    px_estimate* e = px_estimate_new(0, 1.0);
+    px_closure* c = px_closure_new("inc", PX_INTENT_REQUEST,
+        on_inc, eval_true, e);
+    px_estimate* srcs[] = { e };
+    px_perception* p = px_perception_new("p", perceive_count, srcs, 1, NULL);
+
+    px_loop* loop = px_loop_new(c, p);
+
+    /* 1100 steps into a 1024-entry ring: the first 76 are gone. */
+    for (int i = 0; i < 1100; i++) {
+        px_loop_step(loop, NULL, 0);
+    }
+    assert(px_loop_audit_count(loop) == 1024);
+
+    /* Ask for 5000 — clamps to the 1024 the ring still holds. */
+    int replayed = px_loop_replay(loop, 5000);
+    assert(replayed == 1024);
+
+    px_loop_free(loop);
+    px_perception_free(p);
+    px_closure_free(c);
+    px_estimate_free(e);
+}
+
 /* ============================================================
  * F. Essence — what Feedback enables that 4 abstractions alone can't
  * ============================================================ */
@@ -461,6 +492,7 @@ int main(void) {
     printf("\n[E] Replay\n");
     TEST(e1_replay_last_n);
     TEST(e2_replay_more_than_stored);
+    TEST(e3_replay_full_ring);
 
     printf("\n[F] Essence — what Feedback enables\n");
     TEST(f1_audit_visibility);

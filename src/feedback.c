@@ -413,11 +413,26 @@ int px_loop_replay(px_loop* loop, int n) {
 
     int stored = px_loop_audit_count(loop);
     if (n > stored) n = stored;
+    if (n > PX_LOOP_AUDIT_CAPACITY) n = PX_LOOP_AUDIT_CAPACITY;
+    if (n == 0) return 0;
 
     /* Read the last n entries (most recent first), then replay
-     * them in chronological order. */
-    px_loop_audit_entry entries[PX_LOOP_AUDIT_CAPACITY];
-    if (n > PX_LOOP_AUDIT_CAPACITY) n = PX_LOOP_AUDIT_CAPACITY;
+     * them in chronological order.
+     *
+     * The snapshot buffer is heap-allocated for exactly n entries
+     * (2026-10 audit, C3): the previous form declared a
+     * PX_LOOP_AUDIT_CAPACITY-sized array — 1024 entries x 64 bytes,
+     * a 64 KB frame — on the caller's stack on every call, whatever
+     * the replay size. Harmless under a desktop default stack; fatal
+     * on the 4-8 KB stacks of the MCU/RTOS class the library's own
+     * positioning names as a target. n is already clamped to what
+     * the ring actually holds, so the allocation is bounded by real
+     * history, not by capacity. On allocation failure replay degrades
+     * to "nothing replayed" (returns 0) rather than crashing the
+     * caller's thread. */
+    px_loop_audit_entry* entries =
+        (px_loop_audit_entry*)malloc((size_t)n * sizeof(px_loop_audit_entry));
+    if (!entries) return 0;
 
     /* Collect in chronological order: from (n-1) most recent down to 0,
      * then reverse to get oldest-first. */
@@ -466,6 +481,7 @@ int px_loop_replay(px_loop* loop, int n) {
         }
         replayed++;
     }
+    free(entries);
     return replayed;
 }
 
