@@ -541,7 +541,12 @@ static void test_g4_no_prediction_no_surprise(void) {
 
 static int g_freed_representamens = 0;
 static void free_counting(void* rep) {
-    (void)rep;
+    /* Free for real: the test asserts the destructor is INVOKED,
+     * ASAN asserts it actually reclaims. A counter that drops the
+     * pointer passes the assert while leaking 5 x 64B — exactly
+     * what ASAN caught on main (audit follow-up to the probe's
+     * pre-existing-leak note). */
+    free(rep);
     g_freed_representamens++;
 }
 
