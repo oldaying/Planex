@@ -243,7 +243,7 @@ int main(void) {
         char label[32];
         snprintf(label, sizeof(label), "item %s", item_labels[i]);
         app.item_region[i] = px_region_new(
-            px_rect_make(ITEM_X, ITEM_Y_START + i * ITEM_H, ITEM_W, ITEM_H),
+            px_rect_make(ITEM_X, (float)(ITEM_Y_START + i * ITEM_H), ITEM_W, ITEM_H),
             label);
     }
 
