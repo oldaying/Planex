@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed — test_h1's counting destructor dropped the pointer it was counting (the suite's one ASAN leak, 320B/5 allocs)
+
+- **The finding**: the probe's verification run flagged test_v06_interaction as leaking 320B in 5 allocations under ASAN (`detect_leaks=1`) — byte-identical signature on main, so noted there as pre-existing and out of scope. Root cause, found this round: the h1 harness's `free_counting` destructor incremented its counter and **discarded the representamen pointer** — `(void)rep;` — without freeing it. The framework side is innocent and vindicated: `px_perception_set_free_fn` invoked the destructor exactly 5 times (4 on cache overwrite + 1 at perception free, which is what the `g_freed_representamens == 5` assert proves), and the test's own `perceiving_malloc` handed it 5 x 64B that its destructor then threw away. The test measured *invocation* while claiming to test *reclamation*; the assert cannot see the difference, ASAN can.
+- **The fix**: one line — `free(rep)` before the counter increment. The test now proves both halves: the destructor fires (assert) and actually reclaims (ASAN clean).
+- Verification: `make test` 39/39 with the fix; ASAN (address+undefined, `-fno-sanitize-recover=undefined`, `detect_leaks=1`) on test_v06_interaction exits 0 with no SUMMARY — the leak that existed on main since the h1 section landed is gone; `free_counting` has a single call site (h1 only), so no other test's semantics change.
+
 ### Fixed — round-2 audit doc corrections (D5, D6, D7, D9, D10): five claims that contradicted the tree they live in
 
 - **D5 — `px_loop`'s home file, three ways.** `abstraction-form.md` enforced the abstraction↔file binding through `src/loop.c`; `leak-budgets.md` section 5 headed the same abstraction `src/app.c`; `architecture.md` (correct) says neither — `px_loop_step`/`px_loop_replay` live in `src/feedback.c`, and `loop.c` exists only in the v4 proposal tree. The two stale pointers now name `src/feedback.c`, with the proposal-tree trap called out inline. A reader following the file-structure claim to find the loop's implementation now lands on the file that contains it.
