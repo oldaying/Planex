@@ -91,9 +91,9 @@ The decision here is narrowly scoped: the runtime core library is C17 with zero 
 ## Known issues
 
 - **Issue**: No memory safety. Buffer overflows, use-after-free, double-free are all possible in Planex code. A single forgotten `px_*_free` call leaks; an inverted pointer arithmetic corrupts.
-- **Why accepted**: memory safety would require Rust (rejected per Alternative 1) or a garbage collector (incompatible with embedded targets and the zero-deps constraint). The cost is mitigated by careful review, the orthogonality test suite, and `valgrind`/ASAN in CI.
+- **Why accepted**: memory safety would require Rust (rejected per Alternative 1) or a garbage collector (incompatible with embedded targets and the zero-deps constraint). The cost is mitigated by careful review, the orthogonality test suite, and UBSan in CI (static-analysis Gate 3: strict mode, `-fno-sanitize-recover`, over the full suite and every example).
 - **Tracking**: permanent cost for v1.x. A future Planex 2.0 in Rust or with a safe-subset linter could close this; not pursued in v1.x.
-- **Mitigation**: every public API documents ownership transfer; the test suite (78 tests) exercises free-path coverage; ASAN is enabled in CI builds.
+- **Mitigation**: every public API documents ownership transfer; the test suite (163 test functions across 7 binaries, plus the 75-check pattern-completeness gate) exercises free-path coverage; UBSan strict runs in CI. ASAN runs locally during audits, not in CI — a leak-detecting tier would currently fail on the interpretant prototype's documented by-design leak (feedback.c); the canonical demos' perception-referent leaks were retired in the 2026-10 external-audit push. (Corrected 2026-10: this line previously claimed "ASAN is enabled in CI builds" and the Why-accepted line cited "valgrind/ASAN in CI" — neither sanitizer has ever run in any workflow; audit finding D8.)
 
 - **Issue**: No RAII. Cleanup is explicit (`px_*_free`); users can leak. Demos and examples carry the cognitive load of remembering free order.
 - **Why accepted**: RAII requires C++ (rejected per Alternative 3) or a non-trivial cleanup-attribute hack (GCC extension, not portable). The cost is manual discipline.
@@ -110,6 +110,7 @@ The decision here is narrowly scoped: the runtime core library is C17 with zero 
 - 2026-08-24: Proposed
 - 2026-08-24: Accepted
 - 2026-08-28: Confirmed still-Accepted at v0.5 cycle close; C17 + zero-deps contract intact; no supersession, no deprecation
+- 2026-10-31: Known-issues mitigation record corrected (audit D8): the ASAN/valgrind-in-CI claim never matched any workflow; the sanitizer tier that exists is UBSan strict. The decision itself (C17, zero deps) is unchanged — only the mitigation record was brought back to reality.
 
 ## References
 

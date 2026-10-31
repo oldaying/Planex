@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed — ADR-0004's Known-issues record claimed "ASAN is enabled in CI builds" (audit D8): no workflow has ever run ASAN
+
+- **The finding**: ADR-0004's first Known issue carried two claims that matched no workflow — the Why-accepted line cited "`valgrind`/ASAN in CI", and the Mitigation line asserted "the test suite (78 tests) exercises free-path coverage; ASAN is enabled in CI builds". Neither sanitizer exists in any workflow; the sanitizer tier that does exist is UBSan strict (static-analysis Gate 3: `-fno-sanitize-recover`, full suite plus every example). The "78 tests" count was stale by a factor of two.
+- **The correction**: the record now states what runs — 163 test functions across 7 binaries plus the 75-check pattern-completeness gate, UBSan strict in CI, ASAN locally during audits. Why ASAN is not a CI tier yet is stated rather than papered over: a leak-detecting tier would currently fail on the interpretant prototype's documented by-design leak (the canonical demos' perception-referent leaks are retired in this same push). The decision itself — C17, zero deps — is untouched; a HISTORY entry records the correction with its date and cause.
+- Verification: ADR section structure intact (Gate 1's 9 mandatory sections), lifecycle state unchanged (Accepted, still matches its directory), doc gates replayed locally, and the 163/7-binary/75-check figures re-counted from this push's green runs.
+
 ### Fixed — the canonical demos never registered their perceptions' free_fn (audit C5): the no-leak pattern existed since v0.6, but no demo showed it
 
 - **The finding**: the v0.6 ownership mechanism (`px_perception_set_free_fn`) frees a perception's cached representamen on overwrite and on perception free — the framework side was complete. But every canonical demo registered perceptions whose functions return `malloc`'d strings and passed no destructor, so each auto-invoke after a state change overwrote a leaked string: the demos taught the exact pattern the mechanism was built to retire. The framework was right; the examples were the bug.
