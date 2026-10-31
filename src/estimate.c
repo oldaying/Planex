@@ -63,6 +63,11 @@ typedef struct px_observer {
 /* Forward declaration — used by px_estimate_value() before full definition */
 static void notify(px_estimate* e);
 
+/* Forward declaration — px_estimate_free's derived teardown unsubscribes
+ * from sources before freeing the derived state; the definition lives
+ * with the derived machinery below. */
+static void derived_on_source_changed(px_estimate* src, void* user);
+
 /* Forward decl */
 struct px_estimate;
 
@@ -220,10 +225,23 @@ void px_estimate_free(px_estimate* e) {
         free(o);
         o = next;
     }
-    /* Free derived state */
+    /* Free derived state. The derived-dies-first order: unsubscribe
+     * from every source that is still live BEFORE freeing the state.
+     * A source freed before us took its whole observer list —
+     * including our node — with it, so only live sources still hold
+     * a subscription to remove; the registry check compares pointers
+     * and never dereferences, which makes it safe against exactly
+     * the dangling entries it exists to skip. */
     if (e->derived) {
-        free(e->derived->sources);
-        free(e->derived);
+        px_derived_state* st = e->derived;
+        for (int i = 0; i < st->n_sources; i++) {
+            if (px__estimate_is_live(st->sources[i])) {
+                px_estimate_unobserve(st->sources[i],
+                                      derived_on_source_changed, e);
+            }
+        }
+        free(st->sources);
+        free(st);
     }
     free(e);
 }
@@ -484,6 +502,32 @@ void px_estimate_observe(px_estimate* e, px_estimate_observer fn, void* user) {
     e->observers = o;
 }
 
+/* Unsubscribe: remove and free the FIRST observer node whose (fn, user)
+ * pair matches — the exact inverse of one px_estimate_observe call.
+ * Returns true if a node was removed, false when no such pair is
+ * registered (including the NULL-e and NULL-fn cases).
+ *
+ * This is the primitive both death orders needed: px_derived_remove_source
+ * calls it so a removed source stops notifying the derived, and
+ * px_estimate_free calls it so a dying derived stops subscribing to its
+ * still-live sources. Before it existed, the subscription outlived
+ * whichever of the two died first — the use-after-free the source
+ * comment used to file under "known limitation". */
+bool px_estimate_unobserve(px_estimate* e, px_estimate_observer fn, void* user) {
+    if (!e || !fn) return false;
+    px_observer** pp = &e->observers;
+    while (*pp) {
+        if ((*pp)->fn == fn && (*pp)->user == user) {
+            px_observer* dead = *pp;
+            *pp = dead->next;
+            free(dead);
+            return true;
+        }
+        pp = &(*pp)->next;
+    }
+    return false;
+}
+
 /* ============================================================
  * Derived estimate (Stage 3 — automatic dependency tracking)
  *
@@ -674,12 +718,13 @@ int px_derived_remove_source(px_estimate* derived, px_estimate* source) {
     }
     st->n_sources--;
 
-    /* Note: we don't un-observe the source because px_estimate_observe
-     * doesn't support removal. The source's observer list will still
-     * have a dangling pointer. This is a known limitation — Stage 20
-     * can add px_estimate_unobserve(). For now, apps should free the
-     * source estimate AFTER removing it from derived, which clears
-     * the observer list entirely. */
+    /* Unsubscribe BEFORE recomputing: the source's observer list must
+     * not outlive this array entry. One remove_source call reverses
+     * exactly one subscription — a source added twice is removed and
+     * unsubscribed twice. (Until px_estimate_unobserve existed, the
+     * node stayed on the source's list as a dangling pointer: a later
+     * set on the source recompute'd a derived that might be freed.) */
+    px_estimate_unobserve(source, derived_on_source_changed, derived);
 
     /* Recompute without this source */
     px_derived_recompute(derived);

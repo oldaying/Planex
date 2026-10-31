@@ -246,6 +246,18 @@ bool         px_estimate_is_animating(const px_estimate* e);
  * is called on every px_estimate_set(). */
 void         px_estimate_observe(px_estimate* e, px_estimate_observer fn, void* user);
 
+/* Unsubscribe a (fn, user) pair previously registered with
+ * px_estimate_observe: removes and frees the FIRST matching observer
+ * node — the exact inverse of one observe call. Returns true if a
+ * node was removed, false when the pair is not registered.
+ *
+ * This is the observer-lifecycle primitive the derived machinery
+ * relies on: px_derived_remove_source unsubscribes when a source
+ * leaves a derived, and px_estimate_free unsubscribes a dying
+ * derived from its still-live sources. Without it, the subscription
+ * outlived whichever of the two died first. */
+bool         px_estimate_unobserve(px_estimate* e, px_estimate_observer fn, void* user);
+
 /* v0.6: predictive-coding loop — confidence gains a framework-side
  * consumer (Friston: "state as posterior estimate").
  *

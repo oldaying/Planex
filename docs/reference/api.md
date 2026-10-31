@@ -157,6 +157,22 @@ void on_count_changed(px_estimate* e, void* user) {
 px_estimate_observe(count, on_count_changed, NULL);
 ```
 
+### px_estimate_unobserve
+
+```c
+bool px_estimate_unobserve(px_estimate* e, px_estimate_observer fn, void* user);
+```
+
+Unsubscribe a `(fn, user)` pair previously registered with `px_estimate_observe` — removes and frees the first matching observer node, the exact inverse of one observe call. **Returns:** true if a node was removed, false when the pair is not registered.
+
+This is the observer-lifecycle primitive the derived machinery relies on: `px_derived_remove_source` unsubscribes when a source leaves a derived, and `px_estimate_free` unsubscribes a dying derived from its still-live sources.
+
+```c
+px_estimate_observe(count, on_count_changed, &app);
+/* ... later, on teardown: */
+px_estimate_unobserve(count, on_count_changed, &app);
+```
+
 ### px_now_ms
 
 ```c
@@ -229,9 +245,9 @@ px_derived_add_source(remaining, todo->done);
 int px_derived_remove_source(px_estimate* derived, px_estimate* source);
 ```
 
-Remove a source from a dynamic derived estimate. Automatically recomputes.
+Remove a source from a dynamic derived estimate. Unsubscribes the derived from the source, then recomputes.
 
-**Note:** The source estimate should be freed AFTER calling this (to clear observer lists).
+**Note:** The subscription is reversed on removal — the source stops notifying the derived immediately. Freeing a retired source after removal remains the documented ordering (a derived's source array must not outlive its sources), but the observer list holds no dangling node in either order.
 
 **Returns:** 0 on success, -1 if source not found.
 

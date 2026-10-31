@@ -717,6 +717,98 @@ static void test_undo_skips_freed_estimate(void) {
 }
 
 /* ============================================================
+ * Observer lifecycle (2026-10 audit fix: px_estimate_unobserve)
+ * ============================================================ */
+
+static int g_unobs_hits;
+static void unobs_hit(px_estimate* e, void* user) {
+    (void)e; (void)user;
+    g_unobs_hits++;
+}
+
+static void test_unobserve_removes_subscription(void) {
+    px_estimate* e = px_estimate_new(0, 1.0);
+    g_unobs_hits = 0;
+    px_estimate_observe(e, unobs_hit, NULL);
+    px_estimate_set(e, 1.0, 1.0);
+    assert(g_unobs_hits == 1);
+    assert(px_estimate_unobserve(e, unobs_hit, NULL) == true);
+    px_estimate_set(e, 2.0, 1.0);
+    assert(g_unobs_hits == 1);    /* the subscription is gone */
+    assert(px_estimate_unobserve(e, unobs_hit, NULL) == false);
+    px_estimate_free(e);
+}
+
+static void test_unobserve_first_match_only(void) {
+    /* The same (fn, user) pair registered twice: one unobserve removes
+     * exactly one node — the mirror of one observe call. */
+    px_estimate* e = px_estimate_new(0, 1.0);
+    g_unobs_hits = 0;
+    px_estimate_observe(e, unobs_hit, NULL);
+    px_estimate_observe(e, unobs_hit, NULL);
+    px_estimate_set(e, 1.0, 1.0);
+    assert(g_unobs_hits == 2);
+    assert(px_estimate_unobserve(e, unobs_hit, NULL) == true);
+    px_estimate_set(e, 2.0, 1.0);
+    assert(g_unobs_hits == 3);    /* one node survives */
+    px_estimate_free(e);
+}
+
+static void test_remove_source_unsubscribes(void) {
+    /* The source-dies-later order: a source removed from a derived
+     * must stop recomputing it. Witnessed through an observer on the
+     * derived (every recompute fires px_estimate_set on it) — value
+     * equality alone cannot tell the dangling path from the clean
+     * one, because recomputing without the removed source yields the
+     * same number on both paths. */
+    px_estimate* a = px_estimate_new(10, 1.0);
+    px_estimate* b = px_estimate_new(20, 1.0);
+    px_estimate* srcs[] = { a, b };
+    px_estimate* d = px_derived_new(sum_sources, NULL, srcs, 2);
+    assert(px_estimate_value(d) == 30.0);
+
+    g_unobs_hits = 0;
+    px_estimate_observe(d, unobs_hit, NULL);
+    assert(px_derived_remove_source(d, a) == 0);   /* recompute: d = 20 */
+    assert(g_unobs_hits == 1);
+    assert(px_estimate_value(d) == 20.0);
+
+    g_unobs_hits = 0;
+    px_estimate_set(a, 1000.0, 1.0);   /* the REMOVED source moves */
+    assert(g_unobs_hits == 0);         /* no recompute: unsubscribed */
+    px_estimate_set(b, 5.0, 1.0);      /* a LIVE source moves */
+    assert(g_unobs_hits == 1);         /* recompute: d = 5 */
+    assert(px_estimate_value(d) == 5.0);
+
+    px_estimate_free(d);
+    px_estimate_free(a);
+    px_estimate_free(b);
+}
+
+static void test_derived_death_unsubscribes(void) {
+    /* The derived-dies-first order: freeing the derived must remove
+     * its subscriptions from the sources, so later sets on the
+     * sources never call back into freed memory. Before the fix this
+     * was the use-after-free the source comment filed under "known
+     * limitation"; under ASAN this test is its proof. */
+    px_estimate* a = px_estimate_new(1, 1.0);
+    px_estimate* b = px_estimate_new(2, 1.0);
+    px_estimate* srcs[] = { a, b };
+    px_estimate* d = px_derived_new(sum_sources, NULL, srcs, 2);
+    assert(px_estimate_value(d) == 3.0);
+
+    px_estimate_free(d);              /* derived dies FIRST */
+
+    g_unobs_hits = 0;                 /* the sources still work */
+    px_estimate_observe(a, unobs_hit, NULL);
+    px_estimate_set(a, 42.0, 1.0);
+    assert(g_unobs_hits == 1);
+    px_estimate_set(b, 43.0, 1.0);    /* used to recompute freed memory */
+    px_estimate_free(a);
+    px_estimate_free(b);
+}
+
+/* ============================================================
  * Main
  * ============================================================ */
 
@@ -776,6 +868,12 @@ int main(void) {
     printf("\n[Undo safety (audit fix)]\n");
     TEST(undo_skips_non_estimate_target);
     TEST(undo_skips_freed_estimate);
+
+    printf("\n[Observer lifecycle (audit fix)]\n");
+    TEST(unobserve_removes_subscription);
+    TEST(unobserve_first_match_only);
+    TEST(remove_source_unsubscribes);
+    TEST(derived_death_unsubscribes);
 
     printf("\n-------------------\n");
     printf("%d/%d passed\n", g_tests_pass, g_tests_run);
