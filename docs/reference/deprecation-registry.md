@@ -12,7 +12,7 @@
 
 This document is the single source of truth for APIs that have been deprecated or removed. It exists for two reasons:
 
-1. **Reader lookup** — a user encountering `px_closure_get_status` in old example code can look here to find the replacement and the ADR that decided the removal.
+1. **Reader lookup** — a user encountering `px_closure_get_status` in old example code can look here to find the replacement and the ADR that decided the deprecation or removal.
 2. **Falsifier for retire discipline** — the registry grows monotonically. A retire that does not appear here is an incomplete retire; CI can flag any `git rm` of a public symbol whose name is not in this registry. (CI hook is the same shape as the auto-generated ADR index in `scripts/gen_adr_index.sh` — see Part VI of [`doc-organization.md`](../doc-organization.md).)
 
 The registry does NOT track:
@@ -41,7 +41,7 @@ The distinction matters: a "deprecated" API will eventually be removed; a "diagn
 
 | API | Status | Deprecated / removed when | Replacement | Rationale | ADR |
 |-----|--------|---------------------------|-------------|----------|-----|
-| `px_closure_get_status(c)` | removed | v4 design | `px_perlocution_status(per)` | Operational status is perlocutionary (effect on the world), not illocutionary (the speech act itself). Mixing them in one accessor was an L2 leak: Closure's illocutionary status got conflated with perlocutionary operational status, eroding the Closure/Perlocution boundary that ADR-0012 orthogonality pressure-test exposed. | [ADR-0012](../decisions/accepted/ADR-0012-v4-orthogonality-pressure-test-four-findings.md) Finding 3 |
+| `px_closure_get_status(c)` | deprecated | v4 design (ADR-0012; **still shipping and callable through v0.7** — removal lands with the v4 ABI break, it has not happened) | `px_perlocution_status(per)` *(v4 proposal API — does not ship yet; until v4, the shipping accessor remains the way to read closure status)* | Operational status is perlocutionary (effect on the world), not illocutionary (the speech act itself). Mixing them in one accessor was an L2 leak: Closure's illocutionary status got conflated with perlocutionary operational status, eroding the Closure/Perlocution boundary that ADR-0012 orthogonality pressure-test exposed. The v4 design retires it at the ABI break; per this registry's own state vocabulary that is **deprecated** (still callable, removal at a future boundary), not removed — the earlier "removed" status recorded a design intent as a landed fact (audit D7). | [ADR-0012](../decisions/accepted/ADR-0012-v4-orthogonality-pressure-test-four-findings.md) Finding 3 |
 | `px_perception_invoke_all()` | diagnostic seam | n/a (v0.5 retire of L2 leak) | (kept for testing/debugging) | Phase 2 auto-invocation landed in v0.5 (closing the L2 leak where Perception was a no-op that callers had to invoke manually). The manual invoke functions remain as a diagnostic seam: tests and debugging benefit from being able to trigger Perception outside the auto-invocation path. Removing them would break tests without cleaning up any abstraction-eroding leak. | [ADR-0013](../decisions/accepted/ADR-0013-v05-leak-budget-retire.md) |
 | `px_perception_invoke_single(...)` | diagnostic seam | n/a | (kept) | Same as above. | [ADR-0013](../decisions/accepted/ADR-0013-v05-leak-budget-retire.md) |
 | `px_perception_invoke_for_estimate(e)` | diagnostic seam | n/a | (kept) | Same as above. | [ADR-0013](../decisions/accepted/ADR-0013-v05-leak-budget-retire.md) |
