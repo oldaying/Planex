@@ -20,6 +20,11 @@ freshness: { owner: "github-handle", reviewed: "YYYY-MM-DD" }
 > Perception) or their semantics. For purely engineering decisions (new
 > backend, build system change, etc.), that section may be omitted, but the
 > other sections below are still required.
+>
+> The "Refutation Criteria" and "Regression Clause" sections are **mandatory
+> for ADR-0024 and every later ADR** (per ADR-0024, the four-column
+> discipline). ADR-0001..0023 predate the discipline and are exempt; new
+> ADRs may not be.
 
 ## Status of This Memo
 
@@ -158,6 +163,45 @@ If you cannot think of any counterexamples, write "None identified" — but be h
 
 ### Neutral
 - ...
+
+## Refutation Criteria (mandatory for ADR-0024 and later)
+
+> Research basis: Popper's demarcation — a statement that no possible
+> observation could count against is not an empirical claim (*Conjectures
+> and Refutations*, 1963, ch. 1 "Science: Conjectures and Refutations").
+> Adapted for ADRs by ADR-0024: a decision is falsifiable only if the
+> evidence that would count against it is written down **before** the
+> decision is accepted — the same predictions-before-implementation rule
+> ADR-0023 applied to its probe. Distinct from `## Validation` (which
+> proves an **enforcement mechanism** fires on a synthetic case) and from
+> Essence Check Q4 (which names the decision's **cost** and who can verify
+> it): this section names the decision's **expiry condition**.
+
+[2-5 sentences naming the observable evidence that would count against
+this decision, where it would show up, and who would notice. Example:
+"This decision is wrong if the leak-budget audits of the next two cycles
+show L1 leaks regrowing in call sites that adopted this pattern — the
+place that shows up is `scripts/compression_metric.sh`, and the ADR that
+replaces this one must cite those audit runs." If genuinely no observable
+evidence could count against the decision, it is a taste preference, not
+an engineering decision — move it to the changelog, not the ADR.]
+
+## Regression Clause (mandatory for ADR-0024 and later)
+
+> Research basis: ADR-0024, importing the regression-test discipline from
+> the project's 2026-10 research notes (an overturned default may survive
+> only as a **derived theorem** of its successor, never as a returning
+> primitive — the same one-way valve the deprecation registry enforces for
+> API surface). If this ADR is ever superseded or deprecated, this section
+> is the contract its successor inherits.
+
+[1-3 sentences stating what must NOT silently return if this decision is
+overturned, and what old behavior may survive only as a documented special
+case. Example: "If a successor reopens this decision, the two-section
+contract survives for every ADR it still governs; the successor may only
+exempt ADRs by naming them and citing the measured review-cost evidence —
+not by deleting the sections from TEMPLATE.md and letting new ADRs grow up
+unfalsifiable again."]
 
 ## Alternatives Considered
 
