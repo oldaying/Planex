@@ -75,6 +75,12 @@ Planex's Perception abstraction makes multiple denotations **first-class**. This
 
 Counterpart of `hover_drag_4abs.c` (the boundary-EXPOSING demo per ADR-0006). Same list-reorder scenario with the process abstraction: hover as region query, drag as inert trajectory, cancel as first-class outcome, tap-vs-drag by measure, swipe derivable. 130 events → 2 estimate writes (5 of 7 HACKs retired). Ran in CI via `make check-examples`.
 
+### Semantic Drift Probe (`semantic_drift_probe.c`)
+
+**The ADR-0023 evidence probe: can a running process change its MEANING mid-flight?**
+
+One deterministic gesture (press → drag in a list → cross into a trash margin → release) implemented three ways: bridge repointing (`px_interaction_on_commit` rebinds the live process at the drift boundary), hook compilation (the phase hook compiles the outcome from the trajectory + a mode field), and the classical event-model control (mode flags consulted per handler, anchor reset amputating the trajectory, hand-rolled undo). Measurements printed against predictions registered in the ADR before implementation: zero core edits (P1), one continuous 37-sample trajectory with 21 pre-drift samples retained (P2), two independent undo steps from one gesture (P3), zero estimate writes during samples including across the drift (P4). An ESC-after-drift segment shows cancel scoped to the unresolved remainder. Lock in `test_v06_interaction.c` section [K]. Ran in CI via `make check-examples`.
+
 ### Palette with Afford Routing (`palette_afford.c`)
 
 **The real-application evidence for intent compilation (abstraction 6, ADR-0017).**

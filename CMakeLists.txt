@@ -158,6 +158,7 @@ set(STDOUT_DEMOS
     calculator_denotative # (c) route multi-state prototype (4 tests)
     editor_meaning        # phenomenological school prototype
     hover_drag_interaction  # px_interaction regression demo (was Makefile-only — build-sync gate 13 catch)
+    semantic_drift_probe    # ADR-0023: mid-flight semantic reinterpretation probe
     integration_4abs      # 4 abstractions working simultaneously
     confidence_demo       # confidence field in real use
     animation_demo        # time as first-class dimension

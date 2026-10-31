@@ -700,6 +700,203 @@ static void test_j2_budget_explicit_opt_out(void) {
 }
 
 /* ============================================================
+ * K. Semantic drift (ADR-0023) — mid-flight reinterpretation
+ *
+ * The probe's claims, test-locked: the commit bridge of a LIVE
+ * process can be repointed without process death; the trajectory
+ * stays one continuous record across the rebind; one gesture can
+ * leave two independently-undoable effects; THE INVARIANT holds
+ * through the drift; cancel after a rebind kills only the
+ * unresolved remainder.
+ * ============================================================ */
+
+/* Counters driven by the drift-section closures. */
+static int g_k_commit_a = 0;
+static int g_k_commit_b = 0;
+static int g_k_cancel   = 0;
+
+static void k_on_commit_a(px_intent i, void* u) { (void)i; (void)u; g_k_commit_a++; }
+static void k_on_commit_b(px_intent i, void* u) { (void)i; (void)u; g_k_commit_b++; }
+static void k_on_cancel(px_intent i, void* u)   { (void)i; (void)u; g_k_cancel++; }
+
+static void test_k1_rebind_mid_flight_fires_rebound_closure(void) {
+    g_k_commit_a = 0; g_k_commit_b = 0;
+    px_closure* a = px_closure_new("semantics a", PX_INTENT_DECLARE,
+                                   k_on_commit_a, eval_true, NULL);
+    px_closure* b = px_closure_new("semantics b", PX_INTENT_DECLARE,
+                                   k_on_commit_b, eval_true, NULL);
+    px_interaction* it = px_interaction_new("drift", 16);
+
+    px_int_sample s = mk_sample(0.0, 0.0, 0.0);
+    px_interaction_sample(it, &s);              /* auto-begin */
+    px_interaction_on_commit(it, a, NULL, 0);   /* first binding */
+
+    /* THE DRIFT: repoint the live process's commit bridge. */
+    px_int_sample mid = mk_sample(1.0, 5.0, 5.0);
+    px_interaction_sample(it, &mid);
+    px_interaction_on_commit(it, b, NULL, 0);   /* the rebind */
+    assert(px_interaction_phase(it) == PX_INT_ACTIVE);  /* never died */
+
+    px_int_sample end = mk_sample(2.0, 9.0, 9.0);
+    px_interaction_sample(it, &end);
+    px_interaction_commit(it);
+
+    assert(g_k_commit_a == 0);   /* the first binding is gone */
+    assert(g_k_commit_b == 1);   /* the REBOUND closure fired  */
+
+    px_interaction_free(it);
+    px_closure_free(a);
+    px_closure_free(b);
+}
+
+static void test_k2_trajectory_is_one_record_across_rebind(void) {
+    g_k_commit_a = 0; g_k_commit_b = 0;
+    px_closure* a = px_closure_new("a", PX_INTENT_DECLARE, k_on_commit_a, eval_true, NULL);
+    px_closure* b = px_closure_new("b", PX_INTENT_DECLARE, k_on_commit_b, eval_true, NULL);
+    px_interaction* it = px_interaction_new("drift", 64);
+
+    int total_before = 0;
+    for (int i = 0; i < 30; i++) {
+        px_int_sample s = mk_sample((double)i, (double)i, 1.0);
+        px_interaction_sample(it, &s);
+        if (i == 19) {
+            total_before = px_interaction_total(it);
+            px_interaction_on_commit(it, b, NULL, 0);   /* rebind mid-stream */
+        }
+    }
+    px_interaction_commit(it);
+
+    assert(px_interaction_total(it) == 30);          /* monotone, no reset */
+    assert(px_interaction_stored(it) == 30);
+    assert(total_before == 20);
+    /* The ring spans BOTH segments: the pre-rebind samples are
+     * still queryable after the commit. */
+    const px_int_sample* first = px_interaction_at(it, 0);
+    const px_int_sample* last  = px_interaction_last(it);
+    assert(first != NULL && first->x == 0.0);        /* segment one */
+    assert(last  != NULL && last->x == 29.0);        /* segment two */
+    /* One trajectory, not two: the measure reads across the seam. */
+    assert(px_interaction_displacement(it) == 29.0);
+    assert(px_interaction_path_length(it) == 29.0);
+
+    px_interaction_free(it);
+    px_closure_free(a);
+    px_closure_free(b);
+}
+
+static void test_k3_one_gesture_two_undo_steps(void) {
+    px_graph* g = px_graph_new();
+    px_estimate* e1 = px_estimate_new(1.0, 1.0);
+    px_estimate* e2 = px_estimate_new(2.0, 1.0);
+    g_observer_fires = 0;
+    px_estimate_observe(e1, counting_observer, NULL);
+    px_estimate_observe(e2, counting_observer, NULL);
+
+    px_closure* c1 = px_closure_new_with_graph("first effect",
+        PX_INTENT_DECLARE, on_inc, eval_true, e1, g);
+    px_closure* c2 = px_closure_new_with_graph("second effect",
+        PX_INTENT_DECLARE, on_inc, eval_true, e2, g);
+    px_declare(g, c1, PX_REL_TRIGGERS, e1);
+    px_declare(g, c2, PX_REL_TRIGGERS, e2);
+
+    px_interaction* it = px_interaction_new("drift", 16);
+    px_interaction_on_commit(it, c2, NULL, 0);   /* the eventual binding */
+
+    px_int_sample s = mk_sample(0.0, 0.0, 0.0);
+    px_interaction_sample(it, &s);               /* begin */
+
+    px_undo_clear();
+    px_undo_set_enabled(true);
+
+    /* Effect one fires at the drift boundary (app policy, direct
+     * trigger); effect two fires at commit through the bridge. */
+    px_closure_trigger(c1, NULL, 0);
+    px_interaction_commit(it);
+
+    assert(px_undo_count() == 2);                /* two registry steps */
+    assert(g_observer_fires == 2);               /* both at transitions */
+
+    px_undo();                                    /* peel effect two */
+    assert(px_estimate_value(e2) == 2.0);
+    assert(px_estimate_value(e1) == 2.0);
+    px_undo();                                    /* peel effect one */
+    assert(px_estimate_value(e1) == 1.0);
+    assert(px_undo_count() == 0);
+
+    px_undo_set_enabled(false);
+    px_interaction_free(it);
+    px_closure_free(c1);
+    px_closure_free(c2);
+    px_estimate_free(e1);
+    px_estimate_free(e2);
+    px_graph_free(g);
+}
+
+static void test_k4_invariant_holds_across_the_drift(void) {
+    /* THE INVARIANT, stressed through a rebind: samples stay inert
+     * even when the interpretation changes between them. */
+    g_k_commit_a = 0; g_k_commit_b = 0;
+    px_closure* a = px_closure_new("a", PX_INTENT_DECLARE, k_on_commit_a, eval_true, NULL);
+    px_closure* b = px_closure_new("b", PX_INTENT_DECLARE, k_on_commit_b, eval_true, NULL);
+    px_interaction* it = px_interaction_new("drift", 16);
+    px_interaction_on_commit(it, a, NULL, 0);
+
+    g_observer_fires = 0;
+    px_estimate* e = px_estimate_new(0.0, 1.0);
+    px_estimate_observe(e, counting_observer, NULL);
+
+    int fires_before = 0;
+    for (int i = 0; i < 20; i++) {
+        px_int_sample s = mk_sample((double)i, (double)i, 0.0);
+        if (i == 10) {
+            px_interaction_on_commit(it, b, NULL, 0);   /* mid-stream */
+            fires_before = g_observer_fires;
+        }
+        px_interaction_sample(it, &s);
+        assert(g_observer_fires == fires_before);  /* nothing fired */
+    }
+    assert(px_interaction_phase(it) == PX_INT_ACTIVE);
+    assert(g_observer_fires == 0);                 /* inert throughout */
+
+    px_interaction_commit(it);
+    assert(g_k_commit_b == 1);
+
+    px_interaction_free(it);
+    px_closure_free(a);
+    px_closure_free(b);
+    px_estimate_free(e);
+}
+
+static void test_k5_cancel_after_rebind_scopes_to_remainder(void) {
+    g_k_cancel = 0; g_k_commit_b = 0;
+    px_closure* a  = px_closure_new("a", PX_INTENT_DECLARE, k_on_commit_a, eval_true, NULL);
+    px_closure* b  = px_closure_new("b", PX_INTENT_DECLARE, k_on_commit_b, eval_true, NULL);
+    px_closure* cc = px_closure_new("cancel", PX_INTENT_EXPRESS, k_on_cancel, eval_true, NULL);
+    px_interaction* it = px_interaction_new("drift", 16);
+    px_interaction_on_commit(it, a, NULL, 0);
+    px_interaction_on_cancel(it, cc);   /* the bridge does not own it */
+
+    px_int_sample s = mk_sample(0.0, 0.0, 0.0);
+    px_interaction_sample(it, &s);
+    px_interaction_on_commit(it, b, NULL, 0);      /* drift: now b */
+
+    px_int_sample mid = mk_sample(1.0, 5.0, 5.0);
+    px_interaction_sample(it, &mid);
+    px_interaction_cancel(it, "esc after drift");
+
+    assert(px_interaction_phase(it) == PX_INT_CANCELLED);
+    assert(g_k_cancel == 1);        /* the cancel bridge fired once */
+    assert(g_k_commit_a == 0);      /* neither commit binding fired  */
+    assert(g_k_commit_b == 0);      /* the remainder died unresolved */
+    assert(strcmp(px_interaction_cancel_reason(it), "esc after drift") == 0);
+
+    px_interaction_free(it);
+    px_closure_free(a);
+    px_closure_free(b);
+    px_closure_free(cc);
+}
+
+/* ============================================================
  * Main
  * ============================================================ */
 
@@ -755,6 +952,13 @@ int main(void) {
     TEST(j1_budget_audit_dimensions);
     TEST(j2_budget_explicit_opt_out);
 
+    printf("\n[K] Semantic drift (ADR-0023)\n");
+    TEST(k1_rebind_mid_flight_fires_rebound_closure);
+    TEST(k2_trajectory_is_one_record_across_rebind);
+    TEST(k3_one_gesture_two_undo_steps);
+    TEST(k4_invariant_holds_across_the_drift);
+    TEST(k5_cancel_after_rebind_scopes_to_remainder);
+
     printf("\n----------------\n");
     printf("%d/%d passed\n", g_tests_pass, g_tests_run);
     printf("\nWhat this suite closes:\n");
@@ -764,5 +968,7 @@ int main(void) {
     printf("  - representamen leak: free_fn ownership\n");
     printf("  - a11y: assertable query side (bridges still stubbed)\n");
     printf("  - feedback: iteration_ms + budget in the audit\n");
+    printf("  - semantic drift: live rebind, one trajectory, two-step\n");
+    printf("    undo, invariant across the drift, scoped cancel\n");
     return (g_tests_pass == g_tests_run) ? 0 : 1;
 }

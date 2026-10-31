@@ -1,0 +1,60 @@
+Planex semantic_drift_probe — ADR-0023, the B→C stress test
+======================================================================
+Question: can the MEANING of a running process change while the
+trajectory continues — without new API, without process death,
+without losing undo granularity, without breaking inertness?
+Predictions P1-P5 were registered in ADR-0023 BEFORE this run.
+
+[A] bridge repointing — one live process, rebound mid-flight
+    estimate writes: 3 total, 0 during samples (P4)
+    bridge rebinds: 1; mode consults: 0
+    trajectory: 37 samples, 180px path, 21 pre-drift
+    samples retained (P2)
+    undo steps from one gesture: 2 (P3)
+    slot1=4 slot4=-1 (swapped then trashed)
+    undo #1 -> slot4=1 (trash peeled, reorder stands)
+    undo #2 -> slot1=1 slot4=4 (original order)
+
+[B] hook compilation — mode field + trajectory, no rebind
+    estimate writes: 3 total, 0 during samples (P4)
+    mode switches: 1 (consulted 1 time, at the outcome)
+    trajectory: 37 samples, 180px path, 21 pre-drift
+    samples retained (P2)
+    undo steps from one gesture: 2 (P3)
+    undo x2 -> slot1=1 slot4=4 (original order)
+
+[C] classical control — mode machine + anchor reset
+    mode consults: 37 (one per handler entry); switches: 1
+    anchor resets at drift: 1 — pre-drift samples
+    retained: 0 of 21 (the trajectory is amputated)
+    state mutations on the move path: 75 (2 per move)
+    trajectory the encoding can still reason about: 15
+    samples, 36px path (vs 37 samples for A and B)
+    undo: 2 steps, hand-rolled stack (not the registry)
+    undo x2 -> slot1=1 slot4=4 (original order)
+
+[A-esc] ESC after drift — cancel scoped to the remainder
+    phase: CANCELLED (reason "esc after drift")
+    undo steps: 1 (the crossing reorder ONLY — the
+    pending trash semantics died with the cancel)
+    slot2=4 slot4=2 (reorder stands, no trash)
+    undo() -> slot2=2 slot4=4 (original order)
+
+----------------------------------------------------------------------
+PREDICTION VERDICTS (ADR-0023)
+  P1 API closure     : PASS — this file compiled against the
+                       shipping header; zero core edits.
+  P2 continuity      : PASS — 37 samples, 21 pre-drift retained,
+                       one trajectory across the boundary (A and B).
+  P3 undo granularity: PASS — one gesture, two registry steps,
+                       independently restorable (A and B).
+  P4 the invariant   : PASS — 0 estimate writes during samples,
+                       drift included (A and B).
+  P5 classical cost  : MEASURED — 37 mode consults, anchor reset
+                       amputating 21 samples, manual undo stack.
+
+Verdict per ADR-0023's rule: the B→C criterion does NOT trigger
+on the reinterpretation axis. Option C's open territory narrows
+to strength/gradient — untested here by construction.
+
+=== semantic_drift_probe complete ===
