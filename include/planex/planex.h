@@ -6,11 +6,17 @@
  * An experiment: what if a UI library's core abstractions were
  * Relation + Estimate + Closure, not Component + State + Event?
  *
- * Three core abstractions:
+ * Seven core abstractions (v0.7 — the founding three plus ADR-0008/0017/0018):
  *   - Relation: basic existence (UI is a network, not a tree)
  *   - Estimate: state with time + uncertainty
- *   - Closure:  7-stage interaction unit (Goal→Intent→Action→
- *               Execution→Perception→Interpretation→Evaluation)
+ *   - Closure:  5-stage execution unit (Goal→Intent→Action→
+ *               Execution→Evaluation; ADR-0005 moved Norman's
+ *               evaluation side into the Perception abstraction)
+ *   - Perception: presentation, the machine → human direction
+ *   - px_loop (Feedback): closed-loop control with a time budget
+ *   - intent compilation (hit.c): pointer/key events → typed intent
+ *   - px_interaction: continuous interaction process (trajectory,
+ *               bridges, phase estimate)
  *
  * These come from:
  *   - Cognitive science (Norman 7-stage model, Friston predictive coding)
@@ -18,8 +24,10 @@
  *   - Alternative UI history (Sketchpad 1963, Garnet interactor,
  *     Genera presentation types)
  *
- * Status: Stage 0 — validating abstractions via stdout.
- * Pixel rendering comes in Stage 1.
+ * Status: v0.7.0 — stdout + windowed demos (X11/Win32/Cocoa) and a
+ * headless backend, an AT-SPI2 a11y bridge behind its flag, and a
+ * UBSan-strict CI battery. The current map is
+ * docs/concepts/state/architecture.md.
  *
  * Quick start:
  *
