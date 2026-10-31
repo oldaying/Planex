@@ -81,6 +81,8 @@ v0.1 had Relation's necessity unproven. v0.3 implemented undo-via-graph (`exampl
 
 ## v0.4 Roadmap
 
+> **Historical section — the v0.4 plan of record, retained as written.** The current plan of record is [v0.8-roadmap.md](v0.8-roadmap.md). Phases below carry outcome annotations where reality diverged; the matrix above tracks what actually shipped.
+
 With the matrix all green, v0.4 focuses on **breadth and robustness**, not new abstractions.
 
 ### Phase 1: Real application demo (highest priority)
@@ -105,13 +107,15 @@ Current bitmap font (8×16 ASCII) doesn't scale on HiDPI displays (125%/150%). T
 
 **Estimated effort**: 1 week.
 
-### Phase 3: More widget demos (new API)
+### Phase 3: More widget demos (new API) — NOT TAKEN (ruled out by NG-5)
 
 Recreate slider, form, tabs, modal, todo_app using the new 4-abstraction API. These were deleted in the v0.3 redesign.
 
 **Goal**: prove the 4 abstractions can express all common widget types.
 
 **Estimated effort**: 1 week (each widget ~1 day).
+
+**Outcome: abandoned — the repository decided the opposite.** [NG-5](../canonical/non-goals.md) holds that Planex ships no component library: widgets *emerge* from the abstractions, and `examples/` contains reference implementations, not roadmap deliverables. The "4-abstraction" phrasing above is the v0.4-era count (7 since v0.7).
 
 ### Phase 4: v1.0 preparation
 
