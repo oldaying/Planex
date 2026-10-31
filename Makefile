@@ -106,7 +106,7 @@ EXAMPLES_NO_X11 = counter_4abs multi_perception perception_smoke perception_phas
 	          undo_via_graph antipattern_estimate antipattern_closure antipattern_perception \
                   counter_denotative calculator_denotative editor_meaning hover_drag_interaction \
 		  palette_afford designer_tools animation_demo async_demo confidence_demo \
-                  integration_4abs v3_prototype_actor v3_prototype_perlocution \
+                  integration_4abs semantic_drift_probe v3_prototype_actor v3_prototype_perlocution \
                   v3_prototype_interpretant v3_prototype_breakdown
 
 # All X11 demos work on all backends (public API is identical)

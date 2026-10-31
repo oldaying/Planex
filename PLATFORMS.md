@@ -45,9 +45,9 @@ The v0.6 query-side contract (getters, announcement ring, `set_verbose`, `px_a11
 
 ## Demos by Backend
 
-### Stdout demos (22) — backend-free by construction
+### Stdout demos (23) — backend-free by construction
 
-These exercise the abstraction API without a window (text on stdout), so they build and run identically on every backend and in every CI job. All 22 are in BOTH build systems (enforced by Gate 13, `make check-build-sync`).
+These exercise the abstraction API without a window (text on stdout), so they build and run identically on every backend and in every CI job. All 23 are in BOTH build systems (enforced by Gate 13, `make check-build-sync`).
 
 | Demo | What it exercises |
 |---|---|
@@ -63,6 +63,7 @@ These exercise the abstraction API without a window (text on stdout), so they bu
 | `calculator_denotative` | Denotative-route multi-state prototype (4 tests) |
 | `editor_meaning` | Phenomenological-school prototype |
 | `hover_drag_interaction` | `px_interaction` regression demo (ADR-0018) |
+| `semantic_drift_probe` | ADR-0023: mid-flight semantic reinterpretation (the B→C stress test) |
 | `palette_afford` | v0.7 L1: afford-routed app, zero raw-coordinate clicks |
 | `designer_tools` | v0.8 L2: drag-begin afford — drags decided by the graph |
 | `animation_demo` | Time as a first-class dimension |
