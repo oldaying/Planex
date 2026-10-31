@@ -7,7 +7,7 @@ Post-ADR-0005 redesign (commit c24bbcab57): the previous 25 3-abstraction-era de
 Demos are categorized into three tiers:
 
 - **Tier 1 — Canonical demos**: built and run, validate the abstraction API (7 abstractions since v0.7)
-- **Tier 2 — Prototype demos**: not in build, use pre-ADR-0005 API, kept as research reference
+- **Tier 2 — Prototype demos**: in build and snapshot-gated where stdout, pre-ADR-0005-era prototypes kept as research reference (migrated to the current API)
 - **Tier 3 — Smoke tests**: built and run, validate API surface
 
 See [roadmap-matrix.md](../docs/concepts/state/roadmap-matrix.md) for the matrix view.
@@ -127,9 +127,9 @@ Three color swatches + reset, all four regions on the AFFORDS graph: the focus r
 
 ---
 
-## Tier 2 — Prototype demos (NOT in build, kept as research reference)
+## Tier 2 — Prototype demos (in build, migrated to the current API)
 
-These demos still use the pre-ADR-0005 `px_closure_new` signature (6-arg with perception parameter). They are **not in the CMake build** because they would fail to compile. They are kept as research reference and will be migrated to the new API in subsequent commits.
+These demos were written against the pre-ADR-0005 `px_closure_new` signature (6-arg with perception parameter) and have since been migrated — they compile against the current constructor and are built by **both** build systems: CMake `STDOUT_DEMOS` / `WINDOWED_DEMOS` and the Makefile's `EXAMPLES` set, with the stdout demos snapshot-gated byte-identical by `make check-examples`. They are kept as research reference — route prototypes and school prototypes — distinct from Tier 1's canonical-abstraction demos.
 
 ### Counter Denotative (`counter_denotative.c`)
 
