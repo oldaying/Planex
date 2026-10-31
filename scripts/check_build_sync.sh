@@ -37,7 +37,9 @@
 #   scripts/check_build_sync.sh --report   # print drift, always exit 0
 #
 # Pure shell (no toolchain) — same constraint class as the docs.yml
-# gates, so it can run in any job.
+# gates, so it can run in any job. Portable coreutils only (grep/sed/
+# awk/tr/comm): the first landing called ripgrep, which the CI image
+# does not carry (run 41179280419, "rg: command not found").
 
 set -u
 
@@ -73,7 +75,7 @@ on_disk="$(ls examples/*.c 2>/dev/null | sed 's|examples/||; s|\.c$||' | sort -u
 makefile_lists() {
     sed -e ':a' -e '/\\$/N' -e 's/\\\n[ \t]*/ /g' -e 'ta' Makefile \
       | awk -F'= ' '/^EXAMPLES_NO_X11[ ]*=/ || /^EXAMPLES_WINDOWED[ ]*=/ {print $2}' \
-      | tr ' ' '\n' | sed 's/#.*//' | rg -v '^$' | sort -u
+      | tr ' ' '\n' | sed 's/#.*//' | grep -v '^$' | sort -u
 }
 mk_listed="$(makefile_lists)"
 
@@ -136,7 +138,7 @@ fi
 dead_runs=""
 while IFS= read -r target; do
     [ -f "examples/${target}.c" ] || dead_runs="$dead_runs${target}\n"
-done < <(rg -o '^run-[a-z0-9_]+' Makefile | sed 's/^run-//' | sort -u)
+done < <(grep -oE '^run-[a-z0-9_]+' Makefile | sed 's/^run-//' | sort -u)
 if [ -n "$dead_runs" ]; then
     echo "BUILD-SYNC FAIL: Makefile run-* targets with no examples/<name>.c:"
     printf "$dead_runs" | sed 's/^/    /'
@@ -151,11 +153,11 @@ fi
 # ---------------------------------------------------------------
 for f in src/*.c; do
     base="$(basename "$f")"
-    if ! rg -q "$base" Makefile; then
+    if ! grep -q "$base" Makefile; then
         echo "BUILD-SYNC FAIL: $f is not referenced by the Makefile (missing from CORE_SRCS / BACKEND_SRCS?)"
         fail=1
     fi
-    if ! rg -q "$base" CMakeLists.txt; then
+    if ! grep -q "$base" CMakeLists.txt; then
         echo "BUILD-SYNC FAIL: $f is not referenced by CMakeLists.txt (missing from CORE_SOURCES / BACKEND_SOURCES?)"
         fail=1
     fi
