@@ -171,7 +171,7 @@ Leaks are categorized into two tiers because not all leaks are equally damaging 
 
 **Honest assessment:** L2 = 0% (was 50% at v0.4). All three Perception L2 leaks retired by Phase 2 auto-invocation. The invoke ops remain in the public API as diagnostic seams (testing, debugging, view-only refresh outside a `px_loop`), but their existence is no longer evidence of abstraction incompleteness — they are now optional, not required. This closes [`limitations.md`](../state/limitations.md) L1 (Perception Phase 2 pending).
 
-### 5. `px_loop` — `src/app.c` (Feedback essence category, v0.4)
+### 5. `px_loop` — `src/feedback.c` (Feedback essence category, v0.4)
 
 **Public operations (9):**
 

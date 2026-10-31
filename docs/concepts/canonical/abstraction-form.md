@@ -73,7 +73,7 @@ The 5 shipping abstractions (v0.4) each bind exactly one constitutive question, 
 - `src/perception.c` — answers "what is the world?"
 - `src/closure.c` — answers "what completed?"
 - `src/relation.c` — answers "what is connected to what?"
-- `src/loop.c` — answers "when does control yield?"
+- `src/feedback.c` — answers "when does control yield?" (`px_loop`; `src/loop.c` exists only in the v4 proposal tree)
 
 Orthogonality is empirically supported: each abstraction has its own test file (`tests/test_*.c`), denotation parallelizes across channels (pixel / a11y / audit log) without coordination, and intent serializes to a value that can be replayed. The test suite in `tests/test_orthogonality.c` exists precisely to catch leakage early. The leak budget per abstraction is now quantified in [`leak-budgets.md`](leak-budgets.md) — current v0.5 L2 (semantic-leak) rate is **3.8% overall** (was 17% at v0.4; ADR-0013 v0.5 leak-budget retire closed 7 leaks — 4 in Estimate, 3 in Perception), with Relation at 0%, Closure at 8%, `px_loop` at 9%, Estimate at 0% (was 24%, retired 4), and Perception at 0% (was 50%, retired 3). The remaining 2 L2 leaks (1 in Closure + 1 in `px_loop`) are tracked with v0.6 retire targets. The full v0.4 → v0.5 leak audit is in [`leak-budgets.md`](leak-budgets.md) §1–§5 + the "v0.5 retire summary" section; the falsifiability gate (`make check-compression` + `tests/test_v05_retire.c` run in CI as Gate 9 + ci.yml `test_v05_retire` respectively) catches any regression that re-introduces a retired leak.
 
