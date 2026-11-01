@@ -73,12 +73,13 @@ static void calc_get(const calc* c, uint16_t rid, char* out, size_t cap)
     out[0] = 0;
     now = if5_now(c->w);
     v = if5_state_at(c->w, rid, &now, NULL);
-    for (i = 0; i < 8 && i < (int)cap - 1; i++) {
+    for (i = 0; i < 8; i++) {
         uint8_t b = (uint8_t)(v >> (8 * i));
         if (!b) break;
+        if (i >= (int)cap - 1) break;          /* room for the terminator */
         out[i] = (char)b;
-        out[i + 1] = 0;
     }
+    out[i < (int)cap - 1 ? i : (int)cap - 1] = 0;
 }
 
 static void press_digit(calc* c, char d)
