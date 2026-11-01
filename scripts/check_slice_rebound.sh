@@ -133,11 +133,24 @@ for i in "${!v5_patterns[@]}"; do
     fi
 done
 
+# --- the mechanism-layer ban (ADR-0027 Decision 6) --------------
+# The px_interaction invariant, statically enforced at its v5
+# seat: if5_process_sample's body may not submit, append, or
+# debit — samples fan out to nothing, ever. The body is extracted
+# with awk (from the function's opening line to the first
+# column-0 closing brace) and scanned with the same GNU grep -E
+# the repo's gates use.
+sample_body=$(awk '/^bool if5_process_sample/,/^}/' "$V5/src/if5_process.c" 2>/dev/null)
+if printf '%s' "$sample_body" | grep -Eq 'if5_submit|if5__append|if5__post_debit|if5_debit'; then
+    echo "REBOUND SIGNAL (v5/process): if5_process_sample submits — samples must fan out to nothing (ADR-0027 2g)"
+    fail=1
+fi
+
 if [ "$fail" -ne 0 ]; then
     echo "gate: FAIL — a retired concept rebounded as a special case"
     exit 1
 fi
-echo "v5 rebound gate: clean (+ no visual field in the semantic core)"
+echo "v5 rebound gate: clean (+ no visual field in the semantic core, samples pure)"
 
 # --- synthetic bite -------------------------------------------
 # Inject each forbidden pattern into a scratch copy; the gate must
@@ -191,6 +204,22 @@ printf '\nstatic int bite4(const if5_world* w, if5_sid s)\n{\n    if (w->sources
 printf '\nstruct bite5 { unsigned rect; unsigned color; };\nstatic int bite5fn(void)\n{\n    struct bite5 b = { 1, 2 };\n    return (int)(b.rect + b.color);\n}\n' \
     >> "$BITE5_DIR/src/if5_tree.c"
 
+# The mechanism-layer bite (ADR-0027 Decision 6): a submit
+# smuggled into the sample path — the body scan must catch it, or
+# the new ban is decorative exactly where the ADR relies on it.
+python3 - "$BITE5_DIR/src/if5_process.c" << 'PYBITE'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+needle = "    p->latest = value;"
+if needle in s and "if5__append(p->w" not in s:
+    s = s.replace(needle, "    (void)if5__append(p->w, 0);\n" + needle, 1)
+    open(p, 'w').write(s)
+    print("planted process bite")
+else:
+    print("bite already present or needle missing")
+PYBITE
+
 v5_bites=0
 for i in "${!v5_patterns[@]}"; do
     hits=$(scan "${v5_patterns[$i]}" "$BITE5_DIR/src" "$BITE5_DIR/include")
@@ -207,5 +236,12 @@ if [ "$v5_bites" -lt 2 ]; then
     exit 1
 fi
 echo "v5 synthetic bite: planted rebounds caught ($v5_bites patterns matched)"
+
+bite_body=$(awk '/^bool if5_process_sample/,/^}/' "$BITE5_DIR/src/if5_process.c" 2>/dev/null)
+if ! printf '%s' "$bite_body" | grep -Eq 'if5_submit|if5__append|if5__post_debit|if5_debit'; then
+    echo "process synthetic bite: FAILED — a submit inside if5_process_sample survived the scan"
+    exit 1
+fi
+echo "process synthetic bite: the smuggled submit was caught"
 echo "rebound gate: PASS"
 exit 0

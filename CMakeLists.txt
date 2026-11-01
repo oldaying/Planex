@@ -355,14 +355,19 @@ add_test(NAME classic_arm_control COMMAND classic_arm)
 add_test(NAME e2_engineering_leg COMMAND e2_engineering_leg)
 
 # ============================================================
-# The v5 derivation tree (ADR-0026) — the full rewrite, stage R1,
-# as a PARALLEL tree in the v4/ precedent's shape. The ifl core is
-# PROMOTED to library grade here (if5_*), plus the global cut
-# algebra (discharging ADR-0025's registered Phase-4-scale known
-# issue) and the S15/S17/S24 seats. The DIFFERENTIAL links both
-# cores: v5 must stay observationally equivalent to the frozen
-# slice on the registered surface — the rewrite may extend, never
-# alter. Like planex_v4_lib and planex_slice_lib, planex_v5_lib is
+# The v5 derivation tree (ADR-0026 + ADR-0027) — the full
+# rewrite, stages R1 and R2, as a PARALLEL tree in the v4/
+# precedent's shape. R1: the ifl core PROMOTED to library grade
+# (if5_*), the global cut algebra (discharging ADR-0025's
+# registered Phase-4-scale known issue) and the S15/S17/S24
+# seats. R2 (ADR-0027): the mechanism layer — the seven shipping
+# abstractions re-derived as projections, queries, and judgments
+# (estimate/cause/judgment/projection/process/route), plus the
+# two Known-issue discharges (containment as content, the
+# per-source knowledge cut). The DIFFERENTIAL links both cores:
+# v5 must stay observationally equivalent to the frozen slice on
+# the registered surface — the rewrite may extend, never alter.
+# Like planex_v4_lib and planex_slice_lib, planex_v5_lib is
 # NEVER linked into planex_lib: the shipping API stays frozen as
 # the E-series control arm (vol. 6 6.3), and v5 is a derivation,
 # not a shipping direction, until the promotion gate opens.
@@ -375,6 +380,12 @@ add_library(planex_v5_lib STATIC
     v5/src/if5_cut.c
     v5/src/if5_tree.c
     v5/src/if5_schedule.c
+    v5/src/if5_estimate.c
+    v5/src/if5_cause.c
+    v5/src/if5_judge.c
+    v5/src/if5_projection.c
+    v5/src/if5_process.c
+    v5/src/if5_route.c
 )
 target_include_directories(planex_v5_lib PUBLIC v5/include)
 
@@ -401,3 +412,13 @@ target_link_libraries(test_v5_differential planex_v5_lib planex_slice_lib)
 target_include_directories(test_v5_differential PRIVATE
     v5/src slice/src slice/app)
 add_test(NAME v5_differential COMMAND test_v5_differential)
+
+# The R2 mechanism suites (ADR-0027): M1-M7 (the seven mappings)
+# and M8-M9 (the two Known-issue discharges).
+add_executable(test_v5_mech v5/tests/test_v5_mech.c)
+target_link_libraries(test_v5_mech planex_v5_lib)
+add_test(NAME v5_mech COMMAND test_v5_mech)
+
+add_executable(test_v5_structure v5/tests/test_v5_structure.c)
+target_link_libraries(test_v5_structure planex_v5_lib)
+add_test(NAME v5_structure COMMAND test_v5_structure)

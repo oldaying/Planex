@@ -152,6 +152,14 @@ if5_world* if5_world_create(void)
             { free(w); return NULL; }
     }
 
+    /* The mechanism layer's built-ins arrive the same way (B2's
+     * equality of standing, applied twice — ADR-0027 Decision 2d/2f):
+     * the projection family (the three frozen R1 projections wrapped,
+     * plus the tree and schedule text renderings) and the compile
+     * routes (NUM/SET/STR). No privileged constructor path. */
+    if5__register_builtin_projections(w);
+    if5__register_builtin_routes(w);
+
     w->tick = 1;
     w->sys_sid = IF5_SID_NULL;          /* no payer until the scenario
                                          * declares one (I2's general
@@ -397,6 +405,12 @@ static uint16_t if5__region_open(if5_world* w, if5_sid sid, uint16_t rid,
     rec.region = rid;
     rec.ptype  = IF5_T_REGION;
     rec.flags  = IF5_F_APPLIED;
+    /* ADR-0027 Decision 3: the creation seed's containment rides the
+     * record's aux word (free on REGION records). Flat worlds — every
+     * R1 stream — carried aux == 0, so the bytes are unchanged; the
+     * seed is now recoverable from the log, which is what the
+     * reparent fold (if5__seed_parent) needs to undo back to origin. */
+    rec.aux    = r->parent;
     if (blob && len) {
         uint64_t packed = if5__arena_put(w, blob, len);
         rec.value[0] = (uint32_t)(packed >> 32);
@@ -579,7 +593,8 @@ uint32_t if5_submit(if5_world* w, if5_sid src, uint16_t rid,
     structural = (ptype == IF5_T_TIER || ptype == IF5_T_DELEG ||
                   ptype == IF5_T_RECEIPT || ptype == IF5_T_CURSOR ||
                   ptype == IF5_T_EXPORT || ptype == IF5_T_ARBIT ||
-                  ptype == IF5_T_MERGE || ptype == IF5_T_REGION);
+                  ptype == IF5_T_MERGE || ptype == IF5_T_REGION ||
+                  ptype == IF5_T_REPARENT || ptype == IF5_T_PROCESS);
 
     /*
      * Structural records are exempt from the region contract:
@@ -699,6 +714,13 @@ uint32_t if5_submit(if5_world* w, if5_sid src, uint16_t rid,
                 break;
             case IF5_T_MERGE:
                 /* Handled by if5_merge_intent's dedicated path. */
+                break;
+            case IF5_T_REPARENT:
+                /* The working-set parent is a CACHE of the live fold
+                 * (ADR-0027 Decision 3); if5_parent_at recomputes the
+                 * fold at any view. The cache update here is what
+                 * keeps "now" fast for the no-reparent common case. */
+                r->parent = (uint16_t)rec.value[0];
                 break;
             default:
                 break;
@@ -892,9 +914,31 @@ bool if5__is_value_type(uint8_t ptype)
 {
     return ptype != IF5_T_TIER && ptype != IF5_T_DELEG &&
            ptype != IF5_T_RECEIPT && ptype != IF5_T_CURSOR &&
-           ptype != IF5_T_EXPORT && ptype != IF5_T_ARBIT;
+           ptype != IF5_T_EXPORT && ptype != IF5_T_ARBIT &&
+           ptype != IF5_T_REPARENT && ptype != IF5_T_PROCESS;
     /* REGION participates (it seeds), MERGE participates (it is the
-     * stitched value). */
+     * stitched value). REPARENT/PROCESS are structure, not values
+     * (ADR-0027 Decisions 2g/3): a containment move never changes a
+     * region's folded value, and a process opening is a phase
+     * marker, not a contribution. */
+}
+
+uint16_t if5__seed_parent(const if5_world* w, uint16_t rid)
+{
+    uint32_t i;
+    if (!w || rid == 0 || rid > w->n_regions) return 0;
+    /* The single-create REGION record carries the seed parent in
+     * its aux (filled at if5__region_open since ADR-0027); a
+     * batch-created region has no per-rid REGION record and seeds
+     * at root — the frozen blob layout's meaning. Oldest wins: the
+     * FIRST REGION record for the rid is the creation (a later one
+     * would be a re-open, which this core does not do). */
+    for (i = 0; i < w->n_log; i++) {
+        const if5_intent* rec = &w->log[i];
+        if (rec->region == rid && rec->ptype == IF5_T_REGION)
+            return (uint16_t)rec->aux;
+    }
+    return 0;
 }
 
 uint64_t if5_state_at(if5_world* w, uint16_t rid, const if5_view* v,

@@ -86,13 +86,16 @@ cost tables it prints are C9's comparison surface. The E2 raw data
 lives in `measurements/e2-engineering-leg/` and recomputes via
 `scripts/analyze_e2_residency.sh`.
 
-## The v5 derivation tree (ADR-0026)
+## The v5 derivation tree (ADR-0026 + ADR-0027)
 
-The full rewrite's stage R1: a parallel tree (`v5/`, namespace
-`if5_`) that PROMOTES the slice's core to library grade and adds
-the global cut algebra plus the S15/S17/S24 seats. A derivation,
+The full rewrite's stages R1 and R2: a parallel tree (`v5/`,
+namespace `if5_`) that PROMOTES the slice's core to library grade
+(R1: the global cut algebra plus the S15/S17/S24 seats) and
+re-derives the MECHANISM LAYER (R2: the seven shipping
+abstractions as projections, queries, and judgments over the
+durable core, plus the two Known-issue discharges). A derivation,
 not a shipping direction — the shipping API stays frozen as the
-E-series control arm. It carries five suites:
+E-series control arm. It carries seven suites:
 
 ```bash
 make -C v5 test              # calibration (the slice's battery
@@ -116,7 +119,24 @@ make -C v5 test              # calibration (the slice's battery
 make -C v5 rebound-check     # the extended rebound gate: the same
                               #   four bans over v5/src + v5/include
                               #   PLUS the S15 visual-field ban, each
-                              #   with its own synthetic bite
+                              #   with its own synthetic bite, PLUS
+                              #   the mechanism-layer ban (ADR-0027):
+                              #   if5_process_sample's body may not
+                              #   submit/append/debit — samples fan
+                              #   out to nothing, with its own bite
+                              # + mechanism (M1–M7: estimate-fold
+                              #   agreement + evidence ordinals,
+                              #   cause-graph exactness/reversal/
+                              #   concurrency/reachability, judgment
+                              #   totality/verdict precedence,
+                              #   projection registry byte-equality,
+                              #   process discipline, routing
+                              #   equivalence, budget refusal)
+                              # + structure (M8–M9: reparent folds/
+                              #   undoes/values-invariant + the R1
+                              #   no-reparent regression; kcut
+                              #   down-closure/degeneration/frontier/
+                              #   two-source discrimination)
 ```
 
 ## Test Summary
@@ -136,6 +156,8 @@ make -C v5 rebound-check     # the extended rebound gate: the same
 | v5 property sections (1M groups/round, on if5) | 6 |
 | v5 cut sections (V2/V3: algebra laws, address checks) | 6 |
 | v5 seats sections (V4/V5/V6: S15/S17/S24) | 6 |
-| **Total** | **108** |
+| v5 mechanism sections (M1–M7: the seven ADR-0027 mappings) | 9 |
+| v5 structure sections (M8–M9: the two discharges) | 4 |
+| **Total** | **121** |
 
 All tests must pass on both Linux (gcc) and Windows (MSVC).
