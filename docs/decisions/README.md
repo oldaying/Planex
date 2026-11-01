@@ -25,6 +25,7 @@ ADR-0015 is permanently reserved by `tests/synthetic_adr_0015.md` — the delibe
 | ADR-0025 | [The intent-flow vertical slice — Program I's falsification instrument](proposed/ADR-0025-intent-flow-vertical-slice.md) | proposed |
 | ADR-0026 | [The v5 derivation — the full rewrite begins as a parallel tree, gated](proposed/ADR-0026-v5-intent-flow-derivation.md) | proposed |
 | ADR-0027 | [Stage R2 — the mechanism layer re-derived: seven abstractions as projections, queries, and judgments over the durable core](proposed/ADR-0027-r2-mechanism-layer.md) | proposed |
+| ADR-0028 | [Stage R3 — the presentation client: the tree rendered from outside, addresses named and persisted, the E-series commissioning kit registered ready-not-run](proposed/ADR-0028-r3-presentation-client.md) | proposed |
 | ADR-0014 | [Add a Validated lifecycle stage between Proposed and Accepted (TC39 Stage 2.7 analog + essence-justified enforcement)](validated/ADR-0014-validated-stage-and-essence-justified-enforcement.md) | validated |
 | ADR-0002 | [Relation's necessity is not yet proven](accepted/ADR-0002-relation-necessity-pending-undo.md) | accepted |
 | ADR-0003 | [No AI integration in Planex core](accepted/ADR-0003-no-ai-integration.md) | accepted |
