@@ -8,6 +8,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+- **Added**: ADR-0026 (proposed) — the v5 derivation: the full rewrite
+  begins as a parallel tree, gated. The engineering gate is adjudicated
+  PASSED on ADR-0025's landed numbers (C1-C9; E2 engineering leg
+  2.102x, R^2 = 1.000000, 48.0 B/change); the human gate is carried as
+  registered vacancy, and promotion to a shipping direction is
+  pre-committed to the E-series demotion clauses. Stage R1 registers:
+  the ifl-to-if5 library-grade promotion, the global cut algebra
+  (discharging ADR-0025's registered Phase-4-scale known issue at
+  prefix+prune granularity), the S15/S17/S24 seats, and the
+  differential gate against the frozen slice. Registered before any
+  v5/ source existed.
+
 ### Added — ADR-0025 implementation + measurement: the slice lands, calibrated, with the series' first machine-measured number
 
 - **The core** (`slice/src/ifl_{core,merge,budget}.c`, `slice/include/planex/ifl.h`): sources with vector clocks (Fidge/Mattern), the append-only intent log as the only history structure, per-region runtime tiers (fork / tolerant merge / strict LWW with ARBIT-witnessed fold exclusion), the open payload-type registry (the built-ins register through the same channel as user types; a non-associative join offered to the registry is REJECTED at the door), the attention ledger with the monotone 1/2/4/8 ladder and receipted overdraft, causal slices / state@t / PROV walks, undo as sugar over an explicit three-step projection path (`ifl_view_rewind` + a CURSOR witness + `ifl_view_adopt` — the new public third step, so the manual path is writable and C7's differential demand is honest), black-box windowing and export, and the three projections (semantic / set / history).
