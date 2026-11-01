@@ -40,6 +40,16 @@ jobs:
           ./build/slice_app > /dev/null
           ./build/classic_arm > /dev/null
           ./build/e2_engineering_leg
+      - name: Run v5 suites + differential (ADR-0026)
+        # The promoted core's calibration/property/cut/seats suites
+        # and the MASTER GATE: the differential against the frozen
+        # slice (V1/V9 — the rewrite may extend, never alter).
+        run: |
+          ./build/test_v5_calibration
+          ./build/test_v5_property
+          ./build/test_v5_cut
+          ./build/test_v5_seats
+          ./build/test_v5_differential
 
   linux-make:
     runs-on: ubuntu-latest
@@ -75,6 +85,13 @@ jobs:
         run: |
           make -C slice test
           make -C slice rebound-check
+      - name: Run v5 suites + rebound gate (ADR-0026)
+        # The derivation tree's five suites; the rebound gate now
+        # covers v5/ too (same four bans + the S15 visual-field
+        # ban, with its own synthetic bite).
+        run: |
+          make -C v5 test
+          make -C v5 rebound-check
 
   windows:
     runs-on: windows-latest
@@ -97,7 +114,7 @@ jobs:
         # the exact false-PASS shape the local pwsh loop hit during
         # the f702d0a diagnosis.
         run: |
-          $tests = @('test_core','test_orthogonality','test_feedback','test_v05_retire','test_v06_interaction','test_v07','test_v08','perception_smoke','perception_phase2','undo_via_graph','test_slice_calibration','test_slice_property')
+          $tests = @('test_core','test_orthogonality','test_feedback','test_v05_retire','test_v06_interaction','test_v07','test_v08','perception_smoke','perception_phase2','undo_via_graph','test_slice_calibration','test_slice_property','test_v5_calibration','test_v5_property','test_v5_cut','test_v5_seats','test_v5_differential')
           $missing = $tests | Where-Object { -not (Test-Path ".\build\Release\${_}.exe") }
           if ($missing) {
             Write-Host "FAILED: missing test executable(s): $($missing -join ', ')"
@@ -112,7 +129,7 @@ jobs:
         # Assertions are live in Release per f702d0a's #undef NDEBUG
         # guards (Gate 4 of static-analysis.yml keeps them that way).
         run: |
-          $tests = @('test_core','test_orthogonality','test_feedback','test_v05_retire','test_v06_interaction','test_v07','test_v08','perception_smoke','perception_phase2','undo_via_graph','test_slice_calibration','test_slice_property')
+          $tests = @('test_core','test_orthogonality','test_feedback','test_v05_retire','test_v06_interaction','test_v07','test_v08','perception_smoke','perception_phase2','undo_via_graph','test_slice_calibration','test_slice_property','test_v5_calibration','test_v5_property','test_v5_cut','test_v5_seats','test_v5_differential')
           $failed = @()
           foreach ($t in $tests) {
             Write-Host "=== $t ==="

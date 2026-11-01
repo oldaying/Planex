@@ -112,7 +112,16 @@ re-review. These are ontology-shape obligations; the slice was an
 instrument and deliberately carried none of them (ADR-0025 Decision
 §4g kept the projections same-rank). A rewrite decision that did not
 carry them forward would drop the court's constructive branch on the
-floor.
+floor. The seats carry named traditions, per vol. 4's strata: S15
+comes from the distributed-cognition line (the Hutchins tradition —
+the cognitive unit is the crew, so the semantic tree serves the
+screen-reader user as a first-class tester, not as an afterthought),
+and S17 from the predictive-processing lineage (the interface is a
+lever aimed at the user's prediction system, so the design object
+is a timetable of controlled prediction errors); S24's
+consumable/durable split is the event-sourcing economics the vein
+map imported from industry. This ADR's job is to seat those
+traditions in executable structure, not to re-argue them.
 
 **What the evidence does NOT license.** Vol. 6 §6.2's sentence governs
 the slice and, by extension, anything built on its verdicts: the
@@ -504,6 +513,21 @@ that fires on it.
 
 ## Known issues
 
+- **Issue:** S15's containment (`if5_region.parent`) is working-set
+  metadata in R1, not a logged intent: containment changes are not
+  themselves undoable, and the batch-creation blob keeps the
+  slice-compatible {ptype, tier, seed} layout so history bytes stay
+  a differential surface.
+- **Why accepted:** logging containment as semantic content is a
+  real semantic upgrade (undoable structure moves — a region
+  reparented at a historical address), requiring its own
+  registration and differential surface; smuggling it into R1
+  under a byte-compatibility argument would be exactly the silent
+  alteration this ADR forbids.
+- **Tracking:** R2's successor ADR, with the mechanism-layer
+  re-derivation where the semantic tree's structure becomes
+  first-class content.
+
 - **Issue:** the per-source (non-prefix) cut — addressing "the world
   as source A has seen it" — is not expressible in R1's cut algebra;
   cuts are prefix bounds plus prunes.
@@ -594,21 +618,92 @@ If this ADR is superseded or deprecated, the successor inherits:
 
 ## Validation
 
-*(To be filled with measured gate outputs when R1 lands — the
-three-beat discipline: this ADR registers before the v5 sources
-exist; the implementation lands; the outputs below are then
-transcribed from real runs, never asserted. Placeholder sections
-that survive to merge are a four-column violation.)*
+Transcribed from the R1 landing runs (the three-beat discipline:
+registered above before any v5/ source existed; implemented;
+measured here — never asserted). Every number below recomputes on
+any fresh checkout via `make -C v5 test` (vol. 6 8.4's rule).
 
-- Differential (V1): pending.
-- Cut algebra laws (V2): pending.
-- Cut-view fold agreement (V3): pending.
-- S15 seat (V4): pending.
-- S17 seat (V5): pending.
-- S24 purity (V6): pending.
-- Calibration battery on if5 (V7): pending.
-- Record density (V8): pending.
-- Residency at the E2 shape on v5 (V9): pending.
+- **V1 — the differential (the master gate): PASS.** TRIP-17 in
+  lockstep, 100 seeded random streams x 200 ops, and the E2 shape
+  (1000 regions, 4000 changes, 15% stale-knowledge hotspot mix):
+  zero mismatches on every compared surface — folds at now and at
+  sampled historical views, all three projections (byte-exact),
+  black-box export text, stats (byte-exact), receipts (every
+  field), log counts, every record's contract fields, history
+  bytes (exact). The registered working-set delta asserted exact:
+  **11,776 bytes** (sizeof(if5_world) - sizeof(ifl_world)).
+- **V2 — the cut algebra's laws: PASS.** 4,000 randomized rounds:
+  join/meet commutativity, associativity, idempotence, absorption;
+  order consistency and antisymmetry; every algebra output
+  down-closed under the public verifier; join refuses pruned
+  inputs (the registered boundary bites); meet total.
+- **V3 — the fold at a cut: PASS.** 4,000 randomized PRUNED cuts
+  checked against an independent membership-driven fold (a
+  test-side reimplementation sharing no code with the core's
+  fold), on both registered lattices (NUM and SET), plus the
+  record-by-record agreement of the prune constructor's addressed
+  set with the undo sugar's rewound view.
+- **V4 — S15: PASS.** The tree walk over a containment hierarchy:
+  total (every region exactly once, at every view), deterministic
+  (two walks byte-identical), depth-first pre-order in declaration
+  order, depths and parents correct, values/contributions matching
+  the fold at now, at a historical view, and at a rewound view.
+  No visual field exists in v5's core (the extended rebound gate,
+  with its own synthetic bite, enforces the vocabulary ban).
+- **V5 — S17: PASS.** Every timetable entry PROV-backed and
+  correctly classified; an independent test-side recount of the
+  log agrees on the count; the surprise entries itemize exactly
+  the surprise-class debits with their posted rungs; per-source
+  filtering correct; a record undone leaves the timetable at the
+  rewound view. The registry gained no payload family (N5 held).
+- **V6 — S24: PASS.** The durable layer's full byte image (log
+  count, history bytes, working set, stats, receipts, every
+  ledger) is unchanged by every projection at three views
+  (now / historical / rewound), run repeatedly.
+- **V7 — the calibration battery on if5: PASS.** 8/8 sections
+  (C3 single-source short-circuit, C4 zero-budget receipts, C5
+  all-strict classical, C7 sugar-is-projection byte-identical, I6
+  provenance completeness, I7 one-currency breaker + the debit
+  word's class bits read back, C9 no-classical-machinery, down-
+  closure via the promoted verifier) and 6/6 property sections
+  (1,000,000 groups per round; the planted non-associative join
+  rejected at the door; the counterexample shrinks to the same
+  minimal triple the slice's suite found: 0/0/3).
+- **V8 — record density: PASS.** `if5_intent` is exactly 48 bytes
+  (the _Static_assert compiled into if5.h; the E2 accounting unit
+  survives the promotion).
+- **V9 — residency on v5, measured directly: PASS.** At the
+  registered load floor n = 2000: **1.702x** the working set
+  (boundary <= 3.0); incremental cost **48.0 bytes/change**
+  (slope over the 2000->4000 span, inside the registered
+  [40.8, 55.2] band); linear. The ratio is lower than the slice's
+  2.102x for the registered reason, not by accident: the working
+  set grew by the asserted 11,776-byte delta (the cut registry
+  and the region parent) while history stayed byte-identical —
+  106,048 / 62,216 = 1.704, arithmetic, not measurement noise.
+
+### Implementation-era findings (caught before landing, recorded)
+
+1. **The down-closure verifier needed the REBORN exemption.** Its
+   first run demanded that a re-based record's revoked same-source
+   ancestor be contained in the address — exactly the clock-slot
+   collision ADR-0025 documented as design fix #5. The verifier
+   now applies the same exemption the fold's exclusion test
+   applies, and the collision is registered in if5_cut.c.
+2. **The differential caught its own driver twice** — which is the
+   gate working, and is recorded as such: (a) a delegation amount
+   drawn from the PRNG separately for each core (the logs diverged
+   at record level); (b) merge heads re-read from the region table
+   AFTER the first core's call had mutated it (the second core was
+   handed head_b = 0). Both are lockstep violations in the test,
+   not semantics drift in v5 — but a weaker comparator would have
+   shipped them as "equivalence".
+3. **The V9 boundary point needed the registered wording.** An
+   early assert bounded the ratio at EVERY checkpoint; the slice's
+   own landed measurement reads 4.006x at n = 4000 (history grows
+   linearly, the working set is constant — the ratio is not meant
+   to be bounded past the floor). The assert now reads the n = 2000
+   floor only, matching ADR-0025 C8a verbatim.
 
 ## HISTORY
 
@@ -618,6 +713,13 @@ that survive to merge are a four-column violation.)*
   human-leg vacancy, vol. 6 §6.3's control-arm freeze, ADR-0025's
   registered Phase-4-scale known issue, vol. 7's constructive
   obligations (S15/S17/S24).
+- 2026-11-01 — R1 implemented and measured (this revision): the
+  promotion landed with the cut algebra, the three seats, and the
+  differential; Validation filled from the landing runs; the
+  containment-as-known-issue registered (parent is working-set
+  metadata in R1). V1–V9 all PASS; the three implementation-era
+  findings recorded above. Still Proposed — the maintainer's
+  acceptance is ADR-0014's channel, not this file's.
 
 ## References
 

@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 #
-# check_slice_rebound.sh — the slice's rebound signal-1 static gate
-# (ADR-0025 Decision 1; ADR-0023's rebound question, first automated
+# check_slice_rebound.sh — the slice's and v5's rebound signal-1
+# static gate (ADR-0025 Decision 1; ADR-0026 Decision 6 extends it
+# to the v5 tree; ADR-0023's rebound question, first automated
 # enforcement: can a "retired" concept sneak back in as a special
 # case?).
 #
-# What it forbids in slice/src/*.c and slice/include/:
+# What it forbids in slice/src/*.c, slice/include/, v5/src/*.c and
+# v5/include/:
 #   1. kind dispatch — any comparison against a source's `kind`
 #      field (I1: kind is metadata and NEVER dispatches; the
 #      person/agent/process distinction must not re-enter as code)
@@ -17,8 +19,18 @@
 #   4. is_person / is_agent / is_process predicates — the classic
 #      shape the retired concept returns in
 #
+# What it ADDITIONALLY forbids in v5/ only (ADR-0026 Decision 3c,
+# the S15 seat's no-borrowing clause):
+#   5. visual-field vocabulary — rect, glyph, font, color, colour,
+#      pixel, rgba as whole words in v5's headers and core. The
+#      semantic tree must carry the interface's semantic content
+#      WITHOUT reproduction primacy: a tree that needed a
+#      rectangle to exist would be the dead reproducibility claim
+#      sneaking back in as a field name (vol. 7 ch. 5's re-review
+#      condition, statically enforced).
+#
 # Then the synthetic-bite demonstration: the same patterns are
-# injected into a COPY of the tree, and the gate MUST fail on the
+# injected into a COPY of each tree, and the gate MUST fail on the
 # copy (a gate that cannot bite is decoration — ADR-0024's
 # Validation precedent).
 #
@@ -29,6 +41,7 @@ set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SLICE="$REPO_ROOT/slice"
+V5="$REPO_ROOT/v5"
 
 fail=0
 
@@ -88,13 +101,52 @@ if [ "$fail" -ne 0 ]; then
 fi
 echo "rebound gate: clean (no kind dispatch, no quiet-mode flag, no single-source case)"
 
+# --- the v5 section (ADR-0026 Decision 6) ---------------------
+# The same four bans over the derivation tree, plus the S15
+# visual-field ban. The ban's registered scope is the CORE
+# (v5/src + v5/include), where the ontology lives; the tests
+# exercise the ban from outside.
+
+v5_patterns=(
+    '(\.|->)kind *==|kind *!='                # 1. kind dispatch
+    '\<passive\>'                             # 2. a quiet-system MODE
+    'n_sources *== *1'                         # 3. single-source case
+    '\<is_(person|agent|process)\>'           # 4. kind predicates
+    '\<(rect|glyph|font|color|colour|pixel|rgba)\>'  # 5. S15 visual fields
+)
+
+v5_names=(
+    "kind dispatch (I1: kind is metadata, never dispatches)"
+    "a 'passive' mode (I2: quietness is the zero-budget configuration)"
+    "single-source special-casing (I1: the short-circuit is emergent)"
+    "kind predicates (the classic rebound shape)"
+    "a visual field in the semantic core (S15: no reproduction primacy)"
+)
+
+for i in "${!v5_patterns[@]}"; do
+    hits=$(scan "${v5_patterns[$i]}" "$V5/src" "$V5/include")
+    if [ -n "$hits" ]; then
+        echo "REBOUND SIGNAL (v5): ${v5_names[$i]}"
+        echo "$hits"
+        echo
+        fail=1
+    fi
+done
+
+if [ "$fail" -ne 0 ]; then
+    echo "gate: FAIL — a retired concept rebounded as a special case"
+    exit 1
+fi
+echo "v5 rebound gate: clean (+ no visual field in the semantic core)"
+
 # --- synthetic bite -------------------------------------------
 # Inject each forbidden pattern into a scratch copy; the gate must
 # catch every one. If any injection survives, the gate is
 # toothless and that is itself a failure.
 
 BITE_DIR="$(mktemp -d)"
-trap 'rm -rf "$BITE_DIR"' EXIT
+BITE5_DIR="$(mktemp -d)"
+trap 'rm -rf "$BITE_DIR" "$BITE5_DIR"' EXIT
 cp -r "$SLICE/src" "$BITE_DIR/src"
 cp -r "$SLICE/include" "$BITE_DIR/include"
 
@@ -123,6 +175,37 @@ if [ "$bites_caught" -lt 3 ]; then
     echo "synthetic bite: FAILED — the gate missed a planted rebound ($bites_caught/3 caught)"
     exit 1
 fi
-echo "synthetic bite: all planted rebounds caught ($bites_caught patterns matched)"
+echo "synthetic bite: all planted slice rebounds caught ($bites_caught patterns matched)"
+
+# --- the v5 bite (ADR-0026 Decision 6) -------------------------
+# Plant a kind dispatch AND a visual field in a copy of v5; the
+# v5 patterns must catch both (the visual-field ban gets its own
+# bite — a new pattern with no bite is exactly the toothless-gate
+# shape this demo exists to prevent).
+
+cp -r "$V5/src" "$BITE5_DIR/src"
+cp -r "$V5/include" "$BITE5_DIR/include"
+
+printf '\nstatic int bite4(const if5_world* w, if5_sid s)\n{\n    if (w->sources[s].kind == IF5_KIND_PERSON) return 1;\n    return 0;\n}\n' \
+    >> "$BITE5_DIR/src/if5_core.c"
+printf '\nstruct bite5 { unsigned rect; unsigned color; };\nstatic int bite5fn(void)\n{\n    struct bite5 b = { 1, 2 };\n    return (int)(b.rect + b.color);\n}\n' \
+    >> "$BITE5_DIR/src/if5_tree.c"
+
+v5_bites=0
+for i in "${!v5_patterns[@]}"; do
+    hits=$(scan "${v5_patterns[$i]}" "$BITE5_DIR/src" "$BITE5_DIR/include")
+    if [ -n "$hits" ]; then
+        v5_bites=$((v5_bites + 1))
+    fi
+done
+
+# pattern 1 (kind dispatch) and pattern 5 (visual fields) are
+# planted; patterns 2-4 share identifier families with 1. Require
+# at least 2 distinct planted catches.
+if [ "$v5_bites" -lt 2 ]; then
+    echo "v5 synthetic bite: FAILED — the gate missed a planted rebound ($v5_bites/2 caught)"
+    exit 1
+fi
+echo "v5 synthetic bite: planted rebounds caught ($v5_bites patterns matched)"
 echo "rebound gate: PASS"
 exit 0
