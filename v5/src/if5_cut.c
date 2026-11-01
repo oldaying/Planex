@@ -278,11 +278,43 @@ bool if5_cut_is_down_closed(const if5_world* w, const if5_cut* c)
 
 uint8_t if5_cut_register(if5_world* w, const if5_cut* c)
 {
-    if (!w || !c) return 0;
+    return if5_cut_register_named(w, c, "");
+}
+
+/* The name column (ADR-0028 Decision 3): register with a name.
+ * Duplicate names are refused (return 0) — an address book with
+ * two entries answering one name is not an address book. */
+uint8_t if5_cut_register_named(if5_world* w, const if5_cut* c,
+                               const char* name)
+{
+    uint8_t id;
+    size_t nl;
+    if (!w || !c || !name) return 0;
     if (w->n_cuts >= IF5_MAX_CUTS) return 0;
+    nl = strlen(name);
+    if (nl >= IF5_NAME_MAX) return 0;
+    if (nl && if5_cut_by_name(w, name)) return 0;   /* unique */
     w->cuts[w->n_cuts] = *c;
+    memset(w->cut_names[w->n_cuts], 0, IF5_NAME_MAX);
+    memcpy(w->cut_names[w->n_cuts], name, nl);
     w->n_cuts++;
-    return w->n_cuts;                    /* 1-based id */
+    id = w->n_cuts;                     /* 1-based id */
+    return id;
+}
+
+const char* if5_cut_name(if5_world* w, uint8_t id)
+{
+    if (!w || id == 0 || id > w->n_cuts) return "";
+    return w->cut_names[id - 1];
+}
+
+uint8_t if5_cut_by_name(if5_world* w, const char* name)
+{
+    uint8_t i;
+    if (!w || !name || !*name) return 0;
+    for (i = 0; i < w->n_cuts; i++)
+        if (strcmp(w->cut_names[i], name) == 0) return (uint8_t)(i + 1);
+    return 0;
 }
 
 const if5_cut* if5_cut_by_id(if5_world* w, uint8_t id)

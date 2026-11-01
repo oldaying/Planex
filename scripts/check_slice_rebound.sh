@@ -146,11 +146,51 @@ if printf '%s' "$sample_body" | grep -Eq 'if5_submit|if5__append|if5__post_debit
     fail=1
 fi
 
+# --- the R3 bans (ADR-0028 Decision 6) ---------------------------
+# Two new boundaries, both about the client zone v5/client/:
+#
+#   6. DEPENDENCY DIRECTION — the core (v5/src + v5/include) may
+#      not reference any if5c_ symbol. The client links the core;
+#      the core never links the client. The S15 visual-field ban's
+#      scan paths stay exactly v5/src + v5/include (the client
+#      zone is outside BY CONSTRUCTION — ADR-0028 registered the
+#      map so a future "just extend the scan" edit is a visible
+#      ADR-level change, not a gate tweak).
+#
+#   7. CLIENT PURITY — the client modules (v5/client/src/if5c_*.c)
+#      may not call if5_submit / if5__append / if5__post_debit /
+#      if5_debit / if5_undo_nth / if5_view_adopt: the client
+#      renders, it does not speak. The APPLICATION (the demo in
+#      v5/client/apps/, any program) submits through the ordinary
+#      channel — the ban scopes to the client library's modules,
+#      mirroring how the process ban scopes to one function body.
+
+if [ -d "$V5/client" ]; then
+    dep_hits=$(scan 'if5c_' "$V5/src" "$V5/include")
+    if [ -n "$dep_hits" ]; then
+        echo "REBOUND SIGNAL (v5/direction): the core references the client —"
+        echo "  the client links the core, never the other way (ADR-0028 Decision 1)"
+        echo "$dep_hits"
+        echo
+        fail=1
+    fi
+
+    purity_hits=$(scan 'if5_submit|if5__append|if5__post_debit|if5_debit|if5_undo_nth|if5_view_adopt' \
+        "$V5/client/src")
+    if [ -n "$purity_hits" ]; then
+        echo "REBOUND SIGNAL (v5/client): a client module speaks — the client"
+        echo "  renders, it does not submit (ADR-0028 Decision 2)"
+        echo "$purity_hits"
+        echo
+        fail=1
+    fi
+fi
+
 if [ "$fail" -ne 0 ]; then
     echo "gate: FAIL — a retired concept rebounded as a special case"
     exit 1
 fi
-echo "v5 rebound gate: clean (+ no visual field in the semantic core, samples pure)"
+echo "v5 rebound gate: clean (+ no visual field in the semantic core, samples pure, core/client one-way, client silent)"
 
 # --- synthetic bite -------------------------------------------
 # Inject each forbidden pattern into a scratch copy; the gate must
@@ -243,5 +283,40 @@ if ! printf '%s' "$bite_body" | grep -Eq 'if5_submit|if5__append|if5__post_debit
     exit 1
 fi
 echo "process synthetic bite: the smuggled submit was caught"
+
+# --- the R3 bites (ADR-0028 Decision 6) ---------------------------
+# Plant BOTH new violations in copies: an if5c_ reference inside
+# the core, and a submit inside a client module. A new ban with
+# no bite is exactly the toothless-gate shape this demo exists
+# to prevent (the R1 lesson, applied twice more).
+
+if [ -d "$V5/client" ]; then
+    BITE_R3="$(mktemp -d)"
+    cp -r "$V5/src" "$BITE_R3/src"
+    cp -r "$V5/client/src" "$BITE_R3/client_src"
+
+    printf '\n#include "planex/if5c.h" /* bite: the core reaching its client */\nstatic int bite_r3_dir(void) { return (int)if5c_fb_hash(NULL); }\n' \
+        >> "$BITE_R3/src/if5_tree.c"
+    printf '\n/* bite: a client module that speaks */\nstatic uint32_t bite_r3_pure(if5_world* w)\n{\n    return if5_submit(w, 0, 1, 0, 1, NULL);\n}\n' \
+        >> "$BITE_R3/client_src/if5c_hit.c"
+
+    r3_dir_caught=0
+    if [ -n "$(scan 'if5c_' "$BITE_R3/src")" ]; then
+        r3_dir_caught=1
+    fi
+    r3_pure_caught=0
+    if [ -n "$(scan 'if5_submit|if5__append|if5__post_debit|if5_debit|if5_undo_nth|if5_view_adopt' \
+        "$BITE_R3/client_src")" ]; then
+        r3_pure_caught=1
+    fi
+    rm -rf "$BITE_R3"
+
+    if [ "$r3_dir_caught" -ne 1 ] || [ "$r3_pure_caught" -ne 1 ]; then
+        echo "R3 synthetic bite: FAILED — direction=$r3_dir_caught purity=$r3_pure_caught (need 1/1)"
+        exit 1
+    fi
+    echo "R3 synthetic bite: the core->client reference and the client submit both caught"
+fi
+
 echo "rebound gate: PASS"
 exit 0

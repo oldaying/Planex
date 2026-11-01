@@ -378,6 +378,70 @@ uint8_t      if5_cut_register(if5_world* w, const if5_cut* c);
 const if5_cut* if5_cut_by_id(if5_world* w, uint8_t id);
 uint32_t     if5_cut_count(if5_world* w);
 
+/* --- the name column (ADR-0028 Decision 3) ---------------------
+ * The working-set column the "64 named cuts" language always
+ * implied, symmetric with region names: names are how addresses
+ * are ADDRESSED, not what they contain (seeds are not content;
+ * changes are). NUL-terminated, <= IF5_NAME_MAX - 1 chars,
+ * unique — a duplicate name is refused honestly (returns 0).
+ * Unnamed entries answer "".
+ */
+uint8_t      if5_cut_register_named(if5_world* w, const if5_cut* c,
+                                    const char* name);
+const char*  if5_cut_name(if5_world* w, uint8_t id);
+uint8_t      if5_cut_by_name(if5_world* w, const char* name);
+
+/* ============================================================
+ * The snapshot (ADR-0028 Decision 4) — the persistence of
+ * addresses and their world, as a NEW canonical artifact.
+ *
+ * The black-box export format is a registered surface and is NOT
+ * touched (F7 asserts its bytes unchanged across a round trip);
+ * the snapshot is a separate, versioned, little-endian byte
+ * format: seeds (sources with their budget configuration,
+ * the payload-type table as NAMES, region specs, sys_sid,
+ * black-box windows), the durable truth (the log and the arena,
+ * VERBATIM), the audit stream (receipts), the address section
+ * (the cut registry with names), and the cursor.
+ *
+ * Save is canonical: the same world saves to the same file every
+ * time (F8) — no timestamps, no allocator-dependent bytes.
+ *
+ * Load = verbatim install + ONE rebuild pass that replays the
+ * bookkeeping and never re-adjudicates (the records' flags, PROV
+ * edges, and clocks ARE the decisions). The application
+ * re-registers its extension payload types BEFORE loading; the
+ * loader verifies the saved table slot by slot and refuses on
+ * mismatch. Every rebuilt cache is cross-checked against the
+ * persisted values (stats, receipts, ledgers, the cursor); a
+ * mismatch is a refused load, never a wrong world — the format
+ * is a persistence format, not a trust boundary (ADR-0028
+ * CAVEATS).
+ * ============================================================ */
+
+enum {
+    IF5_SNAP_OK            = 0,   /* loaded                        */
+    IF5_SNAP_ERR_IO       = -1,   /* open/read/write failure       */
+    IF5_SNAP_ERR_MAGIC    = -2,   /* not a snapshot                */
+    IF5_SNAP_ERR_VERSION  = -3,   /* future format version         */
+    IF5_SNAP_ERR_TRUNC    = -4,   /* file ends mid-section         */
+    IF5_SNAP_ERR_TYPE     = -5,   /* type table drift (see detail) */
+    IF5_SNAP_ERR_STATE    = -6,   /* world not fresh/empty         */
+    IF5_SNAP_ERR_CHECK    = -7,   /* rebuild diverged from the
+                                   * persisted cross-checks        */
+    IF5_SNAP_ERR_BOUNDS   = -8    /* structural validation failed  */
+};
+
+/* Optional diagnostics: on failure, writes a NUL-terminated
+ * message (the offending slot / iid / field where known). On ANY
+ * load failure the world may be partially populated — it is not
+ * wrong, it is half-built; discard it (if5_world_free) and start
+ * over. Save failure leaves the world untouched. */
+int  if5_snapshot_save(if5_world* w, const char* path,
+                       char* diag, uint32_t diag_cap);
+int  if5_snapshot_load(if5_world* w, const char* path,
+                       char* diag, uint32_t diag_cap);
+
 /* The fold at a cut — observationally the view path (V3's
  * equivalence is tested against an independent membership fold,
  * not against itself). */

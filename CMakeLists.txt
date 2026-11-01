@@ -386,6 +386,7 @@ add_library(planex_v5_lib STATIC
     v5/src/if5_projection.c
     v5/src/if5_process.c
     v5/src/if5_route.c
+    v5/src/if5_snapshot.c
 )
 target_include_directories(planex_v5_lib PUBLIC v5/include)
 
@@ -422,3 +423,51 @@ add_test(NAME v5_mech COMMAND test_v5_mech)
 add_executable(test_v5_structure v5/tests/test_v5_structure.c)
 target_link_libraries(test_v5_structure planex_v5_lib)
 add_test(NAME v5_structure COMMAND test_v5_structure)
+
+# The R3 snapshot suite (ADR-0028): F6-F9 — the named-address
+# round trip, the fidelity of a save/load, the format's
+# canonicity, and the exactness of the one-pass rebuild.
+add_executable(test_v5_snapshot v5/tests/test_v5_snapshot.c)
+target_link_libraries(test_v5_snapshot planex_v5_lib)
+add_test(NAME v5_snapshot COMMAND test_v5_snapshot)
+
+# The R3 presentation client (ADR-0028): the if5c library —
+# framebuffer, font, layout, hit, ease, annotate. Like
+# planex_v5_lib it never links into planex_lib: the client is a
+# CLIENT of the core, and the dependency-direction ban
+# (scripts/check_slice_rebound.sh) is the static half of that
+# sentence while this is the build half.
+add_library(planex_v5c_lib STATIC
+    v5/client/src/if5c_fb.c
+    v5/client/src/if5c_font.c
+    v5/client/src/if5c_layout.c
+    v5/client/src/if5c_hit.c
+    v5/client/src/if5c_ease.c
+    v5/client/src/if5c_annotate.c
+)
+target_include_directories(planex_v5c_lib PUBLIC v5/client/include)
+target_link_libraries(planex_v5c_lib planex_v5_lib)
+
+add_executable(test_v5c_render v5/client/tests/test_v5c_render.c)
+target_link_libraries(test_v5c_render planex_v5c_lib)
+add_test(NAME v5c_render COMMAND test_v5c_render)
+
+add_executable(test_v5c_hit v5/client/tests/test_v5c_hit.c)
+target_link_libraries(test_v5c_hit planex_v5c_lib)
+add_test(NAME v5c_hit COMMAND test_v5c_hit)
+
+add_executable(test_v5c_persist v5/client/tests/test_v5c_persist.c)
+target_link_libraries(test_v5c_persist planex_v5c_lib)
+add_test(NAME v5c_persist COMMAND test_v5c_persist)
+
+# The calculator demo (an APPLICATION: it may submit; the client
+# modules it links may not). The golden check runs it against the
+# committed goldens (F2's public form).
+add_executable(if5c_calc v5/client/apps/if5c_calc.c)
+target_link_libraries(if5c_calc planex_v5c_lib)
+add_test(NAME if5c_calc_golden COMMAND if5c_calc
+    --render ${CMAKE_CURRENT_BINARY_DIR}/calc_session.golden)
+add_test(NAME if5c_calc_golden_cmp COMMAND
+    ${CMAKE_COMMAND} -E compare_files
+    ${CMAKE_CURRENT_BINARY_DIR}/calc_session.golden
+    ${CMAKE_CURRENT_SOURCE_DIR}/v5/client/tests/golden/if5c_calc.golden)

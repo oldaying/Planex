@@ -49,8 +49,22 @@
  */
 bool if5__region_concurrent(if5_world* w, uint16_t rid, if5_vc vc)
 {
-    uint32_t i;
-    for (i = 0; i < w->n_log; i++) {
+    return if5__region_concurrent_upto(w, rid, vc, w->n_log);
+}
+
+/* The bounded form (ADR-0028 Decision 4): the scan restricted to
+ * records 1..upto — the prefix that existed when an installed
+ * record was adjudicated. The adjudicator's own call path is
+ * unchanged (the wrapper above); the snapshot's rebuild uses this
+ * to re-derive path counters over history without re-deciding
+ * anything (the outcomes are the installed flags). */
+bool if5__region_concurrent_upto(if5_world* w, uint16_t rid, if5_vc vc,
+                                  uint32_t upto)
+{
+    uint32_t i, n;
+    if (!w) return false;
+    n = upto < w->n_log ? upto : w->n_log;
+    for (i = 0; i < n; i++) {
         const if5_intent* q = &w->log[i];
         if (q->region != rid) continue;
         if (!(q->flags & IF5_F_APPLIED)) continue;

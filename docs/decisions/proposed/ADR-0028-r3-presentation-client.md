@@ -47,7 +47,8 @@ registration discipline both predecessors set: every prediction in
 
 ## Status
 
-- **State:** proposed
+Proposed
+
 - **Date:** 2026-11-01
 - **Deciders:** the derivation series (vol. 5 → vol. 6 → vol. 7 →
   ADR-0025 → ADR-0026 → ADR-0027 → this memo)
@@ -619,6 +620,30 @@ measured need) in CAVEATS.
 - **Tracking:** CAVEATS registers the boundary; a future
   cryptographic-integrity extension is a successor-ADR question.
 
+- **Issue (found at landing):** the rebuild's alphabet has an
+  honest edge. A successful STANDALONE `if5_debit` (the public
+  primitive) posts no record — the spent totals it moves are
+  log-invisible, and no snapshot can reconstruct their
+  interleaving (the receipts are the only witnesses, and only
+  for the overdrafts). The same class: structural records
+  submitted through `if5_submit` instead of the core's own
+  creators (the C7 manual path is byte-identical only in its
+  full-knowledge configuration), and a mid-history
+  `if5_set_system_source` reconfiguration (which source paid
+  which merge becomes unattributable).
+- **Why accepted:** each case is either refused or
+  authoritatively persisted, never silently wrong: the loader
+  installs the persisted spent totals and REFUSES when the
+  log-visible portion exceeds them; the cross-checks (stats,
+  cursor, receipts count, ledger carved/sub/breaker) catch the
+  shapes that misreplay. The F9 test drives the verified
+  alphabet — the differential's own op set — and the boundary
+  is stated where it lives, here.
+- **Tracking:** a record-format change that logged standalone
+  debits (a successor-ADR question — it moves the 48-byte word)
+  would close the gap; the persisted-totals design makes the
+  gap harmless until then.
+
 ## Refutation Criteria
 
 This decision is falsified, in whole or in part, by any of:
@@ -676,11 +701,145 @@ A successor that supersedes or deprecates this memo inherits:
 ## Validation
 
 Registered before implementation, per the series discipline
-(ADR-0025 beat 1 → beat 2; ADR-0026; ADR-0027). This section is
-filled from the landing runs at implementation time — never
-asserted in advance. At registration time the F-series stands as
-written above: twelve predictions, all pending, all
-machine-verifiable, zero human-subject claims.
+(ADR-0025 beat 1 → beat 2; ADR-0026; ADR-0027); this section is
+the LANDING RUNS' transcript, filled after the fact, from the
+actual gate and suite outputs. **F1–F12: all PASS.**
+
+- **F1 (client purity): PASS.** Rendering through every client
+  module (layout, render, hit, ease, dump, hash) leaves the
+  durable image byte-identical (log, receipts, stats — memcmp
+  around the full call sequence) and moves the submit counter
+  by exactly zero. The static half: the rebound gate's client
+  purity ban scans clean.
+- **F2 (renderer determinism): PASS.** Two independent
+  layout+render passes produce byte-identical framebuffers
+  (FNV-1a over the pixel plane, plus full RGBA byte compare);
+  re-rendering over the same surface is idempotent; and the
+  round-trip half — the same view rendered from a RELOADED
+  world — is byte-identical (test_v5c_persist).
+- **F3 (layout totality): PASS.** Every view-live region receives
+  exactly one cell; per-cell (name, rid, parent, depth, value,
+  contrib, ptype, tier) equals the tree walk's node in the same
+  order; the depth-row and pre-order-column rules hold; columns
+  strictly increase; every cell sits inside the composed
+  surface.
+- **F4 (hit-test inversion): PASS.** 200 randomized tree shapes
+  (3–9 regions, up to 3 levels, random types and tiers), 1,216
+  cells, 15,280 probe points: every cell's center and four
+  inward corners answer that cell's rid; six outside probes per
+  layout answer 0; and a 40-point randomized sweep per layout
+  agrees with a brute-force containment scan on every point.
+- **F5 (easing): PASS.** Both families (linear, smoothstep):
+  t=0 renders view A byte-exactly; t=1 renders view B
+  byte-exactly; and across a 16-step sequence the per-channel
+  distance to B never increases (monotone under exact integer
+  rational arithmetic — no floating point anywhere).
+- **F6 (named-address round trip): PASS.** A cut registered with
+  a name survives save→load with the same id (1-based), the same
+  address bytes (frontier, prefix, prunes — memcmp), and the
+  same name; lookup-by-name resolves to the same id; duplicate
+  names are refused at register time on BOTH the original and
+  the reloaded world; unnamed entries answer "".
+- **F7 (snapshot fidelity): PASS.** Across a round trip over the
+  FULL op alphabet (single and batch region creation, causal and
+  debited submissions, a ladder-to-breaker, concurrent merges,
+  forks, arbitrations with witnesses, delegation, an undo, an
+  explicit stitch, a black-box export, a reparent, a process
+  commit and a process cancel, three named cuts): log bytes,
+  arena bytes, the three frozen projections (at now, at a mid
+  cut, at a rewound view), the black-box export, the receipt
+  stream, the tree walk (node for node), the schedule (entry for
+  entry), and every registered cut's fold on every region are
+  identical. The strongest form also holds: the reloaded world
+  CONTINUES identically — one more submission on each core
+  produces byte-identical records and projections.
+- **F8 (snapshot canonicity): PASS.** Saving the same world twice
+  yields byte-identical files; a reloaded world re-saves to the
+  identical file (the fixpoint holds).
+- **F9 (rebuild correctness): PASS.** The one-pass rebuild
+  reproduces, exactly: every source's knowledge clock (svc),
+  vc_now, every ledger (spent_initiative, spent_surprise,
+  sub_ceiling, carved, breaker_tripped), every region cache
+  (cache, last_iid, head_a, head_b — white-box, the
+  differential's precedent), the full stats block, and the tick
+  — compared field-by-field against the incrementally-built
+  pre-save world. The cursor cross-check (replayed final view ==
+  persisted view) and the stats cross-check held on every load.
+- **F10 (the V1 surface re-verified): PASS.** The R1 differential
+  re-ran untouched: TRIP-17 + 100 seeded streams × 200 ops +
+  the E2 shape, byte-identical on every compared surface; the
+  48-byte-per-change slope intact; v5 residency at the E2 shape
+  1.661× against the registered 3.0 boundary; and the
+  working-set delta assertion moved from 12,568 to **13,336
+  bytes exactly** — 64 × IF5_NAME_MAX = 768 bytes of name
+  column and nothing else, the reason registered in §3 before
+  the measurement (the assertion is exact, and it attributed).
+- **F11 (the gates bite): PASS.** With the client present, the
+  core visual-vocabulary scan stays clean over v5/src +
+  v5/include; the dependency-direction ban caught its planted
+  `if5c_` reference inside a copy of the core; the client purity
+  ban caught its planted `if5_submit` inside a copy of a client
+  module — both synthetic violations, both caught.
+- **F12 (the kit's honest completeness): PASS.** All nine leg
+  entries (E1a, E1b, E2-experimental, E3a, E3b, E3c, E4, E5a,
+  E5b) exist with all five fields; the account section says
+  READY — NOT RUN; and `scripts/check_e_series_runbook.sh`
+  verifies the account against the repository state (no data
+  directory, no CSVs) — wired into CI on both Linux job
+  families.
+
+### Implementation-era findings (caught before landing, recorded)
+
+1. **The ARBIT witness carries the newcomer's path counters.**
+   The first rebuild draft counted every applied record by
+   re-deriving its concurrency; the tier-3 NEWCOMER's
+   adjudication happened at its witness (one append later), so
+   the draft double-counted it as causal — and the stats
+   cross-check REFUSED the load with both totals printed
+   (causal 12/11, arrivals 3/3). The old head keeps the counts
+   its own submission earned; only the newcomer's counting
+   moves to the witness. The cross-check design paid for itself
+   on its first day.
+2. **A tier-1 fork does not touch the working-set value cache.**
+   The second refusal (region cache 1/2): `if5__tier1_fork`
+   updates heads and last_iid but NOT `r->cache` — a forked
+   region's cache stays at the causal fold until the fork
+   resolves, while the FOLD is chain-selected. The divergence
+   between cache and fold on forked regions is FROZEN slice
+   semantics; the rebuild replicates it, it does not repair it.
+3. **The tier-2 system debit is flag-witnessed.** The system's
+   background debit for a merge appears in no record's debit
+   word — but the CONCUR_MERGE flag PROVES it succeeded (a
+   failed debit leaves the newcomer unapplied). The rebuild
+   derives the system's spent from the flags: the one
+   log-invisible ledger effect, and it is not invisible at all.
+4. **Standalone `if5_debit` successes are genuinely invisible.**
+   A successful standalone debit posts no record, no receipt —
+   only the ledger total moves (Known issue 3). The snapshot
+   persists the totals authoritatively; the loader refuses when
+   the visible portion exceeds them. The honest boundary,
+   registered rather than papered over.
+5. **The attention margin's first geometry was a staircase.**
+   The marks' x was read from a running max inside the placement
+   loop, so each mark stepped 112px further right — a 4,944px
+   wide, diagonal margin. The dimension check in the demo caught
+   it; the fixed-column margin is now the registered geometry
+   and the golden pins it.
+
+### The regression battery at landing
+
+`make BACKEND=headless CFLAGS_EXTRA=-Werror` clean; root suites
+39/39; slice suites + rebound gate green; v5 suites 8/8 families
+under -Werror plus the differential PASS; the client suites 3/3
+plus the two-frame golden check byte-identical; ctest 27/27;
+ASAN+UBSan clean on every v5 and client suite AND the demo
+(golden byte-identical under sanitizers too); the six client
+sources, the snapshot module, and the two touched cores compile
+clean under -Wconversion -Wsign-conversion -Wshadow; every shell
+gate green (build-sync, doc sections, essence admission, ADR
+lifecycle, links, terms, limitations freshness, stale
+abstraction counts, rebound with both R3 bites, e-series
+account); the ADR index matches its generator.
 
 ## HISTORY
 
@@ -689,6 +848,16 @@ machine-verifiable, zero human-subject claims.
   name column, the snapshot, the E-series kit, the F-series.
   Predecessors: ADR-0026 (R1, V1–V9 all PASS), ADR-0027 (R2,
   M1–M9 all PASS, both tracked Known issues discharged).
+- **2026-11-01 — Implemented and measured.** The client zone
+  (`v5/client/`: fb, font, layout, hit, ease, annotate), the
+  registry's name column, the snapshot module, the calculator
+  demo with two committed goldens, and the E-series runbook with
+  its account gate. F1–F12 all PASS from the landing runs
+  (transcribed above, including five implementation-era findings
+  — two of them caught by the snapshot's own cross-checks, which
+  is what the cross-checks are for). Testing 121 → 136 sections;
+  ctest 21 → 27. The human gate is unmoved: zero human-subject
+  claims anywhere in the stage.
 
 ## References
 
