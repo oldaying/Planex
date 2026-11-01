@@ -13,9 +13,10 @@
 #                                                #   "## Refutation Criteria" and
 #                                                #   "## Regression Clause". Default mode
 #                                                #   is behavior-identical to pre-ADR-0024;
-#                                                #   the flag is opt-in until ADR-0024 is
-#                                                #   promoted to Validated and docs.yml
-#                                                #   passes it.
+#                                                #   CI passes --four-column since ADR-0024
+#                                                #   reached Validated (2026-11-01), per
+#                                                #   that ADR's registered promotion
+#                                                #   procedure.
 #
 # Required ADR sections (every ADR under docs/decisions/{proposed,validated,accepted,deferred,deprecated,superseded}/):
 #   - "## Status"            (lifecycle field)

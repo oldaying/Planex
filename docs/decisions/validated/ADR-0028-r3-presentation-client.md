@@ -47,7 +47,7 @@ registration discipline both predecessors set: every prediction in
 
 ## Status
 
-Proposed
+**Validated.**
 
 - **Date:** 2026-11-01
 - **Deciders:** the derivation series (vol. 5 → vol. 6 → vol. 7 →
@@ -57,6 +57,18 @@ Proposed
   mandatory and load-bearing.
 - **Stage lineage:** R1 = the promoted core (ADR-0026); R2 = the
   mechanism layer (ADR-0027); R3 = this memo.
+
+The enforcement this ADR ships is implemented and proven to bite:
+the rebound gate's two new bans — dependency direction (`if5c_`
+symbols may not enter the core) and client purity (client sources
+may not submit/append/debit/undo/adopt) — each catch their own
+planted synthetic violation (F11), and the E-series runbook's
+ready-not-run account is enforced against the repository state at
+every commit by `scripts/check_e_series_runbook.sh` (F12). F1–F12
+are all PASS with the measured outcome transcribed in
+`## Validation`. Promotion to **Accepted** remains a maintainer
+ruling; the E-series commissioning this kit registers stays with
+the maintainer.
 
 ## Context
 
@@ -858,6 +870,12 @@ account); the ADR index matches its generator.
   is what the cross-checks are for). Testing 121 → 136 sections;
   ctest 21 → 27. The human gate is unmoved: zero human-subject
   claims anywhere in the stage.
+- **2026-11-01 — Validated.** The enforcement is implemented and
+  proven to bite: both new rebound-gate bans (dependency direction,
+  client purity) catch their own planted synthetics (F11), and
+  `check_e_series_runbook.sh` enforces the kit's ready-not-run
+  account in CI (F12). F1–F12 PASS. Acceptance is a maintainer
+  ruling; the E-series commissioning stays with the maintainer.
 
 ## References
 

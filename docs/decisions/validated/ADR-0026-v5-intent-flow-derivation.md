@@ -40,7 +40,21 @@ is the same boundary ADR-0025's CAVEATS drew for the C-series.
 
 ## Status
 
-Proposed
+**Validated.** Date: 2026-11-01.
+
+The enforcement this ADR ships is implemented and proven to bite:
+the extended rebound gate (the four slice bans plus the S15
+visual-field vocabulary ban, with its own synthetic bite) runs in
+CI's make-family jobs via `make -C v5 rebound-check`; the R1
+differential (V1) locks the promoted core to the frozen slice
+byte-for-byte; and the essence-admission gate — ADR-0014's channel
+— fired for real during this ADR's own registration (the missing
+traditional citation it caught is preserved in `## Validation`).
+V1–V9 are all PASS. The promotion gate this ADR registers (§5,
+pre-committed to the E-series degradation clauses) is NOT consumed
+by this validation: v5 stays a parallel tree, the shipping API
+stays the frozen control arm, and promotion to **Accepted** —
+like the tree's promotion — remains a maintainer ruling.
 
 ## Context
 
@@ -720,19 +734,29 @@ any fresh checkout via `make -C v5 test` (vol. 6 8.4's rule).
   metadata in R1). V1–V9 all PASS; the three implementation-era
   findings recorded above. Still Proposed — the maintainer's
   acceptance is ADR-0014's channel, not this file's.
+- 2026-11-01 — Validated. The enforcement is implemented and proven
+  to bite: the extended rebound gate (four bans + the S15
+  visual-field ban, own synthetic bite) wired into CI's make-family
+  jobs; the R1 differential (V1) green; the essence-admission gate
+  fired for real at this ADR's registration. V1–V9 PASS. The §5
+  promotion gate is NOT consumed by this validation — v5 remains a
+  parallel tree and the shipping API the frozen control arm;
+  acceptance is a maintainer ruling. (References' ADR-0014 path
+  corrected to validated/ in the same change — it was written
+  accepted/ while ADR-0014 has lived in validated/ since 2026-08.)
 
 ## References
 
-- `docs/decisions/proposed/ADR-0025-intent-flow-vertical-slice.md` —
+- `docs/decisions/validated/ADR-0025-intent-flow-vertical-slice.md` —
   the instrument whose verdicts gate this decision; its Known issues
   section registered the Phase-4-scale cut-algebra debt this ADR
   discharges at R1 granularity.
-- `docs/decisions/proposed/ADR-0024-*` — the four-column discipline
+- `docs/decisions/validated/ADR-0024-*` — the four-column discipline
   this file obeys (sections `## Refutation Criteria` and
   `## Regression Clause`).
 - `docs/decisions/accepted/ADR-0012-*` — the v4 derivation precedent
   (orthogonality pressure tests; the parallel-tree shape).
-- `docs/decisions/accepted/ADR-0014-*` — the lifecycle authority the
+- `docs/decisions/validated/ADR-0014-*` — the lifecycle authority the
   promotion gate defers to.
 - Research series vol. 5 (意图流语义草案) §5.1–5.4 — the causal-slice
   definition, undo-as-query, dual address, black-box parameters the

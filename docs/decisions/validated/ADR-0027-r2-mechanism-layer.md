@@ -41,7 +41,18 @@ a presentation question, registered for R3, not smuggled in here.
 
 ## Status
 
-Proposed
+**Validated.** Date: 2026-11-01.
+
+The enforcement this ADR ships is implemented and proven to bite:
+the rebound gate's mechanism-layer extension — `if5_process_sample`'s
+body may not submit, append, or debit — carries its own synthetic
+bite (a planted `if5__append` in the sample body is caught), wired
+into CI's make-family jobs via `make -C v5 rebound-check`; this
+ADR's own Refutation Criteria name that ban's failure-to-bite as a
+red condition, and it bites. M1–M9 are all PASS with the measured
+outcome transcribed in `## Validation`, and the V1 surface
+re-verified byte-identical. Promotion to **Accepted** remains a
+maintainer ruling through REVIEW-RUBRIC.md.
 
 ## Context
 
@@ -834,16 +845,22 @@ never asserted.)*
   changed shipped shapes before landing (the omniscient defaults;
   the kcut's structural scope) and are recorded above; the
   Makefile's stale-object lesson is registered in the Makefile.
+- 2026-11-01 — Validated. The enforcement is implemented and proven
+  to bite: the rebound gate's sample-purity ban
+  (`if5_process_sample` body may not submit/append/debit) catches its
+  planted `if5__append` synthetic, wired into CI's make-family jobs.
+  M1–M9 PASS; the V1 surface re-verified byte-identical. Acceptance
+  is a maintainer ruling.
 
 ## References
 
-- `docs/decisions/proposed/ADR-0026-v5-intent-flow-derivation.md` —
+- `docs/decisions/validated/ADR-0026-v5-intent-flow-derivation.md` —
   the decision this stage executes under; §7 registered R2, the
   Known issues section tracked both discharges to this file.
-- `docs/decisions/proposed/ADR-0025-intent-flow-vertical-slice.md` —
+- `docs/decisions/validated/ADR-0025-intent-flow-vertical-slice.md` —
   the instrument; its design-fix register (REBORN exemption,
   living-knowledge rule) is the semantics the kcut must not violate.
-- `docs/decisions/proposed/ADR-0024-*` — the four-column discipline
+- `docs/decisions/validated/ADR-0024-*` — the four-column discipline
   this file obeys.
 - Vol. 5 (`意图流语义草案`) ch. 3.3 (B2 open channel), ch. 5 (N2
   time-addressability, §5.1 cut algebra), ch. 6 (N3 tiers), ch. 8

@@ -167,7 +167,7 @@ The doc-organization contract is enforced by 13 CI gates. If any one fails, the 
 
 | Gate | What it falsifies |
 |---|---|
-| 1. `check_doc_sections.sh` | Every ADR has all 9 mandatory sections (Mathlib docBlame analogue) |
+| 1. `check_doc_sections.sh` | Every ADR has all 9 mandatory sections; ADR-0024+ also Refutation Criteria + Regression Clause (Mathlib docBlame analogue) |
 | 2. `check_adr_lifecycle.sh` | ADR's lifecycle subdirectory matches its Status field (seL4 lifecycle-as-directory, now including the `validated/` stage from ADR-0014) |
 | 3. `gen_adr_index.sh` | The hand-maintained `decisions/README.md` matches the auto-generated index (Nygard auto-ADR-1) |
 | 4. `check_links.sh` | Every internal markdown link resolves (no silent dead links) |
