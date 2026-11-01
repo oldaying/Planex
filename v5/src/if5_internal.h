@@ -55,6 +55,35 @@ struct if5_world {
     if5_cut     cuts[IF5_MAX_CUTS];
     uint8_t     n_cuts;
 
+    /* --- the mechanism layer (ADR-0027): world-scoped registries
+     * and process slots — working set, never history. The three
+     * frozen R1 projections register through the public channel at
+     * world creation (B2 equality of standing); the route table maps
+     * ptype -> compile function the same way. Process slots are the
+     * interaction surfaces: static, bounded, and gone at world free
+     * (the OPENING records stay in the log — records are durable,
+     * slots are not; ADR-0027 CAVEATS). */
+    struct {
+        char               name[IF5_PROJ_NAME_MAX];
+        if5_projection_fn  fn;
+    }           projections[IF5_MAX_PROJECTIONS];
+    uint8_t     n_projections;
+    uint8_t     reserved_pad[7];
+
+    if5_compile_fn routes[IF5_MAX_PAYLOAD_TYPES];
+
+    struct if5_process {
+        if5_world*  w;
+        if5_sid     src;
+        uint16_t    rid;
+        uint8_t     ptype;
+        bool        closed;
+        uint32_t    begin_iid;
+        uint64_t    latest;
+    }           procs[IF5_MAX_PROCESSES];
+    uint8_t     n_procs;
+    uint8_t     reserved_pad2[7];
+
     if5_stats   stats;
     uint32_t    tick;
 };
@@ -126,5 +155,22 @@ bool if5__sq_num(uint64_t a, uint64_t b, uint64_t* out);
 bool if5__le_num(uint64_t a, uint64_t b);
 bool if5__sq_set(uint64_t a, uint64_t b, uint64_t* out);
 bool if5__le_set(uint64_t a, uint64_t b);
+
+/* --- mechanism-layer internals (ADR-0027) ---------------------- */
+
+/* The mechanism-layer built-ins register at world creation, through
+ * the same public channel applications use (B2 equality of
+ * standing): the three frozen projections + the tree and schedule
+ * text renderings (if5_projection.c), and the NUM/SET/STR compile
+ * routes (if5_route.c). Called from if5_world_create. */
+void if5__register_builtin_projections(if5_world* w);
+void if5__register_builtin_routes(if5_world* w);
+
+/* The reparent fold's seed read: the single-create REGION record's
+ * aux carries the creation-time parent (batch-created regions seed
+ * at root — the frozen blob layout's meaning). if5_core.c fills the
+ * aux at single-region creation; if5_tree.c / if5_cause.c read it
+ * through this helper. 0 = root. */
+uint16_t if5__seed_parent(const if5_world* w, uint16_t rid);
 
 #endif /* IF5_INTERNAL_H */

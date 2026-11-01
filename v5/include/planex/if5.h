@@ -136,7 +136,16 @@ enum {
     IF5_T_EXPORT = 9,  /* black-box export (S3)                        */
     IF5_T_ARBIT  = 10, /* tier-3 arbitration witness                    */
     IF5_T_MERGE  = 11, /* explicit tier-1 merge-intent                  */
-    IF5_T_USER   = 12  /* registered extension types start here        */
+    /* ADR-0027 Decision 3/2g: the two mechanism-layer structural
+     * families. Both are REGION-SCOPED structural records; both
+     * are excluded from the value fold (if5__is_value_type);
+     * neither existed in any R1 stream, so every historical byte
+     * is unchanged. The user-extension start moves 12 -> 14,
+     * once, here, in a tree with no external users (ADR-0027
+     * Decision 3's surface-list amendment). */
+    IF5_T_REPARENT = 12, /* containment move (S15 content; ADR-0027 3)  */
+    IF5_T_PROCESS  = 13, /* interaction-process opening (ADR-0027 2g)   */
+    IF5_T_USER   = 14  /* registered extension types start here        */
 };
 
 typedef struct if5_payload_type {
@@ -591,6 +600,240 @@ typedef struct if5_sched_entry {
  * layer's byte image is unchanged (test_v5_seats enforces it). */
 uint32_t if5_schedule(if5_world* w, const if5_view* v, if5_sid src,
                       if5_sched_entry* out, uint32_t cap);
+
+/* ============================================================
+ * STAGE R2 — the mechanism layer (ADR-0027): the seven shipping
+ * abstractions re-derived as projections, queries, and judgments
+ * over the durable core. Five of the six modules are PURE
+ * queries (S24 purity extends to them: test-enforced by
+ * durable-image memcmp); the two write paths (process phases,
+ * compiled submission) go through the ordinary submit channel.
+ * The NOT-CARRIED columns of ADR-0027 Decision 2 are contract:
+ * no confidence prior, no easing curve, no asserted-by-convention
+ * relation, no action callback, no screen raster, no
+ * wall-clock budget, no geometric hit-test lives here.
+ * ============================================================ */
+
+/* --- (a) Estimate as a fold -----------------------------------
+ * An estimate is not a cell: it is the region's fold READ at an
+ * address. `evidence` is an ORDINAL, not a probability — the log
+ * can support an evidence state, not a caller's prior, and any
+ * consumer treating IF5_CONF_* as Bayesian confidence is
+ * misusing this API (ADR-0027 CAVEATS).
+ */
+enum {
+    IF5_CONF_NONE   = 0,   /* no contributing record at the view  */
+    IF5_CONF_FORKED = 1,   /* fork unresolved: two versions live  */
+    IF5_CONF_MERGED = 2,   /* concurrent work present, stitched   */
+    IF5_CONF_CHAIN  = 3    /* single chain, fully applied         */
+};
+
+typedef struct if5_estimate {
+    uint64_t value;         /* the fold at the view               */
+    uint32_t contributions; /* applied live contributors          */
+    uint32_t last_iid;      /* newest contributor (PROV anchor)   */
+    uint8_t  evidence;      /* IF5_CONF_*                         */
+    uint8_t  reserved[3];
+} if5_estimate;
+
+bool if5_estimate_at(if5_world* w, uint16_t rid, const if5_view* v,
+                     if5_estimate* out);
+
+/* The trajectory: the fold evaluated at every integer cut in
+ * (from.cut, to.cut] — the shipping animation is the two-sample
+ * special case. Counting mode (out == NULL) returns the total. */
+uint32_t if5_estimate_trace(if5_world* w, uint16_t rid,
+                            const if5_view* from, const if5_view* to,
+                            uint64_t* out, uint32_t cap);
+
+/* The dependency set, made explicit (the derived estimates'
+ * automatic dependency tracking is structural here): the view-
+ * live contributing records, oldest first. */
+uint32_t if5_estimate_sources(if5_world* w, uint16_t rid,
+                              const if5_view* v, uint32_t* iids,
+                              uint32_t cap);
+
+/* --- (b) Relation as the cause-graph over the log --------------
+ * DEPENDS_ON is the PROV edge; TRIGGERS is the causal-successor
+ * query; VARIES_WITH is the concurrency enumeration; CONTAINS is
+ * the folded containment (if5_parent_at). BESIDE/AFFORDS/
+ * WITHDRAWS_FOR/PRESENTS_FOR/INTERPRETS_AS have no causal
+ * semantics and are NOT carried (ADR-0027 Decision 2b).
+ */
+typedef struct if5_edge {
+    uint32_t from_iid;      /* the cause (a PROV parent)          */
+    uint32_t to_iid;        /* the effect (the record itself)     */
+} if5_edge;
+
+/* The record's PROV edges (merge carries two, an undo cursor
+ * carries one; a plain submission carries none). */
+uint32_t if5_cause_edges(if5_world* w, uint32_t iid, if5_edge* out,
+                         uint32_t cap);
+
+/* The exact reversal: records whose prov_a/prov_b IS `iid`. */
+uint32_t if5_cause_effects(if5_world* w, uint32_t iid, if5_edge* out,
+                           uint32_t cap);
+
+/* View-live records on the region that have at least one
+ * concurrent partner (vc incomparable both ways). */
+uint32_t if5_cause_concurrents(if5_world* w, const if5_view* v,
+                               uint16_t rid, uint32_t* iids,
+                               uint32_t cap);
+
+/* The happened-before reachability (the vc partial order,
+ * transitive): did `from` causally precede `to`? O(1). */
+bool if5_cause_reachable(if5_world* w, uint32_t from, uint32_t to);
+
+/* --- (c) Closure as a judgment ---------------------------------
+ * The five execution-side stages, READ off the adjudicated
+ * record: goal (the region's semantic address), intent (the
+ * value word), adjudication (the verdict), observation point
+ * (what the submitter knew), evaluation (the fold at the view).
+ * The Action stage is the type-registered semilattice join —
+ * mutation is typed, not arbitrary (ADR-0027 Decision 2c).
+ */
+typedef enum if5_verdict {
+    IF5_VERDICT_APPLIED    = 1,  /* clean application              */
+    IF5_VERDICT_MERGED     = 2,  /* concurrent, stitched into lattice */
+    IF5_VERDICT_FORKED     = 3,  /* live on a forked region chain  */
+    IF5_VERDICT_ARBIT_LOST = 4,  /* tier-3 arbitration loser       */
+    IF5_VERDICT_REFUSED    = 5,  /* breaker/authority: logged, unapplied */
+    IF5_VERDICT_EXCLUDED   = 6   /* undone at this view            */
+} if5_verdict;
+
+typedef struct if5_judgment {
+    uint32_t iid;           /* the record being read             */
+    if5_vc   observed;      /* the asker's causal coordinate at
+                             * ask time (the record's own vc:
+                             * declared knowledge + this record's
+                             * increment). The SCALAR prefix the
+                             * submitter passed is a channel
+                             * property, not a record property —
+                             * it is not recoverable, and this
+                             * struct does not fake it            */
+    uint32_t eval_value;    /* the fold at the view (evaluation) */
+    uint16_t region;        /* the goal's address                */
+    uint8_t  ptype;         /* the intent's payload family       */
+    uint8_t  src;           /* who asked                         */
+    uint8_t  verdict;       /* if5_verdict                       */
+    uint8_t  fork_heads;    /* 0, 1, or 2 (region's live forks)  */
+    uint8_t  rebased;       /* REBORN mirror                     */
+    uint8_t  debit_class;   /* who paid (0 = nobody)             */
+    uint8_t  severity;      /* the rung posted                   */
+} if5_judgment;
+
+bool if5_judgment_of(if5_world* w, uint32_t iid, const if5_view* v,
+                     if5_judgment* out);
+
+/* --- (d) Perception as the projection family -------------------
+ * A WORLD-scoped registry (not process-global). The three frozen
+ * R1 projections are registered through this same channel at
+ * world creation and are WRAPPED, not modified — M4 asserts the
+ * registry path is byte-identical to the direct call. Extension
+ * projections (the tree, the schedule, text renderings) register
+ * through the same public channel (B2's equality of standing).
+ */
+#define IF5_MAX_PROJECTIONS 16
+#define IF5_PROJ_NAME_MAX   16
+
+typedef uint32_t (*if5_projection_fn)(if5_world* w, const if5_view* v,
+                                      char* buf, uint32_t cap);
+
+uint8_t  if5_projection_register(if5_world* w, const char* name,
+                                 if5_projection_fn fn);
+uint32_t if5_projection_count(if5_world* w);
+const char* if5_projection_name(if5_world* w, uint32_t index);
+uint32_t if5_projection_invoke(if5_world* w, const if5_view* v,
+                               const char* name, char* buf, uint32_t cap);
+
+/* --- (e) px_loop's budget as N4's ledger -----------------------
+ * No new API: the mapping is an argument (ADR-0027 Decision 2e)
+ * plus M7's behavioral pin. The budget lives on the ledger, is
+ * debited BEFORE the effect, and refuses (with a receipt) when
+ * exhausted — the overrun counter's question is answered by the
+ * receipt stream instead.
+ */
+
+/* --- (f) Intent compilation as the type registry's routing ------
+ * Compilation is ROUTING THROUGH THE OPEN REGISTRY: a compile
+ * function (text -> value word + submit options) attached to a
+ * registered payload type. Built-in routes (NUM/SET/STR) register
+ * through the same public channel. The compiled record is
+ * byte-equal to the direct submission of the same value (M6).
+ */
+typedef bool (*if5_compile_fn)(const char* text, uint64_t* value,
+                               if5_submit_opts* opts);
+
+bool if5_route_register(if5_world* w, uint8_t ptype, if5_compile_fn fn);
+uint32_t if5_compile(if5_world* w, if5_sid src, uint16_t rid,
+                     uint8_t ptype, const char* text,
+                     const if5_submit_opts* opts);
+
+/* --- (g) px_interaction as the adjudication surface --------------
+ * begin opens the process IN THE LOG (identity is an iid: the
+ * opening is itself adjudicated, undoable, provable); samples
+ * are pure working-set updates (zero submissions, zero debits —
+ * the px invariant, statically enforced by the rebound gate);
+ * commit submits through the ordinary channel (the outcome is a
+ * causal successor of the opening by vector clock); cancel IS a
+ * cut: the opening is undone and the process leaves causal
+ * history the way an undone change does. Sample trajectories
+ * are working-set by the accountization that keeps region names
+ * working-set (ADR-0027 Known issue 1).
+ */
+#define IF5_MAX_PROCESSES 8
+
+typedef struct if5_process if5_process;
+
+if5_process* if5_process_begin(if5_world* w, if5_sid src, uint16_t rid,
+                               uint8_t ptype);
+bool     if5_process_sample(if5_process* p, uint64_t value);
+uint32_t if5_process_commit(if5_process* p, uint64_t value,
+                            const if5_submit_opts* opts);
+bool     if5_process_cancel(if5_process* p);
+uint64_t if5_process_latest(const if5_process* p);  /* sample readback */
+uint32_t if5_process_of(if5_world* w, const if5_view* v, uint32_t iid);
+bool     if5_process_done(const if5_process* p);
+
+/* --- Known issue 1 discharged: containment becomes content -----
+ * A reparent is an ORDINARY record (IF5_T_REPARENT, region =
+ * child, value word = new parent) excluded from the value fold.
+ * The tree at a view folds: the last live reparent of a region,
+ * else the creation seed (the single-create REGION record's aux;
+ * batch-created regions seed at root, which is what the frozen
+ * blob layout always meant). The working-set parent field is a
+ * CACHE of the live fold (M8: no reparent -> identical to R1).
+ */
+uint32_t if5_reparent(if5_world* w, if5_sid src, uint16_t child,
+                      uint16_t new_parent);
+uint16_t if5_parent_at(if5_world* w, const if5_view* v, uint16_t rid);
+
+/* --- Known issue 2 discharged: the per-source knowledge cut -----
+ * Record identity, not clock comparison (the REBORN collision
+ * cannot bite). Addresses "source S's own records up to prefix,
+ * together with their PROV-declared ancestors" — the world as S
+ * has STRUCTURALLY bound itself to. Scope honesty (ADR-0027
+ * Decision 4, registered twice over): the implicit knowledge
+ * dependency of observed-cut declarations is NOT recoverable
+ * (the record word stores no declared prefix — the judgment
+ * mapping's discovery), and observational knowledge is out of
+ * scope. Membership is a REACHABILITY test, never a stored list
+ * and never a clock comparison; O(1) storage per cut.
+ */
+typedef struct if5_kcut {
+    if5_vc   frontier;      /* the join of S's records' vcs (cached) */
+    uint32_t prefix;        /* the log bound                      */
+    uint8_t  sid;           /* whose knowledge this addresses     */
+    uint8_t  reserved[3];
+} if5_kcut;
+
+if5_kcut if5_kcut_of_source(if5_world* w, if5_sid sid, uint32_t prefix);
+bool     if5_kcut_contains(if5_world* w, const if5_kcut* k, uint32_t iid);
+bool     if5_kcut_is_down_closed(if5_world* w, const if5_kcut* k);
+uint64_t if5_kcut_state_at(if5_world* w, const if5_kcut* k,
+                           uint16_t rid, uint32_t* contrib);
+uint32_t if5_kcut_members(if5_world* w, const if5_kcut* k,
+                          uint32_t* iids, uint32_t cap);
 
 /* --- instrumentation (E2 / I7) -------------------------------- */
 

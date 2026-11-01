@@ -35,6 +35,7 @@
 #include "if5_internal.h"
 
 #include <string.h>
+#include <stdlib.h>
 
 /* ============================================================
  * The frontier (the address's knowledge summary)
@@ -319,4 +320,224 @@ uint64_t if5_cut_state(if5_world* w, const if5_cut* c, uint16_t rid,
     if (!w || !c) { if (contrib) *contrib = 0; return 0; }
     v = if5_cut_view(c);
     return if5_state_at(w, rid, &v, contrib);
+}
+
+/* ============================================================
+ * The per-source knowledge cut (ADR-0027 Decision 4 —
+ * ADR-0026 Known issue 2 discharged)
+ *
+ * Record identity, not clock comparison: the REBORN collision
+ * (a re-based record reusing its source's clock slot) makes
+ * "vc componentwise <= F" unsound as a membership test, and this
+ * cut does not use that test anywhere. Membership is a
+ * REACHABILITY question over the PROV graph, answered forward in
+ * causality:
+ *
+ *     iid is a member  iff  iid is S's own applied record (at or
+ *     below the prefix), OR iid reaches one along PROV edges —
+ *     iid is a PROV-declared ancestor of something S did.
+ *
+ * The represented set is "the world as S has STRUCTURALLY bound
+ * itself to": S's records plus the dependencies the log
+ * explicitly names (merge parents, cursor targets). The scope
+ * is honestly narrower than "everything S's work stood on": the
+ * implicit knowledge dependency (observed-cut declarations) is
+ * not recoverable from the record word — the judgment mapping's
+ * discovery (ADR-0027 Decision 2c) — and observational knowledge
+ * ("seen but never bound to") has no causal consequence and is
+ * out of scope by decision, not by omission.
+ *
+ * Down-closure is BY CONSTRUCTION: if iid is a member via a path
+ * to S's record r, every PROV predecessor of iid is on a path to
+ * r too (prepend it). if5_kcut_is_down_closed verifies this
+ * independently (the recursive form, checked against the
+ * constructor rather than shared with it — M9's demand).
+ *
+ * Storage is O(1) per cut (sid + prefix + cached frontier) — the
+ * identity set is implicit in the log and never materialized, so
+ * there is no capacity cliff (ADR-0027's answer to the storage
+ * question ADR-0026's tracking clause left open).
+ * ============================================================ */
+
+if5_kcut if5_kcut_of_source(if5_world* w, if5_sid sid, uint32_t prefix)
+{
+    if5_kcut k;
+    uint32_t i;
+
+    memset(&k, 0, sizeof k);
+    if (!w || sid >= w->n_sources) return k;
+    k.sid    = sid;
+    k.prefix = prefix > w->n_log ? w->n_log : prefix;
+
+    /* The frontier: the join of S's OWN applied records' vcs. It
+     * dominates every member's vc (vc is monotone along causality:
+     * a PROV predecessor's vc is componentwise <= its successor's),
+     * so one join summarizes the whole set — recomputed by the
+     * membership test's own inputs, never by a cached path, so the
+     * summary cannot disagree with the set it summarizes. M9's
+     * independent recomputation checks exactly this claim. */
+    for (i = 1; i <= k.prefix; i++) {
+        const if5_intent* rec = &w->log[i - 1];
+        if (rec->src == sid && (rec->flags & IF5_F_APPLIED))
+            k.frontier = if5_vc_join(k.frontier, rec->vc);
+    }
+    return k;
+}
+
+/* Forward reachability: does `from` reach a record of S along PROV
+ * edges, staying within the prefix? Iterative worklist; the log
+ * is a DAG by construction (prov pointers reference earlier
+ * records), so the walk terminates without a visited-set — but a
+ * visited bitmap costs one bit per record and makes the worst case
+ * linear instead of exponential, so it is carried. */
+static bool if5__kcut_reaches(if5_world* w, uint32_t from, if5_sid sid,
+                              uint32_t prefix)
+{
+    uint32_t stack[512];
+    uint8_t* seen = NULL;
+    uint32_t top = 0;
+    bool answer = false;
+    uint32_t i;
+
+    if (from == 0 || from > prefix) return false;
+
+    /* Fast path: S's own applied record is a member outright. */
+    {
+        const if5_intent* rec = &w->log[from - 1];
+        if (rec->src == sid && (rec->flags & IF5_F_APPLIED)) return true;
+    }
+
+    seen = (uint8_t*)calloc(prefix + 1, 1);
+    if (!seen) return false;
+
+    stack[top++] = from;
+    seen[from] = 1;
+    while (top > 0 && !answer) {
+        uint32_t cur = stack[--top];
+        const if5_intent* rec = &w->log[cur - 1];
+
+        if (rec->src == sid && (rec->flags & IF5_F_APPLIED)) {
+            answer = true;
+            break;
+        }
+        /* PROV forward: the records whose prov_a/prov_b IS cur.
+         * The merge/cursor parents are the ONLY explicit edges —
+         * exactly the evidence class if5_cause_edges enumerates
+         * (the two modules share the edge definition by reading
+         * the same fields; M2/M9 check them independently). */
+        for (i = 1; i <= prefix; i++) {
+            const if5_intent* q = &w->log[i - 1];
+            if (seen[i]) continue;
+            if (q->prov_a == cur || q->prov_b == cur) {
+                seen[i] = 1;
+                if (top < 512) stack[top++] = i;
+                else { answer = false; goto out; }  /* bounded walk:
+                                                     * refusal, not
+                                                     * overflow */
+            }
+        }
+    }
+out:
+    free(seen);
+    return answer;
+}
+
+bool if5_kcut_contains(if5_world* w, const if5_kcut* k, uint32_t iid)
+{
+    if (!w || !k || k->sid >= w->n_sources) return false;
+    if (iid == 0 || iid > k->prefix) return false;
+    return if5__kcut_reaches(w, iid, k->sid, k->prefix);
+}
+
+bool if5_kcut_is_down_closed(if5_world* w, const if5_kcut* k)
+{
+    uint32_t i;
+
+    if (!w || !k) return false;
+    /* Independent verification: for every record in the prefix,
+     * membership implies the PROV predecessors' membership — the
+     * recursive form of the constructor's argument, checked
+     * against the constructor rather than shared with it (M9's
+     * demand). */
+    for (i = 1; i <= k->prefix; i++) {
+        const if5_intent* rec;
+        if (!if5_kcut_contains(w, k, i)) continue;
+        rec = &w->log[i - 1];
+        if (rec->prov_a && !if5_kcut_contains(w, k, rec->prov_a))
+            return false;
+        if (rec->prov_b && !if5_kcut_contains(w, k, rec->prov_b))
+            return false;
+    }
+    return true;
+}
+
+uint64_t if5_kcut_state_at(if5_world* w, const if5_kcut* k,
+                           uint16_t rid, uint32_t* contrib)
+{
+    if5_region* r;
+    const if5_payload_type* ty;
+    bool lattice, forked;
+    uint32_t head = 0, n = 0, i;
+    uint64_t acc = 0;
+
+    if (contrib) *contrib = 0;
+    if (!w || !k) return 0;
+    r = if5__region(w, rid);
+    if (!r) return 0;
+
+    /* The fold over EXACTLY the member records — the same
+     * per-record filter the core's fold applies (applied, live,
+     * value-type, selected chain), with the VIEW tests replaced by
+     * the kcut's membership test. The chain-selection question for
+     * forked regions is answered by the ordinary selected head at
+     * the equivalent prefix view — the members decide the rest. */
+    {
+        if5_view pv;
+        memset(&pv, 0, sizeof pv);
+        pv.cut = k->prefix;
+        ty = if5__type(w, r->ptype);
+        lattice = ty && ty->sq;
+        forked = r->head_b != 0 && !lattice;
+        if (forked) head = if5__selected_head(w, r, &pv);
+    }
+
+    for (i = 1; i <= k->prefix; i++) {
+        const if5_intent* rec = &w->log[i - 1];
+        if (rec->region != rid) continue;
+        if (!(rec->flags & IF5_F_APPLIED)) continue;
+        if (rec->flags & IF5_F_EXCLUDED) continue;
+        if (!if5__is_value_type(rec->ptype)) continue;
+        if (!if5_kcut_contains(w, k, i)) continue;
+        if (forked) {
+            if5_view pv;
+            memset(&pv, 0, sizeof pv);
+            pv.cut = k->prefix;
+            if (!if5__on_selected_chain(w, head, rec)) continue;
+        }
+
+        if (lattice && ty->sq) {
+            uint64_t out;
+            (void)ty->sq(acc, ((uint64_t)rec->value[1] << 32) | rec->value[0], &out);
+            acc = out;
+        } else {
+            acc = ((uint64_t)rec->value[1] << 32) | rec->value[0];
+        }
+        n++;
+    }
+    if (contrib) *contrib = n;
+    return acc;
+}
+
+uint32_t if5_kcut_members(if5_world* w, const if5_kcut* k,
+                          uint32_t* iids, uint32_t cap)
+{
+    uint32_t n = 0, i;
+
+    if (!w || !k) return 0;
+    for (i = 1; i <= k->prefix; i++) {
+        if (!if5_kcut_contains(w, k, i)) continue;
+        if (iids && n < cap) iids[n] = i;
+        n++;
+    }
+    return n;
 }

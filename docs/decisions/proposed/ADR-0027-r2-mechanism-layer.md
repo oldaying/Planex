@@ -115,6 +115,31 @@ Read from the code, not from memory of the docs:
   auto-invoke perceptions — the semantic world is touched only at phase
   transitions.
 
+**The traditions the mappings carry.** Each mapping below stands
+on a named source, the same ones the shipping files themselves
+cite (the survey read them there): Estimate-as-fold on Conal
+Elliott's denotative design and the Behavior = Time -> a reading
+of FRP (estimate.c's own header), with the spreadsheet's
+automatic dependency tracking as the derived-estimate precedent;
+Relation-as-cause-graph on vector clocks (Fidge 1988; Mattern
+1989 — the causal blood the core already carries) and
+Christopher Alexander's "A City is Not a Tree" semilattice
+(relation.c's own citation) for the network-not-tree claim;
+Closure-as-judgment on Winograd and Flores's "Understanding
+Computers and Cognition" conversation-for-action (closure.c's
+own citation); Perception-as-projection-family on Elliott's
+denotative discipline again (perception.c's), one denotation
+family per output channel; the budget mapping on the event-
+sourcing economics the vein map imported (Fowler 2005's event
+sourcing pattern: the log is the system of record, derived views
+are reads); compilation-as-routing on the open-registry
+discipline B2 installed (vol. 5 3.3, the Bevy ECS relationship
+routing being the industry analogue relation.c cites); and the
+process mapping on Myers 1990 "Garnet Interactors" — the
+interaction technique as a first-class object with start/
+running/stop states (interaction.c's own citation) — plus CSP's
+prefix-plus-choice shape for the commit-or-cancel outcome.
+
 **The mechanism-layer question.** On the shipping side these are seven
 independent state families: seven storage shapes, three registries
 (global perception list, process-global interaction list, graph edge
@@ -324,28 +349,40 @@ against an independent in-test reimplementation of the R1 order.
 
 The per-source cut is constructed the sound way ADR-0026 named:
 record identity, not clock comparison. `if5_kcut_of_source(w, sid,
-prefix)` addresses the set "the causal down-closure of source S's
-records up to `prefix`" — the world as S has made it matter. Membership
-is a REACHABILITY test, not a stored list: `if5_kcut_contains(w, k,
-iid)` is true iff `iid` can reach (along PROV edges, forward in
-causality) some record of S at or below `prefix`. No clock comparison
-anywhere, so the REBORN collision cannot bite; the represented set is
-down-closed BY CONSTRUCTION (a record's causal predecessors are on
-every path to it, hence also reach S's records), and `if5_kcut_is_down_closed`
-verifies it independently (recursive predecessor check) for the test
-battery. The cut carries the frontier (the join of member vcs) and
-folds: `if5_kcut_state_at` evaluates a region over exactly the member
-records. Scope honesty, registered: this is the DEPENDENCY knowledge
-("what S's work stands on"), not the OBSERVATIONAL knowledge ("what S
-happened to see pass by") — S's `observed_cut` glimpses that the
-closure does not include are deliberately out of scope, because
-"seen but never used" has no causal consequence and faking it would
-re-import the unsound clock comparison through the back door. When
-the world has a single source, the kcut degenerates to the prefix cut
-and its fold equals `if5_now`'s (M9 asserts the degeneration); with
-many sources it is strictly finer than any prefix cut, which is the
-point. Storage: O(1) per cut (sid + prefix + frontier) — the identity
-set is implicit in the log, never materialized, so no capacity cliff.
+prefix)` addresses the set "source S's own records up to `prefix`,
+together with their PROV-declared ancestors — the merge parents
+and undo-cursor targets the log explicitly names" — the world as
+S has structurally bound itself to. Membership is a REACHABILITY
+test, not a stored list: `if5_kcut_contains(w, k, iid)` is true
+iff `iid` can reach (along PROV edges, forward in causality) some
+applied record of S at or below `prefix`. No clock comparison
+anywhere, so the REBORN collision cannot bite; the represented
+set is down-closed BY CONSTRUCTION (a record's PROV predecessors
+are on every path through it), and `if5_kcut_is_down_closed`
+verifies it independently (recursive predecessor check) for the
+test battery. The cut carries the frontier (the join of S's
+records' vcs — which dominates every member's vc, since vc is
+monotone along causality) and folds: `if5_kcut_state_at`
+evaluates a region over exactly the member records. Scope
+honesty, registered twice over: (1) this is STRUCTURAL dependency
+knowledge — the dependencies the log explicitly declares. The
+IMPLICIT knowledge dependency ("S's submission declared
+observed_cut = 500, so it saw records it never structurally
+bound to") is NOT recoverable from the record word, which does
+not store the declared prefix — the same discovery the judgment
+mapping (2c) made, and the reason its `observed` field carries
+the causal coordinate instead. Recovering implicit dependency
+would need either the unsound clock comparison (REBORN) or a
+record-format change (a stored prefix), both registered paths,
+neither taken here. (2) It is dependency knowledge, not
+observational knowledge — "what S happened to see pass by" has
+no causal consequence and is out of scope for the same reason.
+When the world has a single source, the kcut degenerates to the
+prefix cut and its fold equals `if5_now`'s (M9 asserts the
+degeneration); with many sources it is strictly finer than any
+prefix cut, which is the point. Storage: O(1) per cut (sid +
+prefix + frontier) — the identity set is implicit in the log,
+never materialized, so no capacity cliff.
 
 ### 5. The differential discipline: V1's surface stays frozen; the M-series is the new gate
 
@@ -574,16 +611,22 @@ touching the export format. Persistence stays tracked, unspent.
 - **Tracking:** none — re-registers through a successor ADR if a
   measured need appears.
 
-- **Issue:** the kcut expresses dependency knowledge, not
-  observational knowledge (Decision §4's scope honesty); "what S saw
-  but never used" is not addressable.
-- **Why accepted:** the observational reading requires either clock
-  comparison (unsound under REBORN, ADR-0025's documented collision)
-  or per-record observation sets (a record-format change). The
-  dependency reading is the one with causal consequences and is
-  sound with zero format change.
-- **Tracking:** the first E1b pilot that needs observational
-  addresses; it re-registers with its own format proposal.
+- **Issue:** the kcut expresses STRUCTURAL dependency knowledge
+  (PROV-declared: own records + merge parents + cursor targets),
+  not the implicit knowledge dependency of observed-cut
+  declarations, and not observational knowledge at all (Decision
+  4's scope honesty); "what S saw but never bound to" is not
+  addressable.
+- **Why accepted:** the implicit reading requires either clock
+  comparison (unsound under REBORN, ADR-0025's documented
+  collision) or a stored observed prefix (a record-format change;
+  the record word does not carry it — the judgment mapping
+  discovered the same gap). The structural reading is sound with
+  zero format change and is complete for exactly the dependencies
+  the log declares.
+- **Tracking:** the first E1b pilot that needs implicit or
+  observational addresses; it re-registers with its own format
+  proposal.
 
 ## Refutation Criteria
 
@@ -620,23 +663,159 @@ never touched.
 
 ## Validation
 
-*(To be filled with measured gate outputs when R2 lands — the
-three-beat discipline: this ADR registers before the mechanism-layer
-sources exist; the implementation lands; the outputs below are then
-transcribed from real runs, never asserted. Placeholder sections
-that survive to merge are a four-column violation.)*
+*(Transcribed from the landing runs — the three-beat discipline:
+every number below was printed by a real run of the landed code,
+never asserted.)*
 
-- Estimate fold agreement + evidence ordinals (M1): pending.
-- Cause-graph exactness + reversal + concurrency + reachability (M2): pending.
-- Judgment totality + verdict consistency (M3): pending.
-- Projection registry byte-equality with the frozen trio (M4): pending.
-- Process discipline: log growth, sample purity, causal succession,
-  cancel-as-cut (M5): pending.
-- Routing equivalence with direct submission (M6): pending.
-- Budget mapping: refusal exactness + receipt anchoring (M7): pending.
-- Reparent: fold semantics, undo, R1-order regression (M8): pending.
-- Knowledge cut: down-closure, degeneration, frontier (M9): pending.
-- R1 differential re-run (V1 surface, byte-exact): pending.
+- **Estimate fold agreement + evidence ordinals (M1): PASS.** The
+  estimate query agreed with the core's own fold (value and
+  contribution count) at every one of 400 seeded random ops; the
+  evidence ordinal took its registered values in all four
+  constructed states (NONE on the empty view, CHAIN on the
+  single-source lattice with contributions counting the REGION
+  seed — 3 for 1 seed + 2 writes, the core's registered semantics,
+  not a deviation, MERGED on the blind tier-2 arrival with the
+  system payer configured, FORKED on the blind non-lattice
+  arrival); the trace matched the fold at every integer cut of a
+  20-step window and the counting mode returned the total alone;
+  the sources enumeration agreed with a test-side recount that
+  replicates the value-type exclusion list from the public enum.
+- **Cause-graph exactness + reversal + concurrency + reachability
+  (M2): PASS.** The PROV edge count matched the closed form counted
+  from the record words by the test itself (prov_a + prov_b over
+  every record); every edge (a -> b) appeared in a's effects
+  enumeration with the same endpoints (cross-checked both ways);
+  the concurrency enumeration agreed with an independent pairwise
+  vc recomputation — which had to keep REGION and MERGE in the
+  value-type set, catching the test's own first draft excluding
+  them (the fold reads the seed and the stitch; a filter that
+  skipped them was the TEST's bug, not the module's); the blind
+  pair was mutually unreachable and reflexivity held.
+- **Judgment totality + verdict consistency (M3): PASS.** Every
+  record of a 150-op seeded stream judged successfully; the verdict
+  matched the flags under the registered precedence (unapplied ->
+  REFUSED/ARBIT_LOST, CONCUR_MERGE -> MERGED, else
+  APPLIED/FORKED); the observation coordinate was the record's own
+  vc byte-for-byte; the evaluation equaled the fold at the view
+  over the record's own region; the undone record read EXCLUDED at
+  the rewound view (the precedence's top slot, checked where it
+  bites).
+- **Projection registry byte-equality with the frozen trio (M4):
+  PASS.** Five built-ins registered by name in the fixed order;
+  the registry path was byte-identical to the direct call for
+  semantic/set/history (memcmp, same lengths); the tree and
+  schedule text renderings were non-empty and deterministic across
+  two runs; an extension projection registered through the same
+  channel, a duplicate name was refused, and an unknown name
+  invoked nothing.
+- **Process discipline (M5): PASS.** begin grew the log by exactly
+  one IF5_T_PROCESS record; 100 samples grew NEITHER the log nor
+  the history bytes (snapshotted and compared); commit grew the
+  log by one record whose vc strictly succeeded the opening's and
+  which the reachability query confirmed; if5_process_of recovered
+  the opening from the outcome; cancel left the opening EXCLUDED
+  at "now" (the judgment's verdict flipped) while the pre-cancel
+  view still saw it applied; a closed process refused sample,
+  commit, and cancel.
+- **Routing equivalence with direct submission (M6): PASS.** For
+  NUM (decimal), SET (hex), and STR (the 8-byte line), the
+  compiled record was memcmp-identical to the direct submission's
+  full 48-byte record word in a paired two-world run; bad text
+  ("12x"), an over-long STR, an empty hex literal, and an unrouted
+  ptype all refused with zero log growth.
+- **Budget mapping (M7): PASS.** A budget-3 source running six
+  debited submissions produced exactly 3 applied records; the
+  refusals were receipted (at least one receipt, its reason_iid
+  anchored to a real log record); the other source submitted
+  successfully while the breaker was tripped (refusal of the unit,
+  not of the world); the tripped source stayed refused (the
+  breaker latches).
+- **Reparent (M8): PASS.** The creation seeds read back through
+  the fold (kid under root1, grand under kid); a reparent moved
+  kid under root2 and the tree followed with correct depths and
+  order ([1,2,3,4] with kid depth 1 under root2); the moved
+  region's folded VALUE was untouched (42 before and after —
+  structure is not value); undoing the reparent restored the tree
+  exactly, including the DFS order ([1,3,4,2] — root1's subtree
+  precedes root2 again; the test's own first expectation had the
+  order wrong and the walk was right); the pre-undo view still
+  saw the move (the view is the address); nonexistent child,
+  nonexistent destination, and a cycle attempt all refused. The
+  R1-order regression held: in a 12-region seeded world with
+  creation-seed parents and no reparent records, the folded walk
+  and an independent in-test reimplementation of R1's
+  working-set-parent DFS agreed on order, parent, and depth — at
+  "now" AND at a rewound view.
+- **Knowledge cut (M9): PASS.** The public verifier and an
+  independent fixpoint membership walk (recursive, test-side)
+  agreed on every record below the prefix; every member's PROV
+  predecessors were members (down-closure); the frontier matched a
+  test-side join recomputed from S's own applied records' vcs; the
+  single-source degeneration held (members == the full log, fold ==
+  if5_now's); the two-source discrimination held (A's own record
+  in, B's unrelated record out — no PROV path, no membership).
+- **R1 differential re-run (V1 surface, byte-exact): PASS.**
+  TRIP-17, the 100 seeded random streams x 200 ops, and the E2
+  shape (1000 regions, 4000 changes) all byte-identical on the
+  registered observation surface; the record word untouched (V8's
+  48-byte assert stays live); v5 residency at the E2 shape
+  **1.681x at the n=2000 floor** against the registered 3.0
+  boundary — the ratio moved from R1's 1.702x for the registered
+  reason: the mechanism layer's world-scoped registries and
+  process slots grew the working set (~1 KB) while history stayed
+  byte-identical, and the working-set delta is ASSERTED EXACT
+  (sizeof-difference, recomputed at every comparison), never
+  assumed constant.
+- **Toolchain:** the seven v5 suites pass under ASAN+UBSan with
+  zero findings; the six new sources plus the two touched cores
+  compile clean under -Wconversion -Wsign-conversion -Wshadow;
+  ctest 21/21 (was 19); the rebound gate's new mechanism-layer ban
+  bites its planted violation ("process synthetic bite: the
+  smuggled submit was caught"); the four-column gate passes on
+  this file.
+
+### Implementation-era findings (caught before landing, recorded)
+
+- **The stale-object trap, caught by the calibration suite.** The
+  R1 Makefile had no header dependencies: after if5_internal.h
+  grew the mechanism layer's fields, untouched objects (if5_merge
+  among them) kept writing stats at the PRE-ADR-0027 struct
+  offset, and C3's causal-applies count read as zero. The suite
+  caught it on the first build; the fix is structural (headers are
+  prerequisites now, with the lesson registered in the Makefile's
+  own comment) — a weaker battery would have shipped a silently
+  corrupt world.
+- **The observed prefix is not recoverable — discovered by the
+  judgment mapping.** The record word stores no declared
+  observed_cut; many prefixes yield the same joined knowledge, so
+  the scalar cannot be read back. The judgment carries the causal
+  COORDINATE (the record's own vc) and refuses to fake the prefix
+  — the honest form of the observation point, and the same
+  discovery that scoped the kcut (below).
+- **The kcut's semantics, honestly narrowed.** The first design
+  ("the causal down-closure of S's records") silently assumed the
+  implicit knowledge dependency — what S's observed-cut
+  declarations bound it to — was recoverable. It is not (same
+  record-word gap as above), and the vc-comparison route is
+  unsound under REBORN. The landed cut is the STRUCTURAL closure
+  (PROV-declared: own records + merge parents + cursor targets),
+  with the narrowing registered in Decision 4 and Known issue 3
+  rather than papered over.
+- **The sugar property forced the omniscient default.** M6's
+  byte-equality demand (compiled record == direct submission)
+  failed on the vc word until if5_compile's NULL-options default
+  aligned with if5_user_act's omniscient convention (observed_cut
+  = the full log); the same alignment was applied to process
+  commit, where the outcome's causal succession of the opening is
+  the mapping's own claim. A blind outcome remains the caller's
+  explicit choice.
+- **The gate bit its own author.** The visual-field vocabulary ban
+  caught the word "pixel" in a COMMENT this ADR's own module
+  header used while describing what the module refuses to carry.
+  The gate was right (a vocabulary ban that exempted comments
+  would be a suggestion, not a ban); the comment was reworded. The
+  v5 projection family therefore contains no screen raster and no
+  word for one either.
 
 ## HISTORY
 
@@ -647,6 +826,14 @@ that survive to merge are a four-column violation.)*
   abstractions (file/line citations in Context); vols. 3/5 (axiom
   table), vol. 6 §6.2/§6.3 (instrument honor, control-arm freeze),
   vol. 7 (S15/S17/S24 constructive obligations).
+- 2026-11-01 — Stage R2 implemented and measured; Validation
+  transcribed from the landing runs. M1–M9 all PASS; the R1
+  differential re-run PASS (byte-identical on the registered
+  surface; v5 residency 1.681x at the n=2000 floor against the
+  registered 3.0 boundary). Two implementation-era discoveries
+  changed shipped shapes before landing (the omniscient defaults;
+  the kcut's structural scope) and are recorded above; the
+  Makefile's stale-object lesson is registered in the Makefile.
 
 ## References
 
