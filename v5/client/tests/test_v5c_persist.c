@@ -78,7 +78,7 @@ int main(void)
     printf("=== v5 client persistence suite (ADR-0028: F2 rt, F6) ===\n\n");
 
     /* save / load */
-    assert(if5_snapshot_save(a, "/tmp/if5c_rt.bin", diag,
+    assert(if5_snapshot_save(a, "if5c_rt.snap.tmp", diag,
                              sizeof diag) == IF5_SNAP_OK);
     b = if5_world_create();
     {
@@ -92,7 +92,7 @@ int main(void)
         t.value_size = 8;
         assert(if5_register_payload_type(b, &t) == IF5_T_STR);
     }
-    assert(if5_snapshot_load(b, "/tmp/if5c_rt.bin", diag,
+    assert(if5_snapshot_load(b, "if5c_rt.snap.tmp", diag,
                              sizeof diag) == IF5_SNAP_OK);
 
     /* F2's round-trip half: the same view renders identically */
