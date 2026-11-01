@@ -29,7 +29,8 @@ IF5_SRCS = $(SRC_DIR)/if5_core.c $(SRC_DIR)/if5_merge.c \
            $(SRC_DIR)/if5_tree.c $(SRC_DIR)/if5_schedule.c \
            $(SRC_DIR)/if5_estimate.c $(SRC_DIR)/if5_cause.c \
            $(SRC_DIR)/if5_judge.c $(SRC_DIR)/if5_projection.c \
-           $(SRC_DIR)/if5_process.c $(SRC_DIR)/if5_route.c
+           $(SRC_DIR)/if5_process.c $(SRC_DIR)/if5_route.c \
+           $(SRC_DIR)/if5_snapshot.c
 IF5_OBJS = $(patsubst $(SRC_DIR)/%.c,$(BUILD)/%.o,$(IF5_SRCS))
 
 # The frozen slice core — the differential's reference arm
@@ -39,7 +40,7 @@ IFL_OBJS = $(patsubst ../slice/src/%.c,$(BUILD)/ifl_%.o,$(IFL_SRCS))
 
 TESTS = test_v5_calibration test_v5_property test_v5_cut \
         test_v5_seats test_v5_differential \
-        test_v5_mech test_v5_structure
+        test_v5_mech test_v5_structure test_v5_snapshot
 
 .PHONY: all test rebound-check clean $(TESTS)
 
@@ -84,6 +85,9 @@ $(BUILD)/test_v5_mech: $(TST_DIR)/test_v5_mech.c $(IF5_OBJS) | $(BUILD)
 	$(CC) $(CFLAGS) -I$(INC_DIR) $< $(IF5_OBJS) -o $@ $(LDFLAGS)
 
 $(BUILD)/test_v5_structure: $(TST_DIR)/test_v5_structure.c $(IF5_OBJS) | $(BUILD)
+	$(CC) $(CFLAGS) -I$(INC_DIR) $< $(IF5_OBJS) -o $@ $(LDFLAGS)
+
+$(BUILD)/test_v5_snapshot: $(TST_DIR)/test_v5_snapshot.c $(IF5_OBJS) | $(BUILD)
 	$(CC) $(CFLAGS) -I$(INC_DIR) $< $(IF5_OBJS) -o $@ $(LDFLAGS)
 
 test: $(addprefix $(BUILD)/,$(TESTS))

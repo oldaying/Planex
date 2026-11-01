@@ -137,6 +137,18 @@ make -C v5 rebound-check     # the extended rebound gate: the same
                               #   no-reparent regression; kcut
                               #   down-closure/degeneration/frontier/
                               #   two-source discrimination)
+                              # + snapshot (ADR-0028: F6–F9 + refusals —
+                              #   named-address round trip, save/load
+                              #   fidelity over the full op alphabet,
+                              #   format canonicity, the one-pass
+                              #   rebuild's exactness)
+                              # + client render (F1/F2/F3/F5 + the
+                              #   annotation table — purity, determinism,
+                              #   layout totality, easing endpoints)
+                              # + client hit (F4: 200 randomized trees
+                              #   against a brute-force inverse)
+                              # + client persistence (F2 rt + F6 client
+                              #   half — render across save/load)
 ```
 
 ## Test Summary
@@ -158,6 +170,11 @@ make -C v5 rebound-check     # the extended rebound gate: the same
 | v5 seats sections (V4/V5/V6: S15/S17/S24) | 6 |
 | v5 mechanism sections (M1–M7: the seven ADR-0027 mappings) | 9 |
 | v5 structure sections (M8–M9: the two discharges) | 4 |
-| **Total** | **121** |
+| v5 snapshot sections (ADR-0028: F6–F9 + refusals) | 5 |
+| v5 client render sections (F1/F2/F3/F5 + annotations) | 5 |
+| v5 client hit sections (F4: randomized inversion) | 1 |
+| v5 client persistence sections (F2 rt + F6) | 2 |
+| v5 demo golden checks (session + undo frames) | 2 |
+| **Total** | **136** |
 
 All tests must pass on both Linux (gcc) and Windows (MSVC).

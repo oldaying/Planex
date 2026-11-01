@@ -52,6 +52,23 @@ jobs:
           ./build/test_v5_differential
           ./build/test_v5_mech
           ./build/test_v5_structure
+          ./build/test_v5_snapshot
+      - name: Run v5 client suites + golden (ADR-0028 R3)
+        # The presentation client's render/hit/persistence suites
+        # and the calculator demo's committed goldens — byte-
+        # identical frames, both session and undo.
+        run: |
+          ./build/test_v5c_render
+          ./build/test_v5c_hit
+          ./build/test_v5c_persist
+          ./build/if5c_calc --render /tmp/calc_session.golden
+          cmp /tmp/calc_session.golden v5/client/tests/golden/if5c_calc.golden
+          ./build/if5c_calc --render /tmp/calc_undo.golden --undo 1
+          cmp /tmp/calc_undo.golden v5/client/tests/golden/if5c_calc_undo.golden
+      - name: E-series account gate (ADR-0028 F12)
+        # The commissioning kit's ready-not-run account must match
+        # the repository state: nine legs, five fields, zero data.
+        run: bash scripts/check_e_series_runbook.sh
 
   linux-make:
     runs-on: ubuntu-latest
@@ -88,12 +105,18 @@ jobs:
           make -C slice test
           make -C slice rebound-check
       - name: Run v5 suites + rebound gate (ADR-0026)
-        # The derivation tree's five suites; the rebound gate now
+        # The derivation tree's suites; the rebound gate now
         # covers v5/ too (same four bans + the S15 visual-field
         # ban, with its own synthetic bite).
         run: |
           make -C v5 test
           make -C v5 rebound-check
+      - name: Run v5 client suites + golden (ADR-0028 R3)
+        run: |
+          make -C v5/client test
+          make -C v5/client golden-check
+      - name: E-series account gate (ADR-0028 F12)
+        run: bash scripts/check_e_series_runbook.sh
 
   windows:
     runs-on: windows-latest
@@ -116,7 +139,7 @@ jobs:
         # the exact false-PASS shape the local pwsh loop hit during
         # the f702d0a diagnosis.
         run: |
-          $tests = @('test_core','test_orthogonality','test_feedback','test_v05_retire','test_v06_interaction','test_v07','test_v08','perception_smoke','perception_phase2','undo_via_graph','test_slice_calibration','test_slice_property','test_v5_calibration','test_v5_property','test_v5_cut','test_v5_seats','test_v5_differential','test_v5_mech','test_v5_structure')
+          $tests = @('test_core','test_orthogonality','test_feedback','test_v05_retire','test_v06_interaction','test_v07','test_v08','perception_smoke','perception_phase2','undo_via_graph','test_slice_calibration','test_slice_property','test_v5_calibration','test_v5_property','test_v5_cut','test_v5_seats','test_v5_differential','test_v5_mech','test_v5_structure','test_v5_snapshot','test_v5c_render','test_v5c_hit','test_v5c_persist')
           $missing = $tests | Where-Object { -not (Test-Path ".\build\Release\${_}.exe") }
           if ($missing) {
             Write-Host "FAILED: missing test executable(s): $($missing -join ', ')"
@@ -131,7 +154,7 @@ jobs:
         # Assertions are live in Release per f702d0a's #undef NDEBUG
         # guards (Gate 4 of static-analysis.yml keeps them that way).
         run: |
-          $tests = @('test_core','test_orthogonality','test_feedback','test_v05_retire','test_v06_interaction','test_v07','test_v08','perception_smoke','perception_phase2','undo_via_graph','test_slice_calibration','test_slice_property','test_v5_calibration','test_v5_property','test_v5_cut','test_v5_seats','test_v5_differential','test_v5_mech','test_v5_structure')
+          $tests = @('test_core','test_orthogonality','test_feedback','test_v05_retire','test_v06_interaction','test_v07','test_v08','perception_smoke','perception_phase2','undo_via_graph','test_slice_calibration','test_slice_property','test_v5_calibration','test_v5_property','test_v5_cut','test_v5_seats','test_v5_differential','test_v5_mech','test_v5_structure','test_v5_snapshot','test_v5c_render','test_v5c_hit','test_v5c_persist')
           $failed = @()
           foreach ($t in $tests) {
             Write-Host "=== $t ==="
@@ -190,6 +213,22 @@ jobs:
         run: |
           make -C slice test
           make -C slice rebound-check
+      - name: Run v5 + client under -Werror (ADR-0026/0028)
+        # The derivation tree and its client build with the strict
+        # family too; the new R3 sources additionally pass the
+        # -Wconversion -Wsign-conversion -Wshadow battery the R1/R2
+        # sources were held to.
+        run: |
+          make -C v5 test CFLAGS_EXTRA="-Werror"
+          make -C v5/client test CFLAGS_EXTRA="-Werror"
+          cc -std=c17 -Wall -Wextra -Wpedantic -Werror -Wconversion -Wsign-conversion -Wshadow \
+             -Iv5/include -Iv5/src -c v5/src/if5_snapshot.c -o /tmp/conv1.o
+          cc -std=c17 -Wall -Wextra -Wpedantic -Werror -Wconversion -Wsign-conversion -Wshadow \
+             -Iv5/client/include -Iv5/client/src -Iv5/include -c v5/client/src/if5c_fb.c -o /tmp/conv2.o
+          cc -std=c17 -Wall -Wextra -Wpedantic -Werror -Wconversion -Wsign-conversion -Wshadow \
+             -Iv5/client/include -Iv5/client/src -Iv5/include -c v5/client/src/if5c_layout.c -o /tmp/conv3.o
+          cc -std=c17 -Wall -Wextra -Wpedantic -Werror -Wconversion -Wsign-conversion -Wshadow \
+             -Iv5/client/include -Iv5/client/src -Iv5/include -c v5/client/src/if5c_ease.c -o /tmp/conv4.o
 
   a11y-atspi-bridge:
     # v0.7 Line 4: compile-probe the AT-SPI2 adapter against real atk

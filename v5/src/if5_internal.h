@@ -51,8 +51,13 @@ struct if5_world {
     /* The cut registry (ADR-0026 3b): named global addresses.
      * Registry storage is part of the working set, never of
      * history — the differential asserts the working-set delta
-     * against the slice as the exact sizeof difference. */
+     * against the slice as the exact sizeof difference. ADR-0028
+     * Decision 3 adds the name column (the working-set addition the
+     * "64 named cuts" language always implied): 64 x IF5_NAME_MAX
+     * bytes, moved once, with the measured delta registered in the
+     * ADR's Validation (F10). */
     if5_cut     cuts[IF5_MAX_CUTS];
+    char        cut_names[IF5_MAX_CUTS][IF5_NAME_MAX];
     uint8_t     n_cuts;
 
     /* --- the mechanism layer (ADR-0027): world-scoped registries
@@ -109,6 +114,15 @@ bool if5__is_excluded(const if5_world* w, const if5_intent* rec,
 /* --- adjudication (if5_merge.c) -------------------------------- */
 
 bool if5__adjudicate(if5_world* w, if5_intent* rec);
+
+/* Bounded form (ADR-0028 Decision 4): the concurrent-sibling scan
+ * restricted to records 1..upto. The adjudicator passes upto =
+ * w->n_log (identical behavior); the snapshot's rebuild pass scans
+ * under the prefix that existed when each installed record was
+ * adjudicated — re-deriving the path counter, never re-deciding
+ * it (the decisions are the installed flags). */
+bool if5__region_concurrent_upto(if5_world* w, uint16_t rid, if5_vc vc,
+                                  uint32_t upto);
 bool if5__region_concurrent(if5_world* w, uint16_t rid, if5_vc vc);
 bool if5__arbiter_prefers(const if5_intent* newbie, const if5_intent* head);
 
@@ -172,5 +186,29 @@ void if5__register_builtin_routes(if5_world* w);
  * aux at single-region creation; if5_tree.c / if5_cause.c read it
  * through this helper. 0 = root. */
 uint16_t if5__seed_parent(const if5_world* w, uint16_t rid);
+
+/* --- the snapshot's rebuild pass (if5_snapshot.c, ADR-0028) ---- */
+
+/* Replay the BOOKKEEPING over an installed log, never the
+ * decisions: knowledge clocks, ledger balances, region caches,
+ * fork heads, the receipt stream, and the stats counters are
+ * re-derived in one ordered pass that reads each record's own
+ * flags/PROV/vc (the adjudicator's already-rendered outcomes) and
+ * writes no decision byte. if5_snapshot_load calls it after the
+ * verbatim install; the world's `now` doubles as the replay's
+ * live view (it is cross-checked against the persisted cursor at
+ * the end). Returns 0 on success; nonzero = the replay diverged
+ * from a persisted cross-check (the loader refuses). */
+int if5__rebuild_caches(if5_world* w);
+
+/* The internal seeding path the loader uses for regions (the
+ * public creators LOG their records; the log is installed
+ * verbatim, so re-creating through the public path would
+ * duplicate it). Seeds the table only: name, ptype, tier,
+ * creation parent, window, and the batch seed (the initial
+ * folded value a batch load assigns before any intent lands). */
+void if5__region_seed(if5_world* w, uint16_t rid, const char* name,
+                      uint8_t ptype, uint8_t tier, uint16_t parent,
+                      uint16_t window, uint64_t seed);
 
 #endif /* IF5_INTERNAL_H */
