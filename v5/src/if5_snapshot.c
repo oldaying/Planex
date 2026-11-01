@@ -944,10 +944,19 @@ int if5_snapshot_load(if5_world* w, const char* path,
     n_types    = c_u8(&c);
     (void)c_u8(&c); (void)c_u8(&c); (void)c_u8(&c);
 
+    /* Section counts are bounded by the FILE's own size before
+     * any of them reaches an allocation: no section can be larger
+     * than the file that carries it (the structural anti-forgery
+     * bound — a crafted header cannot demand unbounded memory,
+     * CodeQL cpp/unbounded-allocation, and it is a real bound: 48
+     * bytes/record, 24/receipt, 1/arena byte) */
     if (c.bad || n_sources > IF5_MAX_SOURCES ||
         n_regions > IF5_MAX_REGIONS || n_cuts > IF5_MAX_CUTS ||
         n_types > IF5_MAX_PAYLOAD_TYPES ||
-        (sys_sid != IF5_SID_NULL && sys_sid >= n_sources)) {
+        (sys_sid != IF5_SID_NULL && sys_sid >= n_sources) ||
+        (uint64_t)n_log * 48u > (uint64_t)fsz ||
+        (uint64_t)n_arena > (uint64_t)fsz ||
+        (uint64_t)n_receipts * 24u > (uint64_t)fsz) {
         diagf(diag, diag_cap, "header bounds failed");
         free(img);
         return IF5_SNAP_ERR_BOUNDS;

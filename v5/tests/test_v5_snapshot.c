@@ -515,12 +515,12 @@ static void test_f7_f9_round_trip(void)
     for (i = 1; i <= if5_cut_count(a); i++) {
         const if5_cut* ca = if5_cut_by_id(a, (uint8_t)i);
         const if5_cut* cb = if5_cut_by_id(b, (uint8_t)i);
-        uint16_t rid;
+        uint32_t rid;
         assert(memcmp(ca, cb, sizeof(if5_cut)) == 0);
         for (rid = 1; rid <= region_count_of(a); rid++) {
             uint32_t na = 0, nb = 0;
-            uint64_t va = if5_cut_state(a, ca, rid, &na);
-            uint64_t vb = if5_cut_state(b, cb, rid, &nb);
+            uint64_t va = if5_cut_state(a, ca, (uint16_t)rid, &na);
+            uint64_t vb = if5_cut_state(b, cb, (uint16_t)rid, &nb);
             assert(va == vb && na == nb);
         }
     }
