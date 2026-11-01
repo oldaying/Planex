@@ -25,11 +25,12 @@
  *     it; the E-series legs are the maintainer's to commission.
  *
  * Usage:
- *   if5c_calc --render OUT.bmp    render the registered session
- *   if5c_calc --render OUT.bmp --undo N   also render the world
- *                                        after undoing the Nth
- *                                        submit from the end
- *                                        (written to OUT.undone.bmp)
+ *   if5c_calc            render the registered session to
+ *                        if5c_calc_session.bmp (a FIXED name — the
+ *                        shipping demos' convention: no path ever
+ *                        crosses from argv into a file call)
+ *   if5c_calc --undo     render the one-undo variant to
+ *                        if5c_calc_undo.bmp instead
  */
 #ifdef NDEBUG
 #undef NDEBUG
@@ -68,13 +69,15 @@ static void calc_get(const calc* c, uint16_t rid, char* out, size_t cap)
     uint64_t v;
     if5_view now;
     int i;
-    memset(out, 0, cap);
+    if (cap == 0) return;
+    out[0] = 0;
     now = if5_now(c->w);
     v = if5_state_at(c->w, rid, &now, NULL);
-    for (i = 0; i < 8; i++) {
+    for (i = 0; i < 8 && i < (int)cap - 1; i++) {
         uint8_t b = (uint8_t)(v >> (8 * i));
         if (!b) break;
-        if (i < (int)cap - 1) { out[i] = (char)b; out[i + 1] = 0; }
+        out[i] = (char)b;
+        out[i + 1] = 0;
     }
 }
 
@@ -356,20 +359,13 @@ int main(int argc, char** argv)
 {
     calc c;
     if5c_policy p = calc_policy();
-    const char* out = NULL;
+    const char* out = "if5c_calc_session.bmp";
     uint32_t undo = 0;
     int i;
 
     for (i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--render") == 0 && i + 1 < argc)
-            out = argv[++i];
-        else if (strcmp(argv[i], "--undo") == 0 && i + 1 < argc)
-            undo = (uint32_t)atoi(argv[++i]);
-    }
-    if (!out) {
-        fprintf(stderr, "usage: if5c_calc --render OUT.bmp "
-                "[--undo N]\n");
-        return 2;
+        if (strcmp(argv[i], "--undo") == 0)
+            { undo = 1; out = "if5c_calc_undo.bmp"; }
     }
 
     memset(&c, 0, sizeof c);

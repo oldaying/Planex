@@ -61,10 +61,9 @@ jobs:
           ./build/test_v5c_render
           ./build/test_v5c_hit
           ./build/test_v5c_persist
-          ./build/if5c_calc --render /tmp/calc_session.golden
-          cmp /tmp/calc_session.golden v5/client/tests/golden/if5c_calc.golden
-          ./build/if5c_calc --render /tmp/calc_undo.golden --undo 1
-          cmp /tmp/calc_undo.golden v5/client/tests/golden/if5c_calc_undo.golden
+          cd build && ./if5c_calc && ./if5c_calc --undo && cd ..
+          cmp build/if5c_calc_session.bmp v5/client/tests/golden/if5c_calc.golden
+          cmp build/if5c_calc_undo.bmp v5/client/tests/golden/if5c_calc_undo.golden
       - name: E-series account gate (ADR-0028 F12)
         # The commissioning kit's ready-not-run account must match
         # the repository state: nine legs, five fields, zero data.

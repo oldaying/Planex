@@ -11,11 +11,25 @@
  * creation, and every primitive is a pure function of its
  * arguments and the current pixels.
  */
+#if !defined(_WIN32)
+#define _POSIX_C_SOURCE 200809L
+#endif
 #include "if5c_internal.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* POSIX open/fdopen for the 0644 creation discipline (CodeQL
+ * cpp/world-writable-file-creation; the shipping src/fb.c
+ * precedent — the feature macro above makes them visible under
+ * strict -std=c17) */
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 
 #define IF5C_GLYPH_W  5
 #define IF5C_GLYPH_H  7
@@ -220,8 +234,24 @@ int if5c_fb_save_bmp(const if5c_fb* fb, const char* path)
     rowbuf = (uint8_t*)calloc(rowsz, 1);
     if (!rowbuf) return -1;
 
+#ifdef _WIN32
+    /* Windows CRT: ACL-governed access; no umask dependency worth
+     * modeling (the shipping fb.c precedent, verbatim in spirit) */
     f = fopen(path, "wb");
     if (!f) { free(rowbuf); return -1; }
+#else
+    /* Create with an explicit 0644, independent of the process
+     * umask — fopen("wb") creates 0666 & ~umask, and a permissive
+     * umask makes the golden world-writable (CodeQL
+     * cpp/world-writable-file-creation; the shipping tree's
+     * src/fb.c carries the same fix and the same comment) */
+    {
+        int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (fd < 0) { free(rowbuf); return -1; }
+        f = fdopen(fd, "wb");
+        if (!f) { close(fd); free(rowbuf); return -1; }
+    }
+#endif
     if (fwrite(hdr, 1, sizeof hdr, f) != sizeof hdr) goto fail;
 
     for (row = 0; row < (uint32_t)fb->height; row++) {

@@ -86,10 +86,10 @@ apps: $(addprefix $(BUILD)/,$(APPS))
 # transient-screenshot ignore rule, because they are fixtures,
 # not artifacts).
 golden-check: $(BUILD)/if5c_calc
-	./$(BUILD)/if5c_calc --render $(BUILD)/calc_session.golden
-	cmp $(BUILD)/calc_session.golden tests/golden/if5c_calc.golden
-	./$(BUILD)/if5c_calc --render $(BUILD)/calc_undo.golden --undo 1
-	cmp $(BUILD)/calc_undo.golden tests/golden/if5c_calc_undo.golden
+	cd $(BUILD) && ./if5c_calc
+	cmp $(BUILD)/if5c_calc_session.bmp tests/golden/if5c_calc.golden
+	cd $(BUILD) && ./if5c_calc --undo
+	cmp $(BUILD)/if5c_calc_undo.bmp tests/golden/if5c_calc_undo.golden
 	@echo "golden: byte-identical (session + undo frames)"
 
 clean:
