@@ -30,6 +30,16 @@ jobs:
           ./build/antipattern_estimate
           ./build/antipattern_closure
           ./build/antipattern_perception
+      - name: Run slice suites + E2 engineering leg (ADR-0025)
+        # The calibration + property suites, both arms, and the
+        # self-judging E2 harness — C8's registered boundaries
+        # re-verify on every clean checkout.
+        run: |
+          ./build/test_slice_calibration
+          ./build/test_slice_property
+          ./build/slice_app > /dev/null
+          ./build/classic_arm > /dev/null
+          ./build/e2_engineering_leg
 
   linux-make:
     runs-on: ubuntu-latest
@@ -61,6 +71,10 @@ jobs:
         run: make test_v07
       - name: Run v0.8 line verification tests
         run: make test_v08
+      - name: Run slice suites + rebound gate (ADR-0025)
+        run: |
+          make -C slice test
+          make -C slice rebound-check
 
   windows:
     runs-on: windows-latest
@@ -83,7 +97,7 @@ jobs:
         # the exact false-PASS shape the local pwsh loop hit during
         # the f702d0a diagnosis.
         run: |
-          $tests = @('test_core','test_orthogonality','test_feedback','test_v05_retire','test_v06_interaction','test_v07','test_v08','perception_smoke','perception_phase2','undo_via_graph')
+          $tests = @('test_core','test_orthogonality','test_feedback','test_v05_retire','test_v06_interaction','test_v07','test_v08','perception_smoke','perception_phase2','undo_via_graph','test_slice_calibration','test_slice_property')
           $missing = $tests | Where-Object { -not (Test-Path ".\build\Release\${_}.exe") }
           if ($missing) {
             Write-Host "FAILED: missing test executable(s): $($missing -join ', ')"
@@ -98,7 +112,7 @@ jobs:
         # Assertions are live in Release per f702d0a's #undef NDEBUG
         # guards (Gate 4 of static-analysis.yml keeps them that way).
         run: |
-          $tests = @('test_core','test_orthogonality','test_feedback','test_v05_retire','test_v06_interaction','test_v07','test_v08','perception_smoke','perception_phase2','undo_via_graph')
+          $tests = @('test_core','test_orthogonality','test_feedback','test_v05_retire','test_v06_interaction','test_v07','test_v08','perception_smoke','perception_phase2','undo_via_graph','test_slice_calibration','test_slice_property')
           $failed = @()
           foreach ($t in $tests) {
             Write-Host "=== $t ==="
@@ -110,6 +124,24 @@ jobs:
             exit 1
           }
           Write-Host "all $($tests.Count) suites passed (assertions live)"
+          Write-Host "=== slice arms + E2 engineering leg (ADR-0025) ==="
+          # Precheck first: a missing binary must fail loudly BEFORE
+          # any invocation (PowerShell's call operator on a missing
+          # path does not fail the step — the false-PASS shape the
+          # precheck step above exists to prevent).
+          $sliceBins = @('slice_app','classic_arm','e2_engineering_leg')
+          $missing = $sliceBins | Where-Object { -not (Test-Path ".\build\Release\${_}.exe") }
+          if ($missing) {
+            Write-Host "FAILED: missing slice executable(s): $($missing -join ', ')"
+            exit 1
+          }
+          & ".\build\Release\slice_app.exe" > $null
+          if ($LASTEXITCODE -ne 0) { Write-Host "FAILED: slice_app (exit $LASTEXITCODE)"; exit 1 }
+          & ".\build\Release\classic_arm.exe" > $null
+          if ($LASTEXITCODE -ne 0) { Write-Host "FAILED: classic_arm (exit $LASTEXITCODE)"; exit 1 }
+          & ".\build\Release\e2_engineering_leg.exe"
+          if ($LASTEXITCODE -ne 0) { Write-Host "FAILED: e2_engineering_leg (exit $LASTEXITCODE)"; exit 1 }
+          Write-Host "slice arms + E2 leg passed"
 
   strict-warnings:
     runs-on: ubuntu-latest
@@ -135,6 +167,10 @@ jobs:
         run: make test_v07
       - name: Run v0.8 line verification tests
         run: make test_v08
+      - name: Run slice suites + rebound gate under -Werror (ADR-0025)
+        run: |
+          make -C slice test
+          make -C slice rebound-check
 
   a11y-atspi-bridge:
     # v0.7 Line 4: compile-probe the AT-SPI2 adapter against real atk
