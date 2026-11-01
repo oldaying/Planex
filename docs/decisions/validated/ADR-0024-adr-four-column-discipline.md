@@ -5,7 +5,7 @@ reviewed} pattern). CI (planned: see doc-organization.md Part IX, Principle 13)
 flags ADRs whose reviewed: date is older than 12 months for re-review.
 -->
 <!--
-freshness: { owner: "oldaying", reviewed: "2026-10-31" }
+freshness: { owner: "oldaying", reviewed: "2026-11-01" }
 -->
 
 # ADR-0024: The four-column discipline — every ADR states its refutation criteria and regression clause
@@ -40,7 +40,24 @@ constrain code or API surface in any way.
 
 ## Status
 
-Proposed
+**Validated.** Date: 2026-11-01.
+
+This ADR's own registered promotion procedure (the CI encoding
+section below) is executed in the promoting PR: the `docs.yml` step
+now invokes `scripts/check_doc_sections.sh --check --four-column`
+under its updated name, and both synthetic cases
+(missing-columns and the zero-padded octal-trap variant) were
+replayed on the promoted tree — each reported with exit 1, the
+plain `--check` run on the same dirty tree exits 0, and the
+restored tree passes four-column mode; the transcript is
+preserved in the promoting PR's description, mirroring how
+ADR-0014's demonstration was preserved. Per this ADR's Known
+issues, the vacuity-risk mitigation lands with the promotion:
+REVIEW-RUBRIC.md gains the reviewer-side vacuity check, and its
+workflow now runs the gate in `--four-column` mode. Promotion to
+**Accepted** remains pending reviewer sign-off through the rubric
+(two approvals per its acceptance thresholds); the gate checks
+presence, meaning stays review's job.
 
 ## Context
 
@@ -400,6 +417,13 @@ promotion toward Validated: change the `docs.yml` step
 step name; the synthetic replay then belongs in the promoting PR's
 description, mirroring how ADR-0014's demonstration was preserved.
 
+Executed 2026-11-01: the promoting PR flipped the `docs.yml` step
+to `--check --four-column` under the name
+`check_doc_sections (ADR section completeness + ADR-0024 four-column)`
+and replayed both synthetic cases on the promoted tree — the
+transcript is preserved in the promoting PR's description and
+summarized in `## HISTORY`.
+
 ## Known issues
 
 - **Number-threshold grandfathering**: the gate keys on `ADR-([0-9]+)`
@@ -417,10 +441,19 @@ description, mirroring how ADR-0014's demonstration was preserved.
 ## HISTORY
 
 - 2026-10-31: Proposed
+- 2026-11-01: Validated — the registered promotion procedure
+  executed: `docs.yml` wired to `--check --four-column` (step
+  renamed), both synthetic cases replayed on the promoted tree
+  (each exit 1 with exactly the two missing four-column sections;
+  plain `--check` on the same dirty tree exit 0; restored tree
+  clean in four-column mode), the transcript preserved in the
+  promoting PR's description. REVIEW-RUBRIC.md gains the vacuity
+  check this ADR's Known issues registered as the promotion-time
+  mitigation.
 
 ## References
 
 - Code: `docs/decisions/TEMPLATE.md` (two new sections), `docs/decisions/TEMPLATE-GUIDE.md` (guidance), `scripts/check_doc_sections.sh` (`--four-column` mode), `.github/workflows/docs.yml` (wiring at promotion)
-- Related ADRs: [ADR-0014](../validated/ADR-0014-validated-stage-and-essence-justified-enforcement.md) (the Validated state this ADR's promotion follows), [ADR-0023](ADR-0023-semantic-drift-probe.md) (predictions-registered-before-implementation precedent), [ADR-0013](../accepted/ADR-0013-v05-leak-budget-retire.md) / [ADR-0019](../accepted/ADR-0019-v07-leak-budget-retire.md) (the retire cycles whose evidence was assembled post-hoc)
+- Related ADRs: [ADR-0014](../validated/ADR-0014-validated-stage-and-essence-justified-enforcement.md) (the Validated state this ADR's promotion follows), [ADR-0023](../proposed/ADR-0023-semantic-drift-probe.md) (predictions-registered-before-implementation precedent), [ADR-0013](../accepted/ADR-0013-v05-leak-budget-retire.md) / [ADR-0019](../accepted/ADR-0019-v07-leak-budget-retire.md) (the retire cycles whose evidence was assembled post-hoc)
 - Docs: `docs/doc-organization.md` Part IX, Principle 11 (mandatory sections enforced by CI)
 - External: Popper, K. *Conjectures and Refutations: The Growth of Scientific Knowledge*, Routledge & Kegan Paul, 1963, ch. 1 "Science: Conjectures and Refutations" (the demarcation criterion this section contract imports); project research notes 2026-10, "立宪：新公理表与退役清单" (the four-column discipline / meta-axiom; compiled during the UI-thought archaeology program, not yet in-tree — this ADR is its repo-side absorption).

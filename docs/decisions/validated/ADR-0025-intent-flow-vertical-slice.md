@@ -46,7 +46,19 @@ layer and the E2 engineering leg only.
 
 ## Status
 
-Proposed
+**Validated.** Date: 2026-11-01.
+
+The enforcement this ADR ships is implemented and proven to bite:
+`make -C slice rebound-check` runs `scripts/check_slice_rebound.sh`
+and its synthetic-bite demonstration (the gate's own three
+toothless forms were found and fixed during registration, each
+registered in the script; planted violations are caught), and the
+property registry rejects a synthetic non-associative `sq` — the
+checker must bite, and does. C1–C9 are all PASS with the measured
+outcome transcribed in `## Validation`. Promotion to **Accepted**
+remains a maintainer ruling through REVIEW-RUBRIC.md; the E-series
+human legs this ADR registers stay ready-not-run, and nothing in
+this validation claims otherwise.
 
 ## Context
 
@@ -59,7 +71,7 @@ experiment groups (E1–E5), eleven seed experiments, and seven invariant
 test designs — with the honest count "zero measured numbers", because
 registration must precede measurement (Nosek et al. 2018; the
 preregistration discipline this repository already practiced once at
-probe scale in [ADR-0023](ADR-0023-semantic-drift-probe.md)).
+probe scale in [ADR-0023](../proposed/ADR-0023-semantic-drift-probe.md)).
 
 Volume 6 chapter 6 then specified the instrument itself. The slice's
 recurring one-line spec: **one interface, one person, two agents, three
@@ -770,6 +782,12 @@ rejected alternative's numbers alongside.
   first registered, machine-measured number, published with raw
   data and a recompute script. All nine predictions PASS; the
   honest ledger (zero human-measured numbers) is unchanged.
+- 2026-11-01: Validated — the enforcement is implemented and
+  proven to bite (`make -C slice rebound-check`: the rebound gate
+  and its synthetic-bite demonstration; the property registry's
+  non-associative rejection); C1–C9 PASS, transcribed in
+  `## Validation`. The E-series human legs remain ready-not-run;
+  promotion to Accepted is a maintainer ruling.
 
 ## References
 
@@ -779,7 +797,7 @@ rejected alternative's numbers alongside.
   *意图流：语义草案* (vol. 5, ch. 3–9, §11.3), *可证伪评测协议*
   (vol. 6, ch. 2–6, §9), *公理翻案书* (vol. 7, ch. 4.3, §8).
 - In-repo precedents:
-  [ADR-0023](ADR-0023-semantic-drift-probe.md) (prediction-before-
+  [ADR-0023](../proposed/ADR-0023-semantic-drift-probe.md) (prediction-before-
   measurement at probe scale; the classic-control-arm pattern),
   [ADR-0024](ADR-0024-adr-four-column-discipline.md) (the four-column
   discipline this ADR is the first full-size instance of),

@@ -2,8 +2,9 @@
 
 > **Status**: Reference. Date: 2026-08-28.
 >
-> **Applies to**: every ADR PR (proposed → accepted) and every
-> abstraction-affecting PR (per `TEMPLATE.md` Essence Check).
+> **Applies to**: every ADR PR (proposed → validated → accepted)
+> and every abstraction-affecting PR (per `TEMPLATE.md` Essence
+> Check).
 >
 > **Research basis**: Write the Docs conference CFP rubric
 > (<https://www.writethedocs.org/organizer-guide/confs/cfp/>). The WTD
@@ -115,13 +116,21 @@ the ADR show awareness of prior art?
 1. Read the ADR end-to-end.
 2. Read [`TEMPLATE-GUIDE.md`](TEMPLATE-GUIDE.md) and check the ADR against
    the "common failure modes" table.
-3. Run `scripts/check_doc_sections.sh --report` to verify mandatory
-   sections are present.
-4. Score each of the six criteria on 1-5. **No 3s.**
-5. Post the scores as a single comment on the PR (see template below).
-6. If any score is ≤2, the review is "request changes"; the ADR author
+3. Run `scripts/check_doc_sections.sh --report --four-column` to verify
+   mandatory sections are present (ADR-0024 and later: also
+   `## Refutation Criteria` and `## Regression Clause`).
+4. For ADR-0024-and-later ADRs, score the two four-column sections for
+   non-vacuity: a refutation criterion that names no observable
+   evidence, or a regression clause a successor could not actually
+   inherit, scores ≤2 on Soundness. This is the review-side mitigation
+   ADR-0024's Known issues register — the gate checks presence, not
+   meaning (a criterion like "wrong if users dislike it" passes the
+   gate; it must not pass review).
+5. Score each of the six criteria on 1-5. **No 3s.**
+6. Post the scores as a single comment on the PR (see template below).
+7. If any score is ≤2, the review is "request changes"; the ADR author
    revises and re-requests review.
-7. If all scores are ≥4, the review is "approve"; merge requires two
+8. If all scores are ≥4, the review is "approve"; merge requires two
    approvals (maintainer + reviewer with relevant expertise).
 
 ### Review comment template
@@ -184,4 +193,8 @@ semantics aren't.
   artifact.
 - [`TEMPLATE.md`](TEMPLATE.md) — the ADR skeleton this rubric grades
 - [`TEMPLATE-GUIDE.md`](TEMPLATE-GUIDE.md) — how to write each section
+- [`validated/ADR-0024-adr-four-column-discipline.md`](validated/ADR-0024-adr-four-column-discipline.md) —
+  the four-column discipline whose vacuity risk workflow step 4
+  mitigates (its Known issues name this rubric as the promotion-time
+  mitigation; landed 2026-11-01)
 - [`../doc-organization.md`](../doc-organization.md) Part IX Principle 12 — research basis

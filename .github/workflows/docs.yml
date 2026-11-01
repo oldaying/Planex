@@ -57,12 +57,16 @@ jobs:
       - uses: actions/checkout@v4
 
       # ------------------------------------------------------------------
-      # Gate 1: Every ADR has all 9 mandatory sections.
+      # Gate 1: Every ADR has all 9 mandatory sections; ADR-0024 and
+      # later also the two four-column sections (Refutation Criteria,
+      # Regression Clause). Wired to --four-column when ADR-0024
+      # reached Validated (2026-11-01), per that ADR's registered
+      # promotion procedure.
       # Closes the docBlame-style "is the heading present?" contract.
       # Research basis: Mathlib's docBlame linter.
       # ------------------------------------------------------------------
-      - name: check_doc_sections (ADR section completeness, 9 mandatory)
-        run: scripts/check_doc_sections.sh --check
+      - name: check_doc_sections (ADR section completeness + ADR-0024 four-column)
+        run: scripts/check_doc_sections.sh --check --four-column
 
       # ------------------------------------------------------------------
       # Gate 2: ADR directory state matches the Status field in the file.

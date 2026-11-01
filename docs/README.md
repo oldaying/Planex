@@ -62,7 +62,7 @@ The doc-organization proposal (see [`doc-organization.md`](doc-organization.md) 
 
 | Command | What it enforces | Failure mode caught |
 |---------|------------------|---------------------|
-| [`scripts/check_doc_sections.sh`](../scripts/check_doc_sections.sh) | Every ADR has all 9 mandatory sections (Status / Context / Decision / Consequences / Alternatives Considered / CAVEATS / Known issues / HISTORY / References). | Mathlib docBlame-style mandatory-section drift (Principle 11). |
+| [`scripts/check_doc_sections.sh`](../scripts/check_doc_sections.sh) | Every ADR has all 9 mandatory sections (Status / Context / Decision / Consequences / Alternatives Considered / CAVEATS / Known issues / HISTORY / References); ADR-0024 and later also carry Refutation Criteria + Regression Clause (CI runs `--four-column` since ADR-0024 reached Validated). | Mathlib docBlame-style mandatory-section drift (Principle 11). |
 | [`scripts/gen_adr_index.sh`](../scripts/gen_adr_index.sh) | `docs/decisions/README.md` matches the script's auto-generated output. | Hand-maintained index drifting from the actual ADR set (Principle 8). |
 | [`scripts/check_adr_lifecycle.sh`](../scripts/check_adr_lifecycle.sh) | Each ADR file lives in the lifecycle directory matching its declared Status. | An ADR moved between directories without updating its Status field (Principle 1). |
 | [`scripts/check_links.sh`](../scripts/check_links.sh) | Every internal markdown link resolves to an existing file. | Wave 1 link-rewrite drift — wrong path depth after a doc was moved between subdirectories. |
