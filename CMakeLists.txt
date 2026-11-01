@@ -305,3 +305,51 @@ endif()
 add_executable(test_v4_orthogonality tests/test_v4_orthogonality.c)
 target_link_libraries(test_v4_orthogonality planex_v4_lib)
 add_test(NAME v4_orthogonality_tests COMMAND test_v4_orthogonality)
+
+# ============================================================
+# The intent-flow vertical slice (ADR-0025) — Program I's
+# falsification instrument. A parallel ontology tree in the v4/
+# precedent's shape: its own namespace (ifl_), its own library
+# (planex_slice_lib), NOT linked into planex_lib — except the
+# CONTROL arm, which deliberately links the frozen shipping body
+# (classic_arm -> planex_lib), because the frozen body IS the
+# control (vol. 6 §6.3).
+#
+# The E2 harness is a SELF-JUDGING test: the registered memory
+# boundaries (residency <= 3x at n=2000, R^2 >= 0.99, incremental
+# within +/-15%) re-verify on every clean checkout (vol. 6 §2.4's
+# recomputation rule).
+# ============================================================
+
+add_library(planex_slice_lib STATIC
+    slice/src/ifl_core.c
+    slice/src/ifl_merge.c
+    slice/src/ifl_budget.c
+)
+target_include_directories(planex_slice_lib PUBLIC slice/include)
+
+add_executable(slice_app slice/app/slice_app.c)
+target_link_libraries(slice_app planex_slice_lib)
+target_include_directories(slice_app PRIVATE slice/app)
+
+add_executable(classic_arm slice/app/classic_arm.c)
+target_link_libraries(classic_arm planex_lib)
+target_include_directories(classic_arm PRIVATE slice/app slice/include)
+
+add_executable(e2_engineering_leg slice/app/e2_engineering_leg.c)
+target_link_libraries(e2_engineering_leg planex_slice_lib)
+target_include_directories(e2_engineering_leg PRIVATE slice/app)
+
+add_executable(test_slice_calibration slice/tests/test_slice_calibration.c)
+target_link_libraries(test_slice_calibration planex_slice_lib)
+add_test(NAME slice_calibration COMMAND test_slice_calibration)
+
+add_executable(test_slice_property slice/tests/test_slice_property.c)
+target_link_libraries(test_slice_property planex_slice_lib)
+add_test(NAME slice_property COMMAND test_slice_property)
+
+# The arms and the self-judging E2 leg are tests too (C9's
+# comparison surface; C8's boundaries).
+add_test(NAME slice_app_scenario COMMAND slice_app)
+add_test(NAME classic_arm_control COMMAND classic_arm)
+add_test(NAME e2_engineering_leg COMMAND e2_engineering_leg)
