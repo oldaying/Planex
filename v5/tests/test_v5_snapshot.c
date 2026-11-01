@@ -20,13 +20,23 @@
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
+#if !defined(_WIN32)
+#define _POSIX_C_SOURCE 200809L
+#endif
 #include "planex/if5.h"
-#include "../src/if5_internal.h"
+#include "../src/if5_internal.h"   /* white-box: F9 compares world-internal caches */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 
 /* ============================================================
  * The driver: a world over the full alphabet
@@ -411,6 +421,24 @@ static void cmp_stats(const char* what, if5_world* a, if5_world* b)
     }
 }
 
+/* A fixture writer with the 0644 discipline (CodeQL
+ * cpp/world-writable-file-creation; the shipping fb.c and the
+ * snapshot module carry the same pattern). */
+static FILE* fixture_open(const char* path)
+{
+#ifdef _WIN32
+    return fopen(path, "wb");
+#else
+    int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd < 0) return NULL;
+    {
+        FILE* f = fdopen(fd, "wb");
+        if (!f) close(fd);
+        return f;
+    }
+#endif
+}
+
 /* ============================================================
  * The tests
  * ============================================================ */
@@ -673,7 +701,7 @@ static void test_refusals(void)
     assert(fread(img, 1, (size_t)sz, f) == (size_t)sz);
     fclose(f);
     img[0] = 'X';
-    f = fopen("if5_ref_magic.bin", "wb");
+    f = fixture_open("if5_ref_magic.bin");
     fwrite(img, 1, (size_t)sz, f);
     fclose(f);
     img[0] = 'I';                      /* restore for the later cases */
@@ -683,7 +711,7 @@ static void test_refusals(void)
     if5_world_free(b);
 
     /* truncation */
-    f = fopen("if5_ref_trunc.bin", "wb");
+    f = fixture_open("if5_ref_trunc.bin");
     fwrite(img, 1, (size_t)(sz - 40), f);
     fclose(f);
     b = fresh_typed_world();
@@ -702,7 +730,7 @@ static void test_refusals(void)
         uint8_t* big = (uint8_t*)malloc((size_t)sz + 4);
         memcpy(big, img, (size_t)sz);
         big[sz] = big[sz+1] = big[sz+2] = big[sz+3] = 0;
-        f = fopen("if5_ref_trail.bin", "wb");
+        f = fixture_open("if5_ref_trail.bin");
         fwrite(big, 1, (size_t)sz + 4, f);
         fclose(f);
         free(big);

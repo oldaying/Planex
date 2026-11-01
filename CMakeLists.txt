@@ -466,8 +466,8 @@ add_test(NAME v5c_persist COMMAND test_v5c_persist)
 add_executable(if5c_calc v5/client/apps/if5c_calc.c)
 target_link_libraries(if5c_calc planex_v5c_lib)
 add_test(NAME if5c_calc_golden COMMAND if5c_calc
-    --render ${CMAKE_CURRENT_BINARY_DIR}/calc_session.golden)
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME if5c_calc_golden_cmp COMMAND
     ${CMAKE_COMMAND} -E compare_files
-    ${CMAKE_CURRENT_BINARY_DIR}/calc_session.golden
+    ${CMAKE_CURRENT_BINARY_DIR}/if5c_calc_session.bmp
     ${CMAKE_CURRENT_SOURCE_DIR}/v5/client/tests/golden/if5c_calc.golden)

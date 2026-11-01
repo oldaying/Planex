@@ -42,12 +42,22 @@
  * the registered deferral ADR-0026 CAVEATS handed down and
  * ADR-0027 §7 re-registered for this stage.
  */
+#if !defined(_WIN32)
+#define _POSIX_C_SOURCE 200809L
+#endif
 #include "if5_internal.h"
 
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 
 /* ============================================================
  * The format (version 1, little-endian, fixed layout)
@@ -363,12 +373,32 @@ int if5_snapshot_save(if5_world* w, const char* path,
 
     if (b.oom) { free(b.p); return IF5_SNAP_ERR_IO; }
 
+#ifdef _WIN32
     f = fopen(path, "wb");
     if (!f) {
         diagf(diag, diag_cap, "cannot open '%s' for writing", path);
         free(b.p);
         return IF5_SNAP_ERR_IO;
     }
+#else
+    /* explicit 0644, umask-independent (the shipping fb.c
+     * precedent; CodeQL cpp/world-writable-file-creation) */
+    {
+        int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (fd < 0) {
+            diagf(diag, diag_cap, "cannot open '%s' for writing", path);
+            free(b.p);
+            return IF5_SNAP_ERR_IO;
+        }
+        f = fdopen(fd, "wb");
+        if (!f) {
+            close(fd);
+            diagf(diag, diag_cap, "cannot wrap '%s'", path);
+            free(b.p);
+            return IF5_SNAP_ERR_IO;
+        }
+    }
+#endif
     if (fwrite(b.p, 1, b.n, f) != b.n) {
         diagf(diag, diag_cap, "short write on '%s'", path);
         rc = IF5_SNAP_ERR_IO;
@@ -415,11 +445,11 @@ static uint64_t rec_value(const if5_intent* r)
 static void derive_region_seeds(if5_world* w)
 {
     uint32_t i;
+    uint32_t rid;
     for (i = 0; i < w->n_log; i++) {
         const if5_intent* rec = &w->log[i];
         uint32_t len = 0;
         const uint8_t* blob;
-        uint16_t rid;
         if (rec->ptype != IF5_T_REGION) continue;
         if (i + 1 < w->n_log &&
             w->log[i + 1].ptype == IF5_T_TIER &&
@@ -429,9 +459,9 @@ static void derive_region_seeds(if5_world* w)
         blob = (const uint8_t*)if5__arena_get(
             w, ((uint64_t)rec->value[0] << 32) | rec->value[1], &len);
         if (!blob) continue;
-        for (rid = rec->region; rid <= rec->aux && rid != 0; rid++) {
-            if5_region* r = if5__region(w, rid);
-            uint32_t k = (uint32_t)(rid - rec->region);
+        for (rid = rec->region; rid != 0 && rid <= rec->aux; rid++) {
+            if5_region* r = if5__region(w, (uint16_t)rid);
+            uint32_t k = rid - rec->region;
             uint64_t seed = 0;
             if (!r) continue;
             if ((k + 1) * 10u > len) break; /* malformed span */
@@ -860,7 +890,21 @@ int if5_snapshot_load(if5_world* w, const char* path,
         diagf(diag, diag_cap, "cannot size '%s'", path);
         return IF5_SNAP_ERR_IO;
     }
-    img = (uint8_t*)malloc(fsz > 0 ? (size_t)fsz : 1);
+    /* A registered bound on the snapshot's size: the format's own
+     * capacities (1024 regions, 4 sources, a 64-entry registry)
+     * put a sane world in the kilobytes-to-megabytes range; 256
+     * MiB is a ceiling no registered scenario approaches, and a
+     * file beyond it is refused as malformed rather than trusted
+     * with an unbounded allocation (CodeQL
+     * cpp/unbounded-allocation — the bound is real, not cosmetic)
+     */
+    if (fsz <= 0 || fsz > 256L * 1024L * 1024L) {
+        fclose(f);
+        diagf(diag, diag_cap, "snapshot size %ld is outside the "
+             "registered bound", fsz);
+        return IF5_SNAP_ERR_BOUNDS;
+    }
+    img = (uint8_t*)malloc((size_t)fsz);
     if (!img) { fclose(f); return IF5_SNAP_ERR_IO; }
     if (fread(img, 1, (size_t)fsz, f) != (size_t)fsz) {
         free(img); fclose(f);
