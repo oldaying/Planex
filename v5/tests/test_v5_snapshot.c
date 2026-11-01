@@ -424,14 +424,14 @@ static void test_f7_f9_round_trip(void)
 
     printf("  [TEST] f7_f9_round_trip\n");
 
-    assert(if5_snapshot_save(a, "/tmp/if5_snap_a.bin", diag,
+    assert(if5_snapshot_save(a, "if5_snap_a.bin", diag,
                              sizeof diag) == IF5_SNAP_OK);
 
     b = fresh_typed_world();
     /* the extension type re-registered through the public channel,
      * exactly as the loader contract demands */
     {
-        int rc = if5_snapshot_load(b, "/tmp/if5_snap_a.bin", diag,
+        int rc = if5_snapshot_load(b, "if5_snap_a.bin", diag,
                                    sizeof diag);
         if (rc != IF5_SNAP_OK) {
             fprintf(stderr, "LOAD rc=%d diag: %s\n", rc, diag);
@@ -540,10 +540,10 @@ static void test_f6_named_addresses(void)
 
     printf("  [TEST] f6_named_addresses\n");
 
-    assert(if5_snapshot_save(a, "/tmp/if5_snap_f6.bin", diag,
+    assert(if5_snapshot_save(a, "if5_snap_f6.bin", diag,
                              sizeof diag) == IF5_SNAP_OK);
     b = fresh_typed_world();
-    assert(if5_snapshot_load(b, "/tmp/if5_snap_f6.bin", diag,
+    assert(if5_snapshot_load(b, "if5_snap_f6.bin", diag,
                              sizeof diag) == IF5_SNAP_OK);
 
     /* names, ids, addresses — all stable across the round trip */
@@ -584,14 +584,14 @@ static void test_f8_canonicity(void)
 
     printf("  [TEST] f8_canonicity\n");
 
-    assert(if5_snapshot_save(a, "/tmp/if5_f8_1.bin", diag,
+    assert(if5_snapshot_save(a, "if5_f8_1.bin", diag,
                              sizeof diag) == IF5_SNAP_OK);
-    assert(if5_snapshot_save(a, "/tmp/if5_f8_2.bin", diag,
+    assert(if5_snapshot_save(a, "if5_f8_2.bin", diag,
                              sizeof diag) == IF5_SNAP_OK);
 
     /* save twice: byte-identical */
-    f1 = fopen("/tmp/if5_f8_1.bin", "rb");
-    f2 = fopen("/tmp/if5_f8_2.bin", "rb");
+    f1 = fopen("if5_f8_1.bin", "rb");
+    f2 = fopen("if5_f8_2.bin", "rb");
     assert(f1 && f2);
     fseek(f1, 0, SEEK_END); la = ftell(f1); fseek(f1, 0, SEEK_SET);
     fseek(f2, 0, SEEK_END); lb = ftell(f2); fseek(f2, 0, SEEK_SET);
@@ -606,12 +606,12 @@ static void test_f8_canonicity(void)
 
     /* the fixpoint: load, re-save, byte-identical again */
     b = fresh_typed_world();
-    assert(if5_snapshot_load(b, "/tmp/if5_f8_1.bin", diag,
+    assert(if5_snapshot_load(b, "if5_f8_1.bin", diag,
                              sizeof diag) == IF5_SNAP_OK);
-    assert(if5_snapshot_save(b, "/tmp/if5_f8_3.bin", diag,
+    assert(if5_snapshot_save(b, "if5_f8_3.bin", diag,
                              sizeof diag) == IF5_SNAP_OK);
-    f1 = fopen("/tmp/if5_f8_1.bin", "rb");
-    f2 = fopen("/tmp/if5_f8_3.bin", "rb");
+    f1 = fopen("if5_f8_1.bin", "rb");
+    f2 = fopen("if5_f8_3.bin", "rb");
     assert(f1 && f2);
     fseek(f1, 0, SEEK_END); la = ftell(f1); fseek(f1, 0, SEEK_SET);
     fseek(f2, 0, SEEK_END); lb = ftell(f2); fseek(f2, 0, SEEK_SET);
@@ -643,7 +643,7 @@ static void test_refusals(void)
 
     printf("  [TEST] refusals\n");
 
-    assert(if5_snapshot_save(a, "/tmp/if5_ref.bin", diag,
+    assert(if5_snapshot_save(a, "if5_ref.bin", diag,
                              sizeof diag) == IF5_SNAP_OK);
 
     /* not fresh */
@@ -661,34 +661,34 @@ static void test_refusals(void)
         s.ptype = IF5_T_NUM; s.tier = IF5_TIER_MERGE;
         assert(if5_region_create_batch(b, (if5_sid)0, &s, 1) == 1);
     }
-    assert(if5_snapshot_load(b, "/tmp/if5_ref.bin", diag,
+    assert(if5_snapshot_load(b, "if5_ref.bin", diag,
                              sizeof diag) == IF5_SNAP_ERR_STATE);
     if5_world_free(b);
 
     /* bad magic */
-    f = fopen("/tmp/if5_ref.bin", "rb");
+    f = fopen("if5_ref.bin", "rb");
     assert(f);
     fseek(f, 0, SEEK_END); sz = ftell(f); fseek(f, 0, SEEK_SET);
     img = (uint8_t*)malloc((size_t)sz);
     assert(fread(img, 1, (size_t)sz, f) == (size_t)sz);
     fclose(f);
     img[0] = 'X';
-    f = fopen("/tmp/if5_ref_magic.bin", "wb");
+    f = fopen("if5_ref_magic.bin", "wb");
     fwrite(img, 1, (size_t)sz, f);
     fclose(f);
     img[0] = 'I';                      /* restore for the later cases */
     b = fresh_typed_world();
-    assert(if5_snapshot_load(b, "/tmp/if5_ref_magic.bin", diag,
+    assert(if5_snapshot_load(b, "if5_ref_magic.bin", diag,
                              sizeof diag) == IF5_SNAP_ERR_MAGIC);
     if5_world_free(b);
 
     /* truncation */
-    f = fopen("/tmp/if5_ref_trunc.bin", "wb");
+    f = fopen("if5_ref_trunc.bin", "wb");
     fwrite(img, 1, (size_t)(sz - 40), f);
     fclose(f);
     b = fresh_typed_world();
     {
-        int rc = if5_snapshot_load(b, "/tmp/if5_ref_trunc.bin", diag,
+        int rc = if5_snapshot_load(b, "if5_ref_trunc.bin", diag,
                                    sizeof diag);
         if (rc != IF5_SNAP_ERR_TRUNC) {
             fprintf(stderr, "TRUNC rc=%d diag: %s\n", rc, diag);
@@ -702,13 +702,13 @@ static void test_refusals(void)
         uint8_t* big = (uint8_t*)malloc((size_t)sz + 4);
         memcpy(big, img, (size_t)sz);
         big[sz] = big[sz+1] = big[sz+2] = big[sz+3] = 0;
-        f = fopen("/tmp/if5_ref_trail.bin", "wb");
+        f = fopen("if5_ref_trail.bin", "wb");
         fwrite(big, 1, (size_t)sz + 4, f);
         fclose(f);
         free(big);
     }
     b = fresh_typed_world();
-    assert(if5_snapshot_load(b, "/tmp/if5_ref_trail.bin", diag,
+    assert(if5_snapshot_load(b, "if5_ref_trail.bin", diag,
                              sizeof diag) == IF5_SNAP_ERR_BOUNDS);
     if5_world_free(b);
 
@@ -723,7 +723,7 @@ static void test_refusals(void)
         assert(if5_register_payload_type(b, &t) == 2);
     }
     {
-        int rc = if5_snapshot_load(b, "/tmp/if5_ref.bin", diag,
+        int rc = if5_snapshot_load(b, "if5_ref.bin", diag,
                                    sizeof diag);
         if (rc != IF5_SNAP_ERR_TYPE) {
             fprintf(stderr, "REFUSAL FAIL: type drift returned %d "
