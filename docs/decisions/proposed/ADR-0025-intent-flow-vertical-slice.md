@@ -677,13 +677,76 @@ human-subject measurement.
 
 ## Validation
 
-To be preserved at the implementation and measurement commits,
-following ADR-0024's transcript precedent (actual gate output, not
-assertions about it): the `--four-column` replay on the branch head;
-the rebound gate's clean run and its synthetic-bite exit-1
-demonstration; the first full calibration-suite run with per-section
-counts; and the E2 harness checkpoint table as published in
-`measurements/e2-engineering-leg/`.
+Preserved at the implementation and measurement commits, following
+ADR-0024's transcript precedent (actual gate output, not assertions
+about it).
+
+**At the implementation commit** (measured, not asserted):
+
+```
+$ bash scripts/check_doc_sections.sh --check --four-column
+check_doc_sections: all 24 ADR file(s) have all mandatory sections
+(four-column mode: ADR-0024 and later also checked for
+## Refutation Criteria and ## Regression Clause).
+
+$ make -C slice test          # calibration + property + arms + E2
+  [TEST] c3_single_source_short_circuit               OK
+  [TEST] c4_zero_budget_all_receipts                  OK
+  [TEST] c5_all_strict_classical                      OK
+  [TEST] c7_undo_sugar_is_projection                  OK
+  [TEST] i6_prov_completeness                         OK
+  [TEST] i7_ladder_monotone                           OK
+  [TEST] c9_treatment_side_zero_machinery             OK
+  [TEST] views_are_down_closed                        OK
+8/8 calibration sections pass
+  [TEST] c6_num_lattice_one_million   (NUM: 1000000 groups) OK
+  [TEST] c6_set_lattice_one_million   (SET: 1000000 groups) OK
+  [TEST] c6_registry_admits_the_builtins (clones admitted) OK
+  [TEST] c6_registry_rejects_nonassociative (the checker bit) OK
+  [TEST] c6_counterexample_shrinks (shrunk 49/1f/e3 -> 0/0/3) OK
+  [TEST] c6_mixed_rounds              (mixed: 1000000 groups) OK
+6/6 property sections pass
+
+$ make -C slice rebound-check
+rebound gate: clean (no kind dispatch, no passive mode, no
+single-source case)
+synthetic bite: all planted rebounds caught (3 patterns matched)
+rebound gate: PASS
+```
+
+Root gates on the branch head: `make test` 39/39; orthogonality
+19/20 (1 pre-existing skip: the transaction-API section, unchanged
+from main); feedback 14/14; v05 12/12; v06 32/32; v07 21/21;
+v08 31/31; `check-build-sync`, `gen_adr_index --check`, lifecycle,
+links (79 files), orphans, terms, stale-abstraction and
+limitations-freshness, essence admission 6/6 — all PASS.
+
+**At the measurement commit** — the E2 harness checkpoint table as
+published in `measurements/e2-engineering-leg/` (see RESULT.md
+there for the full C1–C9 ledger):
+
+```
+checkpoint,n_changes,n_log,history_bytes,working_set_bytes,ratio
+1,500,501,34048,50440,0.675020
+2,1000,1001,58048,50440,1.150833
+3,2000,2001,106048,50440,2.102458
+4,4000,4001,202048,50440,4.005710
+
+[C8a] residency at n=2000: 2.102 x working set (boundary <= 3.0)
+C8a PASS
+[C8b] linearity: R^2 = 1.000000 (boundary >= 0.99), slope = 48.0
+[C8b] incremental cost: mean 48.0, window [40.8, 55.2]: within
+C8b PASS
+```
+
+The measured 2.102x lands just under the predicted interval
+[2.2, 2.9] — recorded as a deviation in RESULT.md, not smoothed:
+the implemented working set (the world struct, region table at its
+registered capacity) is slightly heavier than the prediction's
+shape. Three measurement adjudications (records-not-capacity;
+working-set-is-the-struct; incremental-baseline-at-load-complete)
+are registered in the code where they were decided, each with the
+rejected alternative's numbers alongside.
 
 ## HISTORY
 
@@ -693,6 +756,20 @@ counts; and the E2 harness checkpoint table as published in
   §4a–h), and the E2 Reading-B adjudication rule fixed in the same
   commit. Implementation and measurement commits follow in that order;
   their outcomes will be recorded here and in `## Validation`.
+- 2026-11-01: Implementation commit. The core (log/clocks/tiers/
+  ledger/projections), TRIP-17 and both arms, the calibration and
+  property suites, the rebound gate, and the build wiring land.
+  C1, C2, C3, C4, C5, C6, C7, C9 verified at this commit (see
+  Validation); the E2 leg runs at landing below. Design readings
+  registered where they live: the living-knowledge rule, the REBORN
+  exemption, fork-head time-travel, the 48-byte record, the
+  hot-object concurrency beat (the first E2 run's 2-realized-pairs
+  failure mode is on the record in the generator).
+- 2026-11-01: Measurement commit. C8 lands: residency 2.102x at
+  n=2000, R^2 = 1.000000, increments within +/-15%. The series'
+  first registered, machine-measured number, published with raw
+  data and a recompute script. All nine predictions PASS; the
+  honest ledger (zero human-measured numbers) is unchanged.
 
 ## References
 

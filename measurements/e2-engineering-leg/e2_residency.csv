@@ -1,0 +1,6 @@
+# e2-engineering-leg raw data (recomputable: seeded xorshift64, seed 0x9E3779B97F4A7C15)
+checkpoint,n_changes,n_log,history_bytes,working_set_bytes,ratio,incr_bytes_per_change
+1,500,501,34048,50440,0.675020,48.000
+2,1000,1001,58048,50440,1.150833,48.000
+3,2000,2001,106048,50440,2.102458,48.000
+4,4000,4001,202048,50440,4.005710,48.000
