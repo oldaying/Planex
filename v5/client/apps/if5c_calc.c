@@ -57,9 +57,13 @@ typedef struct {
 
 static void calc_set(const calc* c, uint16_t rid, const char* s)
 {
+    /* strlen first: an explicit length the analyzer can bound the
+     * reads against (the 8-byte STR payload is the hard cap) */
+    size_t n = strlen(s);
     uint64_t v = 0;
-    int i;
-    for (i = 0; s[i] && i < 8; i++)
+    size_t i;
+    if (n > 8) n = 8;
+    for (i = 0; i < n; i++)
         v |= (uint64_t)(uint8_t)s[i] << (8 * i);
     assert(if5_user_act(c->w, c->u, rid, IF5_T_STR, v));
 }
