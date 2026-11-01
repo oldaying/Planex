@@ -86,6 +86,39 @@ cost tables it prints are C9's comparison surface. The E2 raw data
 lives in `measurements/e2-engineering-leg/` and recomputes via
 `scripts/analyze_e2_residency.sh`.
 
+## The v5 derivation tree (ADR-0026)
+
+The full rewrite's stage R1: a parallel tree (`v5/`, namespace
+`if5_`) that PROMOTES the slice's core to library grade and adds
+the global cut algebra plus the S15/S17/S24 seats. A derivation,
+not a shipping direction — the shipping API stays frozen as the
+E-series control arm. It carries five suites:
+
+```bash
+make -C v5 test              # calibration (the slice's battery
+                              #   re-derived on if5: C3/C4/C5/C7/C9,
+                              #   I1/I2/I3/I5/I6/I7, down-closure
+                              #   via the promoted public verifier)
+                              # + property (1M groups, shrinking,
+                              #   synthetic bite)
+                              # + cut (the algebra's laws; the
+                              #   independent membership fold)
+                              # + seats (S15 tree totality/
+                              #   determinism, S17 PROV-backed
+                              #   timetable, S24 projection purity)
+                              # + the DIFFERENTIAL: both cores in
+                              #   one binary, TRIP-17 + 100 seeded
+                              #   random streams + the E2 shape,
+                              #   byte-compared on the registered
+                              #   observation surface, with v5's
+                              #   residency re-verified against
+                              #   the C8 boundary directly
+make -C v5 rebound-check     # the extended rebound gate: the same
+                              #   four bans over v5/src + v5/include
+                              #   PLUS the S15 visual-field ban, each
+                              #   with its own synthetic bite
+```
+
 ## Test Summary
 
 | Category | Tests |
@@ -99,6 +132,10 @@ lives in `measurements/e2-engineering-leg/` and recomputes via
 | Anti-pattern Perception | 4 |
 | Slice calibration sections (C3/C4/C5/C7/C9, I1–I7, down-closure) | 8 |
 | Slice property sections (C6/I4, 1M groups/round) | 6 |
-| **Total** | **82** |
+| v5 calibration sections (the battery re-derived on if5) | 8 |
+| v5 property sections (1M groups/round, on if5) | 6 |
+| v5 cut sections (V2/V3: algebra laws, address checks) | 6 |
+| v5 seats sections (V4/V5/V6: S15/S17/S24) | 6 |
+| **Total** | **108** |
 
 All tests must pass on both Linux (gcc) and Windows (MSVC).

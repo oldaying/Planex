@@ -353,3 +353,51 @@ add_test(NAME slice_property COMMAND test_slice_property)
 add_test(NAME slice_app_scenario COMMAND slice_app)
 add_test(NAME classic_arm_control COMMAND classic_arm)
 add_test(NAME e2_engineering_leg COMMAND e2_engineering_leg)
+
+# ============================================================
+# The v5 derivation tree (ADR-0026) — the full rewrite, stage R1,
+# as a PARALLEL tree in the v4/ precedent's shape. The ifl core is
+# PROMOTED to library grade here (if5_*), plus the global cut
+# algebra (discharging ADR-0025's registered Phase-4-scale known
+# issue) and the S15/S17/S24 seats. The DIFFERENTIAL links both
+# cores: v5 must stay observationally equivalent to the frozen
+# slice on the registered surface — the rewrite may extend, never
+# alter. Like planex_v4_lib and planex_slice_lib, planex_v5_lib is
+# NEVER linked into planex_lib: the shipping API stays frozen as
+# the E-series control arm (vol. 6 6.3), and v5 is a derivation,
+# not a shipping direction, until the promotion gate opens.
+# ============================================================
+
+add_library(planex_v5_lib STATIC
+    v5/src/if5_core.c
+    v5/src/if5_merge.c
+    v5/src/if5_budget.c
+    v5/src/if5_cut.c
+    v5/src/if5_tree.c
+    v5/src/if5_schedule.c
+)
+target_include_directories(planex_v5_lib PUBLIC v5/include)
+
+add_executable(test_v5_calibration v5/tests/test_v5_calibration.c)
+target_link_libraries(test_v5_calibration planex_v5_lib)
+add_test(NAME v5_calibration COMMAND test_v5_calibration)
+
+add_executable(test_v5_property v5/tests/test_v5_property.c)
+target_link_libraries(test_v5_property planex_v5_lib)
+add_test(NAME v5_property COMMAND test_v5_property)
+
+add_executable(test_v5_cut v5/tests/test_v5_cut.c)
+target_link_libraries(test_v5_cut planex_v5_lib)
+add_test(NAME v5_cut COMMAND test_v5_cut)
+
+add_executable(test_v5_seats v5/tests/test_v5_seats.c)
+target_link_libraries(test_v5_seats planex_v5_lib)
+add_test(NAME v5_seats COMMAND test_v5_seats)
+
+# The master gate: BOTH cores in one binary. The frozen slice is
+# the reference arm; scenario.h (TRIP-17) drives them in lockstep.
+add_executable(test_v5_differential v5/tests/test_v5_differential.c)
+target_link_libraries(test_v5_differential planex_v5_lib planex_slice_lib)
+target_include_directories(test_v5_differential PRIVATE
+    v5/src slice/src slice/app)
+add_test(NAME v5_differential COMMAND test_v5_differential)
