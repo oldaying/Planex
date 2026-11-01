@@ -68,18 +68,22 @@ static void calc_get(const calc* c, uint16_t rid, char* out, size_t cap)
 {
     uint64_t v;
     if5_view now;
-    int i;
-    if (cap == 0) return;
+    int i, n = 0;
+    int limit = (int)cap - 1;      /* room for the terminator */
+    if (limit > 8) limit = 8;
+    if (limit < 0) limit = 0;
     out[0] = 0;
     now = if5_now(c->w);
     v = if5_state_at(c->w, rid, &now, NULL);
     for (i = 0; i < 8; i++) {
         uint8_t b = (uint8_t)(v >> (8 * i));
         if (!b) break;
-        if (i >= (int)cap - 1) break;          /* room for the terminator */
-        out[i] = (char)b;
+        if (n < limit) {
+            out[n] = (char)b;
+            n++;
+        }
     }
-    out[i < (int)cap - 1 ? i : (int)cap - 1] = 0;
+    out[n] = 0;                    /* n <= limit < cap, by construction */
 }
 
 static void press_digit(calc* c, char d)
